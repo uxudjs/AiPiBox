@@ -174,13 +174,13 @@ export const zhTW = {
 
     security: {
       title: '安全與數據管理',
-      encryptionEnabled: '端到端加密已啟用',
-      encryptionHint: '您的 API 金鑰和對話數據使用您的主密碼進行 AES-256 加密存儲。',
-      cloudSync: '雲端同步',
-      cloudSyncHint: '將配置和對話歷史加密同步至雲端服務器，實現多設備資料共享。同步的資料包括：提供商配置（API Key已加密）、對話歷史、模型預設、知識庫配置等。',
-      syncServerOnline: '同步服務線上',
-      syncServerOffline: '同步服務離線 - 雲端同步已暫停',
-      syncServerNotAvailable: '同步伺服器不可用，請檢查同步 API 地址',
+      encryptionEnabled: '端到端加密保護',
+      encryptionHint: '系統使用 AES-256 標準對 API 金鑰、對話記錄及配置數據進行本地加密儲存，確保數據僅在您的主密碼解鎖後可訪問。',
+      cloudSync: '雲端同步服務',
+      cloudSyncHint: '啟用後，加密的配置資訊、對話歷史、模型預設及知識庫索引將同步至雲端。同步過程採用端到端加密，即便雲端數據被截獲也無法解密原始內容。',
+      syncServerOnline: '同步伺服器連線正常',
+      syncServerOffline: '同步伺服器連線中斷',
+      syncServerNotAvailable: '無法訪問同步服務，請確認同步介面位址配置無誤',
       persistence: '登錄狀態保持',
       persistenceHint: '設置自動退出登錄的時間，保護您的數據安全。',
       persistenceNone: '不保持 (關閉瀏覽器即退出)',
@@ -209,12 +209,12 @@ export const zhTW = {
       reloadPrompt: '頁面將自動重載以應用更改...',
       
       // 雲端同步
-      enableCloudSync: '啟用雲端同步',
-      autoSync: '自動同步',
-      autoSyncHint: '資料變更時自動同步到雲端',
-      syncApiUrl: '同步 API 位址',
-      syncApiUrlHint: '雲端同步服務地址。當部署在Vercel/Netlify/Cloudflare默認域名時，系統自動檢測，無需填寫。僅在使用GitHub Pages或自定義域名時需要手動配置。',
-      syncApiUrlPlaceholder: 'https://your-app.vercel.app',
+      enableCloudSync: '開啟雲端同步',
+      autoSync: '自動實時同步',
+      autoSyncHint: '偵測到本地數據變更後自動發起雲端同步',
+      syncApiUrl: '同步服務介面位址',
+      syncApiUrlHint: '指定雲端同步服務的 API 入口。在 Vercel 或 Cloudflare 等原生環境下可留空，系統將通過自動識別環境採用最優路徑。',
+      syncApiUrlPlaceholder: '默認路徑（推薦）',
       syncNow: '立即同步',
       syncStatus: '同步狀態',
       syncStatusIdle: '就緒',
@@ -249,11 +249,11 @@ export const zhTW = {
 
     proxy: {
       title: '網路與代理',
-      proxyMode: '啟用代理服務',
-      proxyHint: '通過後端服務器代理所有AI API請求，解決CORS跨域限制，確保網路穩定性和請求連續性。所有AI請求（聊天、圖像生成、模型清單等）均通過代理服務器轉發，即使用戶端網路中斷，服務端長連接請求仍可繼續執行。',
-      cloudProxyUrl: '雲端代理 URL',
-      cloudProxyHint: '生產環境代理服務地址。當部署在Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）默認域名時，系統自動檢測，無需填寫。僅在使用GitHub Pages或自定義域名時需要手動配置。\n\n本地開發環境會自動使用 http://localhost:5000/api/proxy，無需配置。',
-      cloudSyncDepends: '雲端同步依賴於代理服務，停用後雲端同步也將停止'
+      proxyMode: '啟用全局 API 代理',
+      proxyHint: '代理服務旨在繞過瀏覽器跨域限制（CORS）並增強連線穩定性。開啟後，所有 AI 請求將由服務端代理轉發，即便在不穩定的網路環境下，也能確保長連線請求的完整性與成功率。',
+      cloudProxyUrl: '生產環境代理位址',
+      cloudProxyHint: '指定生產環境下的 AI 代理服務介面。系統能自動識別 Vercel、Netlify 及 Cloudflare Pages 的默認部署路徑。若使用自定義域名或 GitHub Pages，請務必手動配置此項。',
+      cloudSyncDepends: '雲端同步功能依賴代理服務，停用代理將導致同步失效'
     },
 
     footer: {
@@ -325,7 +325,7 @@ export const zhTW = {
     cameraAccessError: '無法存取攝影機：',
     interrupted: 'AI 回應已被中斷',
     error: '出錯了: ',
-    ocrNotConfigured: '當前模型不支援圖片處理，請在設定中配置OCR模型或選擇支援圖像識別的模型',
+    ocrNotConfigured: '未配置OCR模型，請在 設置-預設模型-OCR模型 中進行配置',
     notSet: '未設定',
     unlimited: '無限制',
     uploadDoc: '上傳文檔',
@@ -588,87 +588,87 @@ export const zhTW = {
   },
 
   help: {
-    title: '幫助說明',
-    description: '了解如何部署和配置AiPiBox，以及各項功能的使用方法',
-    footer: '如需更多幫助，請查閱專案文件或在GitHub上提交問題回饋',
+    title: '幫助中心',
+    description: '本文檔旨在為您提供詳盡的部署、配置及功能使用指南',
+    footer: '若需深入了解技術細節，請參閱官方文件或通過 GitHub 提交回饋',
 
     deployment: {
-      title: '部署方式',
+      title: '多平台部署指南',
       platforms: {
-        title: '支持的平台',
-        content: 'AiPiBox支持多種部署平台，包括Vercel、Netlify、Cloudflare Pages、GitHub Pages以及本地開發環境。應用會自動偵測運行環境並使用相應的配置，無需手動介入。'
+        title: '環境自動識別',
+        content: 'AiPiBox 能自動感知其運行環境，並針對 Vercel、Netlify 及 Cloudflare Pages 等平台套用最佳化配置。'
       },
       vercel: {
-        title: 'Vercel部署',
-        content: '使用域名特徵 *.vercel.app 自動識別。\n代理路徑：/api/ai-proxy（自動）\n同步路徑：/api/sync（自動）\n支持Serverless Functions，最長執行300秒。\n\n部署方式：\n1. 使用Vercel CLI：vercel --prod\n2. 通過Vercel網頁導入GitHub儲存庫\n\n無需配置雲端代理URL，系統自動檢測。'
+        title: 'Vercel 部署',
+        content: '支援域名特徵：*.vercel.app\n代理入口：/api/ai-proxy（全自動）\n同步介面：/api/sync（全自動）\n平台特性：支援 Serverless Functions。部署時無需額外配置代理 URL。'
       },
       netlify: {
-        title: 'Netlify部署',
-        content: '使用域名特徵 *.netlify.app 自動識別。\n代理路徑：/api/ai-proxy（自動）\n同步路徑：/api/sync（自動）\n支持Netlify Functions，最長執行300秒。\n\n部署方式：\n1. 使用Netlify CLI：netlify deploy --prod\n2. 通過Netlify網頁連接GitHub儲存庫\n\n無需配置雲端代理URL，系統自動檢測。'
+        title: 'Netlify 部署',
+        content: '支援域名特徵：*.netlify.app\n代理入口：/api/ai-proxy（全自動）\n同步介面：/api/sync（全自動）\n平台特性：支援 Netlify Functions。推薦通過 GitHub 儲存庫直接關聯部署。'
       },
       cloudflare: {
-        title: 'Cloudflare Pages部署',
-        content: '使用域名特徵 *.pages.dev 自動識別。\n代理路徑：/api/ai-proxy（自動）\n同步路徑：/api/sync（自動）\n支持Cloudflare Workers，無執行時間限制。\n\n部署方式：\n1. 使用Wrangler CLI：wrangler pages deploy dist\n2. 通過Cloudflare Dashboard連接Git\n\n雲端同步需要配置KV命名空間（變量名：SYNC_DATA）。\n無需配置雲端代理URL，系統自動檢測。'
+        title: 'Cloudflare Pages 部署',
+        content: '支援域名特徵：*.pages.dev\n代理入口：/api/ai-proxy（全自動）\n同步介面：/api/sync（全自動）\n平台特性：基於 Cloudflare Workers 運行，無請求時長限制。雲端同步需在 Dashboard 中繫定 KV 命名空間（變量名：SYNC_DATA）。'
       },
       github: {
-        title: 'GitHub Pages部署',
-        content: '使用域名特徵 *.github.io 自動識別。\nGitHub Pages僅支持靜態檔案託管，無法運行後端函數。\n\n部署方式：\n專案包含自動部署工作流程，推送到main分支即可自動部署。\n\n重要配置：\n必須配置外部API服務才能使用AI功能。\n建議使用Vercel或Cloudflare免費套餐部署API服務。\n在設置中填寫雲端代理URL：https://your-api.vercel.app/api/ai-proxy'
+        title: 'GitHub Pages 部署',
+        content: '支援域名特徵：*.github.io\n核心局限：GitHub Pages 僅支援靜態託管，不支援運行後端邏輯。\n關鍵配置：必須在設定中手動指定生產環境的「雲端代理 URL」以啟用 AI 功能。'
       },
       local: {
-        title: '本地開發',
-        content: '使用域名特徵 localhost 或 127.0.0.1 自動識別。\n代理路徑：http://localhost:5000/api/proxy（自動）\n\n啟動方式：\n方式一（推薦）：npm run dev:full\n自動啟動代理伺服器和開發伺服器。\n\n方式二：分別啟動\n終端1：npm run proxy\n終端2：npm run dev\n\n方式三：使用外部API\n只運行 npm run dev\n在設置中配置生產環境的雲端代理URL。'
+        title: '本地開發偵錯',
+        content: '識別特徵：localhost 或 127.0.0.1\n啟動方案：推薦使用 npm run dev:full 同時啟動前端與代理服務。若僅運行 npm run dev，需確保已正確配置遠端代理位址。'
       }
     },
 
     proxy: {
-      title: '代理配置',
+      title: '代理服務配置',
       overview: {
-        title: '代理功能概述',
-        content: 'AI代理服務用於轉發所有AI API請求，解決瀏覽器CORS跨域限制，確保網路穩定性和請求連續性。所有AI請求（聊天、圖像生成、模型清單等）都通過代理伺服器進行，即使用戶端網路中斷，伺服端的長連接請求仍可繼續執行。'
+        title: '代理機制說明',
+        content: 'AI 代理服務核心在於中轉用戶端請求，解決 CORS 跨域限制，並在複雜的網路環境下提供更可靠的長連線保持能力，確保串流輸出的連續性。'
       },
       cloudProxy: {
-        title: '雲端代理URL',
-        content: '用途：生產環境的代理服務地址\n\n何時需要填寫：\n1. 使用GitHub Pages部署時（必須）\n2. 使用自定義域名時（建議）\n3. 前後端分離部署時（必須）\n\n何時無需填寫：\n1. 部署到Vercel（*.vercel.app）\n2. 部署到Netlify（*.netlify.app）\n3. 部署到Cloudflare Pages（*.pages.dev）\n\n這些平台會自動檢測並使用相對路徑調用本平台的函數服務，無需額外配置。'
+        title: '生產代理配置',
+        content: '在 Vercel、Netlify 或 Cloudflare Pages 等原生環境下，系統會自動套用相對路徑，通常無需手動設置。僅當您進行跨域部署、使用自定義域名或 GitHub Pages 時，才需顯式配置此介面位址。'
       },
       localProxy: {
-        title: '本地代理URL',
-        content: '用途：本地開發環境的代理服務地址\n默認值：http://localhost:5000/api/proxy\n\n使用場景：\n在本地開發時，如果運行了 npm run proxy 或 npm run dev:full，應用會自動使用此地址。如果未運行本地代理，可以在此配置生產環境的代理地址進行測試。\n\n通常情況下無需修改此項，保持默認值即可。'
+        title: '本地偵錯配置',
+        content: '默認指向 http://localhost:5000/api/proxy。此設置主要用於開發階段，確保前端能正常訪問本地模擬的後端代理邏輯。'
       },
       autoDetect: {
-        title: '環境自動偵測',
-        content: '应用内址智能环境侦测机制，根据当前存取的域名自动选择合适的代理配置：\n\n侦测逻輯：\n- *.vercel.app → 使用 /api/ai-proxy\n- *.netlify.app → 使用 /api/ai-proxy\n- *.pages.dev → 使用 /api/ai-proxy\n- *.github.io → 使用配置的外部代理URL\n- localhost → 使用 /api/ai-proxy (通过 Vite 代理)\n- 自定义域名 → 使用 /api/ai-proxy\n\n这个过程完全自动，开发者无需关心底层实现细节。'
+        title: '智慧環境識別',
+        content: '系統會根據當前 Hostname 動態切換代理策略：\n- 平台原生域名：自動關聯內部 Serverless 路由\n- 靜態託管域名：回退至手動配置的遠端代理介面\n- 開發環境：關聯 Vite 代理配置'
       }
     },
 
     sync: {
-      title: '雲端同步',
+      title: '雲端同步機制',
       overview: {
-        title: '雲端同步功能',
-        content: '雲端同步功能允許您將對話歷史、配置設置等資料同步到雲端伺服器，實現多設備資料共享和備份。資料傳輸採用端到端加密，確保隱私安全。\n\n同步的資料包括：\n- 對話歷史記錄\n- 提供商配置（API Key已加密）\n- 預設模型配置\n- 對話設置和搜索設置\n- 知識庫配置'
+        title: '同步功能綜述',
+        content: '雲端同步允許將多維數據安全儲存至遠端資料庫。所有敏感數據均在用戶端完成端到端加密，即便在傳輸過程中，任何第三方（包括同步伺服器）也無法窺視您的數據內容。'
       },
       setup: {
-        title: '配置雲端同步',
-        content: '啟用步驟：\n1. 確保已部署到支持後端函數的平台（Vercel/Netlify/Cloudflare）\n2. 配置資料庫連接（MySQL或PostgreSQL）\n3. 在設置 → 安全與資料中啟用雲端同步\n4. 設置同步密碼（用於資料加密和生成使用者ID）\n5. 點擊“立即同步”進行首次同步\n\n資料庫配置：\n需要在平台的環境變量中設置：\nDATABASE_URL=mysql://user:pass@host:3306/dbname\nDATABASE_TYPE=mysql'
+        title: '啟用步驟指南',
+        content: '1. 完成後端函數平台部署\n2. 配置 DATABASE_URL 及 DATABASE_TYPE 環境變量\n3. 在安全設定中開啟雲端同步並設置獨立同步密碼\n4. 執行首次手動同步以建立基準'
       },
       platforms: {
-        title: '不同平台的同步支持',
-        content: 'Vercel/Netlify：\n支持MySQL和PostgreSQL資料庫\n需要在平台設置中配置資料庫連接\n\nCloudflare Pages：\n支持KV儲存和D1資料庫\n需要在Pages設置中繫定KV命名空間（變量名：SYNC_DATA）\n\nGitHub Pages：\n需要配置外部同步服務\n可使用其他平台部署的API服務\n\n本地開發：\n支持檔案儲存或連接遠端資料庫\n可用於測試同步功能'
+        title: '後端儲存支援',
+        content: 'Vercel/Netlify：相容 MySQL 及 PostgreSQL 資料庫。\nCloudflare Pages：利用 KV 鍵值儲存實現輕量化數據同步。'
       }
     },
 
     features: {
-      title: '功能特性',
+      title: '核心功能解析',
       aiProxy: {
-        title: 'AI API代理',
-        content: '技術實現：\n所有AI請求都通過雲端伺服器代理進行，而非用戶端瀏覽器直接發送。這確保了網路穩定性和請求連續性，即使用戶端網路中斷，伺服端的長連接請求仍可繼續。\n\n支持特性：\n- 串流回應傳輸（Server-Sent Events）\n- 請求佇列管理\n- 自動重試機制（最多3次）\n- 請求快取（模型清單快取1小時）\n- 逾時控制（最長300秒）\n- 敏感資訊遮罩（API Key自動隱藏）\n\n效能最佳化：\n- 智能快取減少重複請求\n- 請求追蹤便於除錯\n- 全球CDN加速'
+        title: '全自動 API 代理',
+        content: '技術亮點：\n- 完整的 Server-Sent Events 串流傳輸支援\n- 自動指數退避重試機制\n- 全域請求快取以降低 API 消耗\n- 自動化 API Key 遮罩處理'
       },
       imageGen: {
-        title: '圖像生成',
-        content: '圖像工廠功能支持文生圖和圖生圖兩種模式，通過AI代理服務調用各種圖像生成模型。\n\n功能特性：\n- 支持多種解析度（512x512至1024x1024）\n- 可調節采樣步數和CFG引導強度\n- 支持固定種子值實現可重現生成\n- 多種藝術風格預設\n- 圖像歷史記錄保存\n- 批量生成和管理\n\n所有圖像生成請求都通過雲端代理進行，確保生成過程的穩定性。固定種子的生成結果會被快取，避免重複計算。'
+        title: '多模式圖像生成',
+        content: '整合文生圖與圖生圖模式。支援自定義解析度、採樣步數及 CFG 參數。系統通過代理服務下達指令，並快取固定種子的生成結果以提升效率。'
       },
       knowledge: {
-        title: '知識庫管理',
-        content: '知識庫功能允許您上傳文檔並在對話中引用，支持多種檔案格式：\n\n支持格式：\n- PDF文檔\n- Word文檔（.docx）\n- Excel表格（.xlsx）\n- PowerPoint簡報（.pptx）\n- 文字檔案（.txt, .md）\n- 程式碼檔案\n\n技術實現：\n文檔內容在本地解析後儲存在瀏覽器的IndexedDB中，對話時可選擇性地將文檔內容包含在上下文中發送給AI模型。\n\n如果啟用雲端同步，知識庫配置（不含檔案內容）會同步到雲端，方便多設備存取。'
+        title: '本地化知識庫',
+        content: '知識庫採用本地解析策略：\n- 相容 PDF, Word, Excel, PPT 及各類文字格式\n- 文檔內容完全在瀏覽器端索引，不上傳原始檔案\n- 啟用雲同步後，僅同步知識庫的元數據與索引結構'
       }
     }
   }

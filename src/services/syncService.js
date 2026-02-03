@@ -19,6 +19,7 @@ import {
   mergeMessages,
   ResolutionStrategy
 } from '../utils/conflictResolver';
+import { getSyncApiUrl } from '../utils/envDetect';
 import axios from 'axios';
 
 /**
@@ -176,7 +177,8 @@ class SyncService {
       return;
     }
 
-    const isSyncAvailable = await this.checkProxyHealth();
+    // 执行同步前强制进行实时健康检查，确保不被旧的缓存错误阻断
+    const isSyncAvailable = await this.checkProxyHealth(true);
     if (!isSyncAvailable) {
       logger.error('SyncService', 'Cannot sync: cloud sync server is not available');
       useConfigStore.getState().updateCloudSync({ 
@@ -217,11 +219,8 @@ class SyncService {
       // Encrypt
       const encryptedData = await encryptData(payload, sessionPassword);
       
-      // Send
+      // Send - 使用自动检测的 API URL
       const apiBaseUrl = this._getApiBaseUrl();
-      if (!apiBaseUrl) {
-        throw new Error('Sync API URL not configured');
-      }
       
       await axios.post(`${apiBaseUrl}/api/sync`, {
         id: syncId,
@@ -267,7 +266,8 @@ class SyncService {
       return;
     }
 
-    const isSyncAvailable = await this.checkProxyHealth();
+    // 执行同步前强制进行实时健康检查
+    const isSyncAvailable = await this.checkProxyHealth(true);
     if (!isSyncAvailable) {
       logger.error('SyncService', 'Cannot sync from cloud: cloud sync server is not available');
       useConfigStore.getState().updateCloudSync({ 
@@ -282,9 +282,6 @@ class SyncService {
     try {
       const syncId = await this.getSyncId(sessionPassword);
       const apiBaseUrl = this._getApiBaseUrl();
-      if (!apiBaseUrl) {
-        throw new Error('Sync API URL not configured');
-      }
       
       const response = await axios.get(`${apiBaseUrl}/api/sync/${syncId}`, {
         timeout: 5000
@@ -376,9 +373,6 @@ class SyncService {
     try {
       const syncId = await this.getSyncId(sessionPassword);
       const apiBaseUrl = this._getApiBaseUrl();
-      if (!apiBaseUrl) {
-        throw new Error('Sync API URL not configured');
-      }
       
       await axios.delete(`${apiBaseUrl}/api/sync/${syncId}`);
       logger.info('SyncService', 'Cloud data deleted successfully');
@@ -398,15 +392,10 @@ class SyncService {
       return this.proxyStatus.isAvailable;
     }
 
-    const { cloudSync } = useConfigStore.getState();
     const apiBaseUrl = this._getApiBaseUrl();
+    // 允许空 apiBaseUrl 以支持相对路径（适配同源或代理环境）
     
-    if (!apiBaseUrl) {
-      this.proxyStatus.isAvailable = false;
-      return false;
-    }
-
-    let healthCheckUrl = `${apiBaseUrl}/api/health`;
+    const healthCheckUrl = `${apiBaseUrl}/api/health`;
     
     try {
       const response = await axios.get(healthCheckUrl, { 
@@ -414,16 +403,25 @@ class SyncService {
         validateStatus: (status) => status >= 200 && status < 300
       });
       
-      // 检查响应是否有效
-      if (response.data && (response.data.status === 'ok' || response.data.status === 'healthy' || response.data.database === 'online')) {
+      // 检查响应是否有效：支持多种成功标识以适配不同后端实现（KV, MySQL, 文件系统等）
+      if (response.data && (
+        response.data.status === 'ok' || 
+        response.data.status === 'healthy' || 
+        response.data.success === true ||
+        response.data.database === 'online'
+      )) {
         this.proxyStatus = {
           isAvailable: true,
           lastCheckTime: Date.now(),
           errorCount: 0
         };
-        logger.info('SyncService', `Sync health check passed (${healthCheckUrl})`);
+        logger.info('SyncService', `Sync health check passed: ${healthCheckUrl}`);
         return true;
       }
+      
+      logger.warn('SyncService', `Health check returned unexpected data format`, response.data);
+      this.proxyStatus.isAvailable = false;
+      return false;
     } catch (error) {
       this.proxyStatus.errorCount++;
       this.proxyStatus.lastCheckTime = Date.now();
@@ -667,11 +665,22 @@ class SyncService {
 
   /**
    * 获取API基础URL
+   * 自动检测环境并使用相对路径，与 AI 代理保持一致
    * @private
    */
   _getApiBaseUrl() {
     const { cloudSync } = useConfigStore.getState();
-    return cloudSync?.apiUrl || this.cloudSyncConfig.apiBaseUrl || '';
+    let url = cloudSync?.apiUrl;
+    
+    // 如果用户手动配置了URL，优先使用用户配置（向后兼容）
+    if (url && url.trim()) {
+      // 清理首尾空格并移除末尾的所有斜杠
+      return url.trim().replace(/\/+$/, '');
+    }
+    
+    // 否则返回空字符串，表示使用相对路径
+    // 拼接时 '' + '/api/sync' = '/api/sync'，浏览器自动识别当前域名
+    return '';
   }
 
   /**
@@ -725,9 +734,6 @@ class SyncService {
   async uploadToCloud(userId, dataType, data, password) {
     try {
       const apiBaseUrl = this._getApiBaseUrl();
-      if (!apiBaseUrl) {
-        throw new Error('未配置云端同步API地址');
-      }
 
       // 加密数据
       const encryptedData = await encryptData(data, password);
@@ -773,9 +779,6 @@ class SyncService {
   async downloadFromCloud(userId, password, dataType = null, sinceVersion = null) {
     try {
       const apiBaseUrl = this._getApiBaseUrl();
-      if (!apiBaseUrl) {
-        throw new Error('未配置云端同步API地址');
-      }
 
       // 构建查询参数
       const params = new URLSearchParams({ userId });
@@ -834,9 +837,6 @@ class SyncService {
   async deleteFromCloud(userId, dataType = null) {
     try {
       const apiBaseUrl = this._getApiBaseUrl();
-      if (!apiBaseUrl) {
-        throw new Error('未配置云端同步API地址');
-      }
 
       const result = await this._requestWithRetry(
         'DELETE',

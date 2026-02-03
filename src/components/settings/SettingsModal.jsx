@@ -1438,7 +1438,12 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             updateLocalConfig('cloudSync', { apiUrl: e.target.value });
                             if (cloudSyncError) setCloudSyncError(null);
                           }}
-                          placeholder={`${window.location.origin}${getSyncApiUrl()}`}
+                          onBlur={(e) => {
+                            // 失去焦点时自动清理末尾斜杠和空格，实现无脑适配
+                            const cleanedUrl = e.target.value.trim().replace(/\/+$/, '');
+                            updateLocalConfig('cloudSync', { apiUrl: cleanedUrl });
+                          }}
+                          placeholder={t('settings.security.syncApiUrlPlaceholder') || "留空则使用默认路径 (/api/sync)"}
                           className="w-full px-4 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary text-sm"
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400">

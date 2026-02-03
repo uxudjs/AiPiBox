@@ -62,7 +62,7 @@ export const useConfigStore = create((set, get) => ({
     enabled: false,
     lastSyncTime: 0,
     autoSync: true,
-    apiUrl: '',               // 同步后端入口
+    apiUrl: '',               // 同步后端入口（留空时自动检测环境，使用相对路径）
     syncStatus: 'idle',       // 当前状态：idle | syncing | success | error
     lastError: null,
     syncProgress: {
@@ -298,8 +298,8 @@ export const useConfigStore = create((set, get) => ({
       // 动态导入避免循环依赖
       const { syncService } = await import('../services/syncService');
       
-      // 检查同步服务是否可用 (非阻塞)
-      syncService.checkProxyHealth().then(isAvailable => {
+      // 检查同步服务是否可用 (非阻塞，强制检查以确保获取最新状态)
+      syncService.checkProxyHealth(true).then(isAvailable => {
         if (!isAvailable) {
           logger.warn('ConfigStore', 'Cloud sync enabled but sync server is not currently available');
         }

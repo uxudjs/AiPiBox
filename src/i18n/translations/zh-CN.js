@@ -210,21 +210,21 @@ export const zhCN = {
 
     security: {
       title: '安全与数据管理',
-      encryptionEnabled: '端到端加密已启用',
-      encryptionHint: '您的 API 密钥和对话数据使用您的主密码进行 AES-256 加密存储。',
-      cloudSync: '云端同步',
-      cloudSyncHint: '将配置和对话历史加密同步至云端服务器，实现多设备数据共享。同步的数据包括：提供商配置（API Key已加密）、对话历史、模型预设、知识库配置等。',
-      syncServerOnline: '同步服务在线',
-      syncServerOffline: '同步服务离线 - 云同步已暂停',
-      syncServerNotAvailable: '同步服务器不可用，请检查同步 API 地址',
+      encryptionEnabled: '端到端加密保护',
+      encryptionHint: '系统使用 AES-256 标准对 API 密钥、对话记录及配置数据进行本地加密存储，确保数据仅在您的主密码解锁后可访问。',
+      cloudSync: '云端同步服务',
+      cloudSyncHint: '启用后，加密的配置信息、对话历史、模型预设及知识库索引将同步至云端。同步过程采用端到端加密，即便云端数据被截获也无法解密原始内容。',
+      syncServerOnline: '同步服务器连接正常',
+      syncServerOffline: '同步服务器连接中断',
+      syncServerNotAvailable: '无法访问同步服务，请确认同步接口地址配置无误',
       
       // 云端同步新增
-      enableCloudSync: '启用云端同步',
-      autoSync: '自动同步',
-      autoSyncHint: '数据变更时自动同步到云端',
-      syncApiUrl: '同步 API 地址',
-      syncApiUrlHint: '云端同步服务地址。当部署在Vercel/Netlify/Cloudflare默认域名时，系统自动检测，无需填写。仅在使用GitHub Pages或自定义域名时需要手动配置。',
-      syncApiUrlPlaceholder: 'https://your-app.vercel.app',
+      enableCloudSync: '开启云端同步',
+      autoSync: '自动实时同步',
+      autoSyncHint: '检测到本地数据变更后自动发起云端同步',
+      syncApiUrl: '同步服务接口地址',
+      syncApiUrlHint: '指定云端同步服务的 API 入口。在 Vercel 或 Cloudflare 等原生环境下可留空，系统将通过自动识别环境采用最优路径。',
+      syncApiUrlPlaceholder: '默认路径（推荐）',
       syncNow: '立即同步',
       syncStatus: '同步状态',
       syncStatusIdle: '就绪',
@@ -286,11 +286,11 @@ export const zhCN = {
 
     proxy: {
       title: '网络与代理',
-      proxyMode: '启用代理服务',
-      proxyHint: '通过后端服务器代理所有AI API请求，解决CORS跨域限制，确保网络稳定性和请求连续性。所有AI请求（聊天、图像生成、模型列表等）均通过代理服务器转发，即使客户端网络中断，服务端长连接请求仍可继续执行。',
-      cloudProxyUrl: '云端代理 URL',
-      cloudProxyHint: '生产环境代理服务地址。当部署在Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）默认域名时，系统自动检测，无需填写。仅在使用GitHub Pages或自定义域名时需要手动配置。\n\n本地开发环境会自动使用 http://localhost:5000/api/proxy，无需配置。',
-      cloudSyncDepends: '云同步依赖于代理服务，禁用后云同步也将停止'
+      proxyMode: '启用全局 API 代理',
+      proxyHint: '代理服务旨在绕过浏览器跨域限制（CORS）并增强连接稳定性。开启后，所有 AI 请求将由服务端代理转发，即便在不稳定的网络环境下，也能确保长连接请求的完整性与成功率。',
+      cloudProxyUrl: '生产环境代理地址',
+      cloudProxyHint: '指定生产环境下的 AI 代理服务接口。系统能自动识别 Vercel、Netlify 及 Cloudflare Pages 的默认部署路径。若使用自定义域名或 GitHub Pages，请务必手动配置此项。',
+      cloudSyncDepends: '云端同步功能依赖代理服务，禁用代理将导致同步失效'
     },
 
     footer: {
@@ -363,7 +363,7 @@ export const zhCN = {
     cameraAccessError: '无法访问摄像头：',
     interrupted: 'AI响应已被中断',
     error: '出错了: ',
-    ocrNotConfigured: '当前模型不支持图片处理，请在设置中配置OCR模型或选择支持图像识别的模型',
+    ocrNotConfigured: '未配置OCR模型，请在 设置-预设模型-OCR模型 中进行配置',
     notSet: '未设定',
     unlimited: '无限制',
     uploadDoc: '上传文档'
@@ -589,87 +589,87 @@ export const zhCN = {
   },
 
   help: {
-    title: '帮助说明',
-    description: '了解如何部署和配置AiPiBox，以及各项功能的使用方法',
-    footer: '如需更多帮助，请查阅项目文档或在GitHub上提交问题反馈',
+    title: '帮助中心',
+    description: '本文档旨在为您提供详尽的部署、配置及功能使用指南',
+    footer: '若需深入了解技术细节，请参阅官方文档或通过 GitHub 提交反馈',
 
     deployment: {
-      title: '部署方式',
+      title: '多平台部署指南',
       platforms: {
-        title: '支持的平台',
-        content: 'AiPiBox支持多种部署平台，包括Vercel、Netlify、Cloudflare Pages、GitHub Pages以及本地开发环境。应用会自动检测运行环境并使用相应的配置，无需手动干预。'
+        title: '环境自动识别',
+        content: 'AiPiBox 能自动感知其运行环境，并针对 Vercel、Netlify 及 Cloudflare Pages 等平台应用最佳化配置。'
       },
       vercel: {
-        title: 'Vercel部署',
-        content: '使用域名特征 *.vercel.app 自动识别。\n代理路径：/api/ai-proxy（自动）\n同步路径：/api/sync（自动）\n支持Serverless Functions，最长执行300秒。\n\n部署方式：\n1. 使用Vercel CLI：vercel --prod\n2. 通过Vercel网页导入GitHub仓库\n\n无需配置云端代理URL，系统自动检测。'
+        title: 'Vercel 部署',
+        content: '支持域名特征：*.vercel.app\n代理入口：/api/ai-proxy（全自动）\n同步接口：/api/sync（全自动）\n平台特性：支持 Serverless Functions。部署时无需额外配置代理 URL。'
       },
       netlify: {
-        title: 'Netlify部署',
-        content: '使用域名特征 *.netlify.app 自动识别。\n代理路径：/api/ai-proxy（自动）\n同步路径：/api/sync（自动）\n支持Netlify Functions，最长执行300秒。\n\n部署方式：\n1. 使用Netlify CLI：netlify deploy --prod\n2. 通过Netlify网页连接GitHub仓库\n\n无需配置云端代理URL，系统自动检测。'
+        title: 'Netlify 部署',
+        content: '支持域名特征：*.netlify.app\n代理入口：/api/ai-proxy（全自动）\n同步接口：/api/sync（全自动）\n平台特性：支持 Netlify Functions。推荐通过 GitHub 仓库直接关联部署。'
       },
       cloudflare: {
-        title: 'Cloudflare Pages部署',
-        content: '使用域名特征 *.pages.dev 自动识别。\n代理路径：/api/ai-proxy（自动）\n同步路径：/api/sync（自动）\n支持Cloudflare Workers，无执行时间限制。\n\n部署方式：\n1. 使用Wrangler CLI：wrangler pages deploy dist\n2. 通过Cloudflare Dashboard连接Git\n\n云端同步需要配置KV命名空间（变量名：SYNC_DATA）。\n无需配置云端代理URL，系统自动检测。'
+        title: 'Cloudflare Pages 部署',
+        content: '支持域名特征：*.pages.dev\n代理入口：/api/ai-proxy（全自动）\n同步接口：/api/sync（全自动）\n平台特性：基于 Cloudflare Workers 运行，无请求时长限制。云端同步需在 Dashboard 中绑定 KV 命名空间（变量名：SYNC_DATA）。'
       },
       github: {
-        title: 'GitHub Pages部署',
-        content: '使用域名特征 *.github.io 自动识别。\nGitHub Pages仅支持静态文件托管，无法运行后端函数。\n\n部署方式：\n项目包含自动部署工作流，推送到main分支即可自动部署。\n\n重要配置：\n必须配置外部API服务才能使用AI功能。\n建议使用Vercel或Cloudflare免费套餐部署API服务。\n在设置中填写云端代理URL：https://your-api.vercel.app/api/ai-proxy'
+        title: 'GitHub Pages 部署',
+        content: '支持域名特征：*.github.io\n核心局限：GitHub Pages 仅支持静态托管，不支持运行后端逻辑。\n关键配置：必须在设置中手动指定生产环境的“云端代理 URL”以启用 AI 功能。'
       },
       local: {
-        title: '本地开发',
-        content: '使用域名特征 localhost 或 127.0.0.1 自动识别。\n代理路径：http://localhost:5000/api/proxy（自动）\n\n启动方式：\n方式一（推荐）：npm run dev:full\n自动启动代理服务器和开发服务器。\n\n方式二：分别启动\n终端1：npm run proxy\n终端2：npm run dev\n\n方式三：使用外部API\n只运行 npm run dev\n在设置中配置生产环境的云端代理URL。'
+        title: '本地开发调试',
+        content: '识别特征：localhost 或 127.0.0.1\n启动方案：推荐使用 npm run dev:full 同时启动前端与代理服务。若仅运行 npm run dev，需确保已正确配置远程代理地址。'
       }
     },
 
     proxy: {
-      title: '代理配置',
+      title: '代理服务配置',
       overview: {
-        title: '代理功能概述',
-        content: 'AI代理服务用于转发所有AI API请求，解决浏览器CORS跨域限制，确保网络稳定性和请求连续性。所有AI请求（聊天、图像生成、模型列表等）都通过代理服务器进行，即使客户端网络中断，服务端的长连接请求仍可继续执行。'
+        title: '代理机制说明',
+        content: 'AI 代理服务核心在于中转客户端请求，解决 CORS 跨域限制，并在复杂的网络环境下提供更可靠的长连接保持能力，确保流式输出的连续性。'
       },
       cloudProxy: {
-        title: '云端代理URL',
-        content: '用途：生产环境的代理服务地址\n\n何时需要填写：\n1. 使用GitHub Pages部署时（必须）\n2. 使用自定义域名时（建议）\n3. 前后端分离部署时（必须）\n\n何时无需填写：\n1. 部署到Vercel（*.vercel.app）\n2. 部署到Netlify（*.netlify.app）\n3. 部署到Cloudflare Pages（*.pages.dev）\n\n这些平台会自动检测并使用相对路径调用本平台的函数服务，无需额外配置。'
+        title: '生产代理配置',
+        content: '在 Vercel、Netlify 或 Cloudflare Pages 等原生环境下，系统会自动采用相对路径，通常无需手动设置。仅当您进行跨域部署、使用自定义域名或 GitHub Pages 时，才需显式配置此接口地址。'
       },
       localProxy: {
-        title: '本地代理URL',
-        content: '用途：本地开发环境的代理服务地址\n默认值：http://localhost:5000/api/proxy\n\n使用场景：\n在本地开发时，如果运行了 npm run proxy 或 npm run dev:full，应用会自动使用此地址。如果未运行本地代理，可以在此配置生产环境的代理地址进行测试。\n\n通常情况下无需修改此项，保持默认值即可。'
+        title: '本地调试配置',
+        content: '默认指向 http://localhost:5000/api/proxy。此设置主要用于开发阶段，确保前端能正常访问本地模拟的后端代理逻辑。'
       },
       autoDetect: {
-        title: '环境自动检测',
-        content: '应用内置智能环境检测机制，根据当前访问的域名自动选择合适的代理配置：\n\n检测逻辑：\n- *.vercel.app → 使用 /api/ai-proxy\n- *.netlify.app → 使用 /api/ai-proxy\n- *.pages.dev → 使用 /api/ai-proxy\n- *.github.io → 使用配置的外部代理URL\n- localhost → 使用 /api/ai-proxy (通过 Vite 代理)\n- 自定义域名 → 使用 /api/ai-proxy\n\n这个过程完全自动，开发者无需关心底层实现细节。'
+        title: '智能环境识别',
+        content: '系统会根据当前 Hostname 动态切换代理策略：\n- 平台原生域名：自动关联内部 Serverless 路由\n- 静态托管域名：回退至手动配置的远程代理接口\n- 开发环境：关联 Vite 代理配置'
       }
     },
 
     sync: {
-      title: '云端同步',
+      title: '云端同步机制',
       overview: {
-        title: '云端同步功能',
-        content: '云端同步功能允许您将对话历史、配置设置等数据同步到云端服务器，实现多设备数据共享和备份。数据传输采用端到端加密，确保隐私安全。\n\n同步的数据包括：\n- 对话历史记录\n- 提供商配置（API Key已加密）\n- 预设模型配置\n- 对话设置和搜索设置\n- 知识库配置'
+        title: '同步功能综述',
+        content: '云端同步允许将多维数据安全存储至远程数据库。所有敏感数据均在客户端完成端到端加密，即便在传输过程中，任何第三方（包括同步服务器）也无法窥视您的数据内容。'
       },
       setup: {
-        title: '配置云端同步',
-        content: '启用步骤：\n1. 确保已部署到支持后端函数的平台（Vercel/Netlify/Cloudflare）\n2. 配置数据库连接（MySQL或PostgreSQL）\n3. 在设置 → 安全与数据中启用云端同步\n4. 设置同步密码（用于数据加密和生成用户ID）\n5. 点击“立即同步”进行首次同步\n\n数据库配置：\n需要在平台的环境变量中设置：\nDATABASE_URL=mysql://user:pass@host:3306/dbname\nDATABASE_TYPE=mysql'
+        title: '启用步骤指南',
+        content: '1. 完成后端函数平台部署\n2. 配置 DATABASE_URL 及 DATABASE_TYPE 环境变量\n3. 在安全设置中开启云端同步并设置独立同步密码\n4. 执行首次手动同步以建立基准'
       },
       platforms: {
-        title: '不同平台的同步支持',
-        content: 'Vercel/Netlify：\n支持MySQL和PostgreSQL数据库\n需要在平台设置中配置数据库连接\n\nCloudflare Pages：\n支持KV存储和D1数据库\n需要在Pages设置中绑定KV命名空间（变量名：SYNC_DATA）\n\nGitHub Pages：\n需要配置外部同步服务\n可使用其他平台部署的API服务\n\n本地开发：\n支持文件存储或连接远程数据库\n可用于测试同步功能'
+        title: '后端存储支持',
+        content: 'Vercel/Netlify：兼容 MySQL 及 PostgreSQL 数据库。\nCloudflare Pages：利用 KV 键值存储实现轻量化数据同步。'
       }
     },
 
     features: {
-      title: '功能特性',
+      title: '核心功能解析',
       aiProxy: {
-        title: 'AI API代理',
-        content: '技术实现：\n所有AI请求都通过云端服务器代理进行，而非客户端浏览器直接发送。这确保了网络稳定性和请求连续性，即使客户端网络中断，服务端的长连接请求仍可继续。\n\n支持特性：\n- 流式响应传输（Server-Sent Events）\n- 请求队列管理\n- 自动重试机制（最多3次）\n- 请求缓存（模型列表缓存1小时）\n- 超时控制（最长300秒）\n- 敏感信息遮罩（API Key自动隐藏）\n\n性能优化：\n- 智能缓存减少重复请求\n- 请求追踪便于调试\n- 全球CDN加速'
+        title: '全自动 API 代理',
+        content: '技术亮点：\n- 完整的 Server-Sent Events 流式传输支持\n- 自动指数退避重试机制\n- 全局请求缓存以降低 API 消耗\n- 自动化 API Key 遮罩处理'
       },
       imageGen: {
-        title: '图像生成',
-        content: '图像工厂功能支持文生图和图生图两种模式，通过AI代理服务调用各种图像生成模型。\n\n功能特性：\n- 支持多种分辨率（512x512至1024x1024）\n- 可调节采样步数和CFG引导强度\n- 支持固定种子值实现可重现生成\n- 多种艺术风格预设\n- 图像历史记录保存\n- 批量生成和管理\n\n所有图像生成请求都通过云端代理进行，确保生成过程的稳定性。固定种子的生成结果会被缓存，避免重复计算。'
+        title: '多模式图像生成',
+        content: '集成文生图与图生图模式。支持自定义分辨率、采样步数及 CFG 参数。系统通过代理服务下发指令，并缓存固定种子的生成结果以提升效率。'
       },
       knowledge: {
-        title: '知识库管理',
-        content: '知识库功能允许您上传文档并在对话中引用，支持多种文件格式：\n\n支持格式：\n- PDF文档\n- Word文档（.docx）\n- Excel表格（.xlsx）\n- PowerPoint演示文稿（.pptx）\n- 文本文件（.txt, .md）\n- 代码文件\n\n技术实现：\n文档内容在本地解析后存储在浏览器的IndexedDB中，对话时可选择性地将文档内容包含在上下文中发送给AI模型。\n\n如果启用云端同步，知识库配置（不含文件内容）会同步到云端，方便多设备访问。'
+        title: '本地化知识库',
+        content: '知识库采用本地解析策略：\n- 兼容 PDF, Word, Excel, PPT 及各类文本格式\n- 文档内容完全在浏览器端索引，不上传原始文件\n- 启用云同步后，仅同步知识库的元数据与索引结构'
       }
     }
   }

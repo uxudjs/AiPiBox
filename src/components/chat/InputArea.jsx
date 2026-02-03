@@ -140,6 +140,11 @@ const InputArea = () => {
   // 获取当前对话的已上传文件 (仅显示未关联到消息的文件)
   const uploadedFiles = getFilesByConversation(currentConversationId || 'temp').filter(f => !f.messageId);
 
+  // 检查所有文件是否都已解析完成
+  const isFilesReady = useMemo(() => {
+    return uploadedFiles.every(f => f.status === 'completed');
+  }, [uploadedFiles]);
+
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -345,10 +350,17 @@ const InputArea = () => {
       logger.warn('InputArea', 'Already sending, preventing duplicate call');
       return;
     }
+
+    // 验证文件解析状态
+    if (!isFilesReady) {
+      logger.warn('InputArea', 'Send blocked: files not ready');
+      return;
+    }
       
-    // 验证输入内容和加载状态 (如果有图片，允许空文本)
-    if ((!input.trim() && pendingImages.length === 0) || isLoading) {
-      logger.warn('InputArea', 'Send blocked:', { inputEmpty: !input.trim(), hasImages: pendingImages.length > 0, isLoading });
+    // 验证输入内容和加载状态 (如果有图片或文件，允许空文本)
+    const hasContent = input.trim() || pendingImages.length > 0 || uploadedFiles.length > 0;
+    if (!hasContent || isLoading) {
+      logger.warn('InputArea', 'Send blocked:', { hasContent, isLoading });
       return;
     }
       
@@ -445,9 +457,13 @@ const InputArea = () => {
         
         // 查找模型配置以检查能力
         const ocrModelConfig = effectiveOCR?.provider?.models?.find(m => m.id === effectiveOCR.modelId);
+        
+        // 严格检查：必须是明确配置的OCR模型，且支持多模态
+        // getEffectiveModel 返回 source: 'configured' 表示是用户在设置中明确绑定的模型
+        const isOCRConfigured = effectiveOCR?.source === 'configured';
         const isOCRSupported = ocrModelConfig?.capabilities?.multimodal;
 
-        if (!effectiveOCR || !isOCRSupported) {
+        if (!effectiveOCR || !isOCRConfigured || !isOCRSupported) {
           // 未配置OCR模型或找到的模型不支持视觉，显示错误并中断发送
           await addMessage({
             role: 'assistant',
@@ -1658,7 +1674,7 @@ Question: ${userMsg}`;
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
-                if ((!input.trim() && pendingImages.length === 0) || isLoading || isSending) return;
+                if ((!input.trim() && pendingImages.length === 0 && uploadedFiles.length === 0) || isLoading || isSending || !isFilesReady) return;
                 setTimeout(() => handleSend(), 0);
               }
             }}
@@ -1754,8 +1770,21 @@ Question: ${userMsg}`;
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity hidden md:block" />
               </button>
-              <button onClick={() => { if (currentIsAIGenerating) stopAIGeneration(currentConversationId); else handleSend(); }} disabled={currentIsAIGenerating ? false : ((!input.trim() && pendingImages.length === 0) || isLoading || isSending)} className={cn("p-3 rounded-full disabled:opacity-30 transition-all hover:scale-110 active:scale-95 shadow-lg", currentIsAIGenerating ? "bg-destructive text-destructive-foreground hover:shadow-destructive/30" : "bg-primary text-primary-foreground hover:shadow-primary/30")} title={currentIsAIGenerating ? t('inputArea.interrupt') : t('inputArea.send')}>
-                {currentIsAIGenerating ? <Square className="w-5 h-5" /> : isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
+              <button 
+                onClick={() => { if (currentIsAIGenerating) stopAIGeneration(currentConversationId); else handleSend(); }} 
+                disabled={currentIsAIGenerating ? false : (
+                  isLoading || 
+                  isSending || 
+                  (!input.trim() && pendingImages.length === 0 && uploadedFiles.length === 0) || 
+                  !isFilesReady
+                )} 
+                className={cn(
+                  "p-3 rounded-full disabled:opacity-30 transition-all hover:scale-110 active:scale-95 shadow-lg", 
+                  currentIsAIGenerating ? "bg-destructive text-destructive-foreground hover:shadow-destructive/30" : "bg-primary text-primary-foreground hover:shadow-primary/30"
+                )} 
+                title={currentIsAIGenerating ? t('inputArea.interrupt') : t('inputArea.send')}
+              >
+                {currentIsAIGenerating ? <Square className="w-5 h-5" /> : (isLoading || !isFilesReady) ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
               </button>
             </div>
           </div>

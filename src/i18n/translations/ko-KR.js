@@ -67,7 +67,7 @@ export const koKR = {
       security: '보안 및 비밀번호',
       proxy: '네트워크 및 프록시',
       logs: '시스템 로그',
-      help: '도움말 가이드'
+      help: '도움말 센터'
     },
 
     llm: {
@@ -174,13 +174,13 @@ export const koKR = {
 
     security: {
       title: '보안 및 데이터 관리',
-      encryptionEnabled: '로컬 하드웨어 수준 암호화 활성화됨',
-      encryptionHint: '키는 Web Crypto API와 마스터 비밀번호를 결합하여 개인 키를 생성합니다. 데이터는 IndexedDB에 암호문으로 저장됩니다.',
-      cloudSync: '클라우드 데이터 동기화 활성화',
-      cloudSyncHint: '구성 및 대화 기록을 암호화하여 클라우드 서버에 동기화하여 다중 장치 데이터 공유를 구현합니다. 동기화되는 데이터에는 공급자 구성(API Key 암호화됨), 대화 기록, 모델 프리셋, 지식 베이스 구성 등이 포함됩니다.',
-      syncServerOnline: '동기화 서비스 온라인',
-      syncServerOffline: '동기화 서비스 오프라인 - 동기화 일시 중지',
-      syncServerNotAvailable: '동기화 서버를 사용할 수 없습니다. 동기화 API 주소를 확인하십시오',
+      encryptionEnabled: '종단간 암호화 보호',
+      encryptionHint: '시스템은 AES-256 표준을 사용하여 API 키, 대화 기록 및 구성 데이터를 로컬에 암호화하여 저장하며, 마스터 비밀번호로 잠금을 해제해야만 접근할 수 있습니다.',
+      cloudSync: '클라우드 동기화 서비스',
+      cloudSyncHint: '활성화 시 암호화된 구성, 대화 기록, 모델 프리셋 및 지식 베이스 인덱스가 클라우드에 동기화됩니다. 동기화 과정은 종단간 암호화를 사용하여 클라우드 데이터가 가로채어지더라도 원본 내용을 복호화할 수 없도록 보장합니다.',
+      syncServerOnline: '동기화 서버 연결 정상',
+      syncServerOffline: '동기화 서버 연결 끊김',
+      syncServerNotAvailable: '동기화 서비스에 접근할 수 없습니다. 동기화 인터페이스 주소 설정이 올바른지 확인하십시오',
       persistence: '영구 로그인',
       selectDuration: '로그인 기간 선택',
       persistenceNone: '비활성화 (브라우저 닫으면 로그아웃)',
@@ -210,11 +210,11 @@ export const koKR = {
       
       // 클라우드 동기화
       enableCloudSync: '클라우드 동기화 활성화',
-      autoSync: '자동 동기화',
-      autoSyncHint: '데이터 변경 시 자동으로 클라우드에 동기화',
-      syncApiUrl: '동기화 API URL',
-      syncApiUrlHint: '클라우드 동기화 서비스 주소. Vercel/Netlify/Cloudflare 기본 도메인에 배포할 때 시스템이 자동으로 감지하므로 수동 구성이 필요하지 않습니다. GitHub Pages 또는 사용자 지정 도메인을 사용하는 경우에만 필요합니다.',
-      syncApiUrlPlaceholder: 'https://your-app.vercel.app',
+      autoSync: '자동 실시간 동기화',
+      autoSyncHint: '로컬 데이터 변경 감지 시 자동으로 클라우드 동기화 시작',
+      syncApiUrl: '동기화 서비스 인터페이스 주소',
+      syncApiUrlHint: '클라우드 동기화 서비스의 API 엔트리 포인트를 지정합니다. Vercel 또는 Cloudflare와 같은 기본 환경에서는 비워둘 수 있으며, 시스템이 환경을 자동 식별하여 최적의 경로를 채택합니다.',
+      syncApiUrlPlaceholder: '기본 경로 (권장)',
       syncNow: '지금 동기화',
       syncStatus: '동기화 상태',
       syncStatusIdle: '준비됨',
@@ -249,11 +249,11 @@ export const koKR = {
 
     proxy: {
       title: '네트워크 및 프록시',
-      proxyMode: '프록시 서비스 활성화',
-      proxyHint: '백엔드 서버를 통해 모든 AI API 요청을 프록시하여 CORS 제한을 해결하고 네트워크 안정성과 요청 연속성을 보장합니다. 모든 AI 요청(채팅, 이미지 생성, 모델 목록 등)은 프록시 서버를 통해 전달되며, 클라이언트 네트워크가 끊어져도 서버 측 장시간 실행 요청은 계속됩니다.',
-      cloudProxyUrl: '클라우드 프록시 URL',
-      cloudProxyHint: '프로덕션 환경 프록시 서비스 주소. Vercel(*.vercel.app), Netlify(*.netlify.app), Cloudflare Pages(*.pages.dev) 기본 도메인에 배포할 때 시스템이 자동으로 감지하므로 입력할 필요가 없습니다. GitHub Pages 또는 사용자 지정 도메인을 사용하는 경우에만 수동 구성이 필요합니다.\n\n로컬 개발 환경에서는 자동으로 http://localhost:5000/api/proxy를 사용합니다. 구성이 필요하지 않습니다.',
-      cloudSyncDepends: '클라우드 동기화는 프록시 서비스에 의존합니다. 프록시를 비활성화하면 동기화도 중지됩니다'
+      proxyMode: '글로벌 API 프록시 활성화',
+      proxyHint: '프록시 서비스는 브라우저의 교차 출처 리소스 공유(CORS) 제한을 우회하고 연결 안정성을 강화하도록 설계되었습니다. 활성화 시 모든 AI 요청은 서버 측 프록시를 통해 전달되어 불안정한 네트워크 환경에서도 장시간 연결 요청의 무결성과 성공률을 보장합니다.',
+      cloudProxyUrl: '프로덕션 환경 프록시 주소',
+      cloudProxyHint: '프로덕션 환경의 AI 프록시 서비스 인터페이스를 지정합니다. 시스템은 Vercel, Netlify 및 Cloudflare Pages의 기본 배포 경로를 자동으로 식별합니다. 사용자 정의 도메인이나 GitHub Pages를 사용하는 경우 반드시 수동으로 구성하십시오.',
+      cloudSyncDepends: '클라우드 동기화 기능은 프록시 서비스에 의존하며, 프록시 비활성화 시 동기화가 실패합니다'
     },
 
     footer: {
@@ -326,7 +326,7 @@ export const koKR = {
     cameraAccessError: '카메라에 접근할 수 없습니다: ',
     interrupted: 'AI 응답이 중단되었습니다',
     error: '오류: ',
-    ocrNotConfigured: '현재 모델은 이미지 입력을 지원하지 않습니다. 설정에서 OCR 모델을 구성하거나 비전 지원 모델을 선택하세요',
+    ocrNotConfigured: 'OCR 모델이 설정되지 않았습니다. \'설정 - 프리셋 모델 - OCR 모델\'에서 설정해 주세요',
     notSet: '미설정',
     unlimited: '무제한',
     uploadDoc: '문서 업로드'
@@ -588,87 +588,87 @@ export const koKR = {
   },
 
   help: {
-    title: '도움말 가이드',
-    description: 'AiPiBox를 배포하고 구성하는 방법과 다양한 기능을 사용하는 방법을 알아보세요',
-    footer: '더 많은 도움이 필요하면 프로젝트 문서를 참조하거나 GitHub에서 문제를 제출하세요',
+    title: '도움말 센터',
+    description: '이 문서는 배포, 구성 및 기능 사용에 대한 자세한 가이드를 제공합니다',
+    footer: '기술적인 세부 사항은 공식 문서를 참조하거나 GitHub를 통해 피드백을 제출하세요',
 
     deployment: {
-      title: '배포 옵션',
+      title: '다중 플랫폼 배포 가이드',
       platforms: {
-        title: '지원되는 플랫폼',
-        content: 'AiPiBox는 Vercel, Netlify, Cloudflare Pages, GitHub Pages 및 로컬 개발 환경을 포함한 여러 배포 플랫폼을 지원합니다. 애플리케이션은 런타임 환경을 자동으로 감지하고 수동 개입 없이 적절한 구성을 사용합니다.'
+        title: '환경 자동 식별',
+        content: 'AiPiBox는 실행 환경을 자동으로 감지하고 Vercel, Netlify, Cloudflare Pages 등의 플랫폼에 최적화된 구성을 적용합니다.'
       },
       vercel: {
         title: 'Vercel 배포',
-        content: '도메인 패턴 *.vercel.app으로 자동 식별.\\n프록시 경로: /api/ai-proxy(자동)\\n동기화 경로: /api/sync(자동)\\nServerless Functions 지원, 최대 300초 실행.\\n\\n배포 방법:\\n1. Vercel CLI 사용: vercel --prod\\n2. Vercel 대시보드를 통해 GitHub 리포지토리 가져오기\\n\\n클라우드 프록시 URL을 구성할 필요가 없으며, 시스템이 자동으로 감지합니다.'
+        content: '지원 도메인 특징: *.vercel.app\n프록시 엔트리: /api/ai-proxy (전자동)\n동기화 인터페이스: /api/sync (전자동)\n플랫폼 특성: Serverless Functions 지원. 배포 시 추가 프록시 URL 설정이 필요하지 않습니다.'
       },
       netlify: {
         title: 'Netlify 배포',
-        content: '도메인 패턴 *.netlify.app으로 자동 식별.\\n프록시 경로: /api/ai-proxy(자동)\\n동기화 경로: /api/sync(자동)\\nNetlify Functions 지원, 최대 300초 실행.\\n\\n배포 방법:\\n1. Netlify CLI 사용: netlify deploy --prod\\n2. Netlify 대시보드를 통해 GitHub 리포지토리 연결\\n\\n클라우드 프록시 URL을 구성할 필요가 없으며, 시스템이 자동으로 감지합니다.'
+        content: '지원 도메인 특징: *.netlify.app\n프록시 엔트리: /api/ai-proxy (전자동)\n동기화 인터페이스: /api/sync (전자동)\n플랫폼 특성: Netlify Functions 지원. GitHub 리포지토리와 직접 연동하여 배포하는 것을 권장합니다.'
       },
       cloudflare: {
         title: 'Cloudflare Pages 배포',
-        content: '도메인 패턴 *.pages.dev로 자동 식별.\\n프록시 경로: /functions/ai-proxy(자동)\\n동기화 경로: /functions/sync(자동)\\nCloudflare Workers 지원, 실행 시간 제한 없음.\\n\\n배포 방법:\\n1. Wrangler CLI 사용: wrangler pages deploy dist\\n2. Cloudflare 대시보드를 통해 Git 연결\\n\\n클라우드 동기화에는 KV 네임스페이스 바인딩이 필요합니다(변수 이름: SYNC_DATA).\\n클라우드 프록시 URL을 구성할 필요가 없으며, 시스템이 자동으로 감지합니다.'
+        content: '지원 도메인 특징: *.pages.dev\n프록시 엔트리: /api/ai-proxy (전자동)\n동기화 인터페이스: /api/sync (전자동)\n플랫폼 특성: Cloudflare Workers 기반으로 실행되며 요청 시간 제한이 없습니다. 클라우드 동기화는 대시보드에서 KV 네임스페이스(변수명: SYNC_DATA) 바인딩이 필요합니다.'
       },
       github: {
         title: 'GitHub Pages 배포',
-        content: '도메인 패턴 *.github.io로 자동 식별.\\nGitHub Pages는 정적 파일 호스팅만 지원하며 백엔드 함수를 실행할 수 없습니다.\\n\\n배포 방법:\\n프로젝트에 자동 배포 워크플로우가 포함되어 있으며 main 브랜치에 푸시하면 자동으로 배포됩니다.\\n\\n중요한 구성:\\nAI 기능을 사용하려면 외부 API 서비스를 구성해야 합니다.\\nVercel 또는 Cloudflare 무료 플랜을 사용하여 API 서비스를 배포하는 것이 좋습니다.\\n설정에서 클라우드 프록시 URL을 입력하세요: https://your-api.vercel.app/api/ai-proxy'
+        content: '지원 도메인 특징: *.github.io\n핵심 제한: GitHub Pages는 정적 호스팅만 지원하며 백엔드 로직 실행을 지원하지 않습니다.\n주요 구성: AI 기능을 활성화하려면 설정에서 프로덕션 환경의 "클라우드 프록시 URL"을 수동으로 지정해야 합니다.'
       },
       local: {
-        title: '로컬 개발',
-        content: '도메인 localhost 또는 127.0.0.1로 자동 식별.\\n프록시 경로: http://localhost:5000/api/proxy(자동)\\n\\n시작 방법:\\n방법 1(권장): npm run dev:full\\n프록시 서버와 개발 서버를 자동으로 시작합니다.\\n\\n방법 2: 별도로 시작\\n터미널 1: npm run proxy\\n터미널 2: npm run dev\\n\\n방법 3: 외부 API 사용\\nnpm run dev만 실행\\n설정에서 프로덕션 클라우드 프록시 URL을 구성합니다.'
+        title: '로컬 개발 및 디버깅',
+        content: '식별 특징: localhost 또는 127.0.0.1\n시작 방법: "npm run dev:full"을 사용하여 프론트엔드와 프록시 서비스를 동시에 시작하는 것을 권장합니다. "npm run dev"만 실행하는 경우 원격 프록시 주소가 올바르게 구성되었는지 확인하십시오.'
       }
     },
 
     proxy: {
-      title: '프록시 구성',
+      title: '프록시 서비스 설정',
       overview: {
-        title: '프록시 개요',
-        content: 'AI 프록시 서비스는 모든 AI API 요청을 전달하여 브라우저 CORS 제한을 해결하고 네트워크 안정성과 요청 연속성을 보장합니다. 모든 AI 요청(채팅, 이미지 생성, 모델 목록 등)은 프록시 서버를 통해 진행됩니다. 클라이언트 네트워크가 끊어져도 서버 측 장시간 실행 요청은 계속됩니다.'
+        title: '프록시 메커니즘 설명',
+        content: 'AI 프록시 서비스의 핵심은 클라이언트 요청을 중계하고 CORS 교차 출처 제한을 해결하며, 복잡한 네트워크 환경에서 더 안정적인 긴 연결 유지 기능을 제공하여 스트리밍 출력의 연속성을 보장하는 데 있습니다.'
       },
       cloudProxy: {
-        title: '클라우드 프록시 URL',
-        content: '목적: 프로덕션 환경 프록시 서비스 주소\\n\\n언제 입력해야 합니까:\\n1. GitHub Pages에 배포할 때(필수)\\n2. 사용자 지정 도메인을 사용할 때(권장)\\n3. 프론트엔드/백엔드 분리 배포일 때(필수)\\n\\n언제 입력하지 않아도 되나요:\\n1. Vercel에 배포(*.vercel.app)\\n2. Netlify에 배포(*.netlify.app)\\n3. Cloudflare Pages에 배포(*.pages.dev)\\n\\n이러한 플랫폼은 자동으로 감지하고 상대 경로를 사용하여 플랫폼 함수를 호출하므로 추가 구성이 필요하지 않습니다.'
+        title: '프로덕션 프록시 구성',
+        content: 'Vercel, Netlify 또는 Cloudflare Pages와 같은 네이티브 환경에서는 시스템이 자동으로 상대 경로를 사용하므로 일반적으로 수동 설정이 필요하지 않습니다. 교차 도메인 배포, 사용자 정의 도메인 또는 GitHub Pages를 사용하는 경우에만 이 인터페이스 주소를 명시적으로 구성해야 합니다.'
       },
       localProxy: {
-        title: '로컬 프록시 URL',
-        content: '목적: 로컬 개발 환경 프록시 서비스 주소\\n기본값: http://localhost:5000/api/proxy\\n\\n사용 시나리오:\\n로컬 개발 중에 npm run proxy 또는 npm run dev:full을 실행하면 애플리케이션이 자동으로 이 주소를 사용합니다. 로컬 프록시를 실행하지 않은 경우 여기에서 프로덕션 프록시 주소를 구성하여 테스트할 수 있습니다.\\n\\n일반적으로 이 항목을 수정할 필요가 없으며 기본값을 유지하면 됩니다.'
+        title: '로컬 디버깅 설정',
+        content: '기본값은 http://localhost:5000/api/proxy입니다. 이 설정은 주로 개발 단계에서 프론트엔드가 로컬에 시뮬레이션된 백엔드 프록시 로직에 정상적으로 접근할 수 있도록 하는 데 사용됩니다.'
       },
       autoDetect: {
-        title: '환경 자동 감지',
-        content: '애플리케이션에는 현재 액세스 중인 도메인을 기반으로 적절한 프록시 구성을 자동으로 선택하는 지능형 환경 감지 메커니즘이 내장되어 있습니다:\\n\\n감지 논리:\\n- *.vercel.app → /api/ai-proxy 사용\\n- *.netlify.app → /api/ai-proxy 사용\\n- *.pages.dev → /functions/ai-proxy 사용\\n- *.github.io → 구성된 외부 프록시 URL 사용\\n- localhost → http://localhost:5000/api/proxy 사용\\n- 사용자 지정 도메인 → 구성된 클라우드 프록시 URL 사용\\n\\n이 프로세스는 완전히 자동이므로 개발자는 기본 구현 세부 사항에 대해 걱정할 필요가 없습니다.'
+        title: '지능형 환경 식별',
+        content: '시스템은 현재 호스트명을 기반으로 프록시 전략을 동적으로 전환합니다:\n- 플랫폼 네이티브 도메인: 내부 Serverless 라우트에 자동 연결\n- 정적 호스팅 도메인: 수동 구성된 원격 프록시 인터페이스로 폴백\n- 개발 환경: Vite 프록시 설정에 연결'
       }
     },
 
     sync: {
-      title: '클라우드 동기화',
+      title: '클라우드 동기화 메커니즘',
       overview: {
-        title: '클라우드 동기화 기능',
-        content: '클라우드 동기화를 통해 대화 기록, 구성 설정 및 기타 데이터를 클라우드 서버에 동기화하여 다중 장치 데이터 공유 및 백업을 실현할 수 있습니다. 데이터 전송에는 종단 간 암호화가 사용되어 개인 정보 보호를 보장합니다.\\n\\n동기화되는 데이터에는 다음이 포함됩니다:\\n- 대화 기록\\n- 공급자 구성(API Key 암호화됨)\\n- 모델 프리셋 구성\\n- 대화 설정 및 검색 설정\\n- 지식 베이스 구성'
+        title: '동기화 기능 개요',
+        content: '클라우드 동기화를 통해 다차원 데이터를 원격 데이터베이스에 안전하게 저장할 수 있습니다. 모든 민감한 데이터는 클라이언트 측에서 종단간 암호화되므로 전송 중에 동기화 서버를 포함한 제3자가 데이터 내용을 훔쳐볼 수 없습니다.'
       },
       setup: {
-        title: '클라우드 동기화 구성',
-        content: '활성화 단계:\\n1. 백엔드 함수를 지원하는 플랫폼(Vercel/Netlify/Cloudflare)에 배포됨 확인\\n2. 데이터베이스 연결 구성(MySQL 또는 PostgreSQL)\\n3. 설정 → 보안 및 데이터에서 클라우드 동기화 활성화\\n4. 동기화 비밀번호 설정(데이터 암호화 및 사용자 ID 생성용)\\n5. \"지금 동기화\"를 클릭하여 처음 동기화 수행\\n\\n데이터베이스 구성:\\n플랫폼 환경 변수에서 설정:\\nDATABASE_URL=mysql://user:pass@host:3306/dbname\\nDATABASE_TYPE=mysql'
+        title: '활성화 단계 가이드',
+        content: '1. 배엔드 함수 플랫폼 배포 완료\n2. DATABASE_URL 및 DATABASE_TYPE 환경 변수 구성\n3. 보안 설정에서 클라우드 동기화를 켜고 고유한 동기화 비밀번호 설정\n4. 기준 수립을 위해 초기 수동 동기화 수행'
       },
       platforms: {
-        title: '다양한 플랫폼의 동기화 지원',
-        content: 'Vercel/Netlify:\\nMySQL 및 PostgreSQL 데이터베이스 지원\\n플랫폼 설정에서 데이터베이스 연결을 구성해야 합니다\\n\\nCloudflare Pages:\\nKV 스토리지 및 D1 데이터베이스 지원\\nPages 설정에서 KV 네임스페이스를 바인드해야 합니다(변수 이름: SYNC_DATA)\\n\\nGitHub Pages:\\n외부 동기화 서비스 구성 필요\\n다른 플랫폼에 배포된 API 서비스를 사용할 수 있습니다\\n\\n로컬 개발:\\n파일 스토리지 또는 원격 데이터베이스 연결 지원\\n동기화 기능 테스트에 사용할 수 있습니다'
+        title: '백엔드 스토리지 지원',
+        content: 'Vercel/Netlify: MySQL 및 PostgreSQL 데이터베이스와 호환됩니다.\nCloudflare Pages: KV 키-값 스토리지를 활용하여 가벼운 데이터 동기화를 구현합니다.'
       }
     },
 
     features: {
-      title: '기능 특성',
+      title: '핵심 기능 분석',
       aiProxy: {
-        title: 'AI API 프록시',
-        content: '기술 구현:\\n모든 AI 요청은 클라이언트 브라우저가 직접 전송하는 대신 클라우드 서버 프록시를 통해 진행됩니다. 이는 네트워크 안정성과 요청 연속성을 보장합니다. 클라이언트 네트워크가 끊어져도 서버 측 장시간 실행 요청은 계속됩니다.\\n\\n지원되는 기능:\\n- 스트리밍 응답 전송(Server-Sent Events)\\n- 요청 큐 관리\\n- 자동 재시도 메커니즘(최대 3회)\\n- 요청 캠싱(모델 목록 1시간 캠싱)\\n- 타임아웃 제어(최대 300초)\\n- 민감한 정보 마스킹(API Key 자동 숨김)\\n\\n성능 최적화:\\n- 스마트 캠싱으로 중복 요청 감소\\n- 디버깅을 위한 요청 추적\\n- 글로벌 CDN 가속화'
+        title: '풀오토 API 프록시',
+        content: '기술적 특징:\n- 완전한 Server-Sent Events 스트리밍 전송 지원\n- 자동 지수 백오프 재시도 메커니즘\n- API 소비 절감을 위한 글로벌 요청 캐싱\n- 자동화된 API Key 마스킹 처리'
       },
       imageGen: {
-        title: '이미지 생성',
-        content: '이미지 팩토리 기능은 텍스트에서 이미지로, 이미지에서 이미지로 모두 지원하며 AI 프록시 서비스를 통해 다양한 이미지 생성 모델을 호출합니다.\\n\\n기능 특성:\\n- 다양한 해상도(512x512부터 1024x1024까지)\\n- 조정 가능한 샘플링 단계 및 CFG 가이던스 강도\\n- 재현 가능한 생성을 위한 고정 시드 값\\n- 다양한 예술 스타일 프리셋\\n- 이미지 기록 저장\\n- 배치 생성 및 관리\\n\\n모든 이미지 생성 요청은 클라우드 프록시를 통해 생성 안정성을 보장합니다. 고정 시드의 결과는 캠싱되어 중복 계산을 피합니다.'
+        title: '멀티 모드 이미지 생성',
+        content: '텍스트 투 이미지 및 이미지 투 이미지 모드 통합. 사용자 정의 해상도, 샘플링 단계 및 CFG 파라미터 지원. 시스템은 프록시 서비스를 통해 명령을 하달하며, 효율 향상을 위해 고정 시드의 생성 결과를 캐싱합니다.'
       },
       knowledge: {
-        title: '지식 베이스 관리',
-        content: '지식 베이스 기능을 사용하면 문서를 업로드하고 대화에서 참조할 수 있으며 여러 파일 형식을 지원합니다:\\n\\n지원되는 형식:\\n- PDF 문서\\n- Word 문서(.docx)\\n- Excel 스프레드시트(.xlsx)\\n- PowerPoint 프레젠테이션(.pptx)\\n- 텍스트 파일(.txt, .md)\\n- 코드 파일\\n\\n기술 구현:\\n문서 콘텐츠는 로컬에서 구문 분석되어 브라우저 IndexedDB에 저장됩니다. 대화 중에 문서 콘텐츠를 선택적으로 컨텍스트에 포함하여 AI 모델에 보낼 수 있습니다.\\n\\n클라우드 동기화가 활성화된 경우 지식 베이스 구성(파일 콘텐츠 제외)이 클라우드에 동기화되어 여러 장치에서 액세스할 수 있습니다.'
+        title: '로컬라이즈 지식 베이스',
+        content: '지식 베이스는 로컬 파싱 전략을 채택합니다:\n- PDF, Word, Excel, PPT 및 각종 텍스트 형식 호환\n- 문서 내용은 브라우저 측에서 완전히 인덱싱되며 원본 파일은 업로드되지 않음\n- 클라우드 동기화 활성화 시 지식 베이스의 메타데이터와 인덱스 구조만 동기화됨'
       }
     }
   }

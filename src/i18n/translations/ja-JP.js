@@ -67,8 +67,7 @@ export const jaJP = {
       security: 'セキュリティとパスワード',
       proxy: 'ネットワークとプロキシ',
       logs: 'システムログ',
-      help: 'ヘルプガイド',
-      help: 'ヘルプガイド'
+      help: 'ヘルプセンター'
     },
 
     llm: {
@@ -175,13 +174,13 @@ export const jaJP = {
 
     security: {
       title: 'セキュリティとデータ管理',
-      encryptionEnabled: 'ローカルハードウェアレベル暗号化が有効',
-      encryptionHint: 'キーはWeb Crypto APIとマスターパスワードを組み合わせて秘密鍵を生成します。データはIndexedDBに暗号文として保存されます。',
-      cloudSync: 'クラウドデータ同期を有効化',
-      cloudSyncHint: '設定と会話履歴を暗号化してクラウドサーバーに同期し、複数のデバイス間でデータを共有します。同期されるデータには、プロバイダー設定（API Keyは暗号化済み）、会話履歴、モデルプリセット、ナレッジベース設定などが含まれます。',
-      syncServerOnline: '同期サービスオンライン',
-      syncServerOffline: '同期サービスオフライン - 同期一時停止',
-      syncServerNotAvailable: '同期サーバーが利用できません。同期APIアドレスを確認してください',
+      encryptionEnabled: 'エンドツーエンドの暗号化保護',
+      encryptionHint: 'システムは AES-256 標準を使用して、API キー、会話記録、および設定データをローカルに暗号化して保存します。マスターパスワードでロックを解除した後にのみデータにアクセスできます。',
+      cloudSync: 'クラウド同期サービス',
+      cloudSyncHint: '有効にすると、暗号化された設定、会話履歴、モデルプリセット、およびナレッジベースのインデックスがクラウドに同期されます。同期プロセスはエンドツーエンドの暗号化を使用し、クラウドデータが傍受された場合でも元のコンテンツを復号化できないようにします。',
+      syncServerOnline: '同期サーバー接続正常',
+      syncServerOffline: '同期サーバー接続切断',
+      syncServerNotAvailable: '同期サービスにアクセスできません。同期インターフェースアドレスの設定が正しいか確認してください',
       persistence: '持続ログイン',
       selectDuration: 'ログイン期間を選択',
       persistenceNone: '無効（ブラウザを閉じるとログアウト）',
@@ -211,11 +210,11 @@ export const jaJP = {
       
       // クラウド同期
       enableCloudSync: 'クラウド同期を有効にする',
-      autoSync: '自動同期',
-      autoSyncHint: 'データ変更時に自動的にクラウドに同期',
-      syncApiUrl: '同期 API URL',
-      syncApiUrlHint: 'クラウド同期サービスアドレス。Vercel/Netlify/Cloudflareのデフォルトドメインにデプロイする場合、システムが自動検出し、入力不要です。GitHub Pagesまたはカスタムドメインを使用する場合のみ手動設定が必要です。',
-      syncApiUrlPlaceholder: 'https://your-app.vercel.app',
+      autoSync: '自動リアルタイム同期',
+      autoSyncHint: 'ローカルデータの変更を検出したときに自動的にクラウド同期を開始します',
+      syncApiUrl: '同期サービスインターフェースアドレス',
+      syncApiUrlHint: 'クラウド同期サービスの API エントリポイントを指定します。Vercel や Cloudflare などのネイティブ環境では空のままにできます。システムは環境を自動的に識別し、最適なパスを採用します。',
+      syncApiUrlPlaceholder: 'デフォルトパス (推奨)',
       syncNow: '今すぐ同期',
       syncStatus: '同期ステータス',
       syncStatusIdle: '準備完了',
@@ -250,11 +249,11 @@ export const jaJP = {
 
     proxy: {
       title: 'ネットワークとプロキシ',
-      proxyMode: 'プロキシサービスを有効にする',
-      proxyHint: 'すべてのAI APIリクエストをバックエンドサーバー経由でプロキシし、CORS制限を解決し、ネットワークの安定性とリクエストの継続性を確保します。すべてのAIリクエスト（チャット、画像生成、モデルリストなど）はプロキシサーバーを通じて転送され、クライアントのネットワークが切断されてもサーバー側の長時間実行リクエストは継続されます。',
-      cloudProxyUrl: 'クラウドプロキシURL',
-      cloudProxyHint: '本番環境のプロキシサービスアドレス。Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）のデフォルトドメインにデプロイする場合、システムが自動検出し、入力不要です。GitHub Pagesまたはカスタムドメインを使用する場合のみ手動設定が必要です。\n\nローカル開発環境では自動的に http://localhost:5000/api/proxy を使用します。設定不要です。',
-      cloudSyncDepends: 'クラウド同期はプロキシサービスに依存します。プロキシを無効にすると同期も停止します'
+      proxyMode: 'グローバル API プロキシを有効にする',
+      proxyHint: 'プロキシサービスは、ブラウザのクロスドメイン制限 (CORS) を回避し、接続の安定性を向上させるように設計されています。有効にすると、すべての AI リクエストがサーバー側プロキシ経由で転送され、不安定なネットワーク環境でも長時間のリクエストの整合性と成功率が確保されます。',
+      cloudProxyUrl: '本番環境プロキシアドレス',
+      cloudProxyHint: '本番環境の AI プロキシサービスインターフェースを指定します。システムは Vercel、Netlify、および Cloudflare Pages のデフォルトのデプロイパスを自動的に識別します。カスタムドメインまたは GitHub Pages を使用している場合は、必ずこれを手動で設定してください。',
+      cloudSyncDepends: 'クラウド同期機能はプロキシサービスに依存します。プロキシを無効にすると同期が失敗します'
     },
 
     footer: {
@@ -327,7 +326,7 @@ export const jaJP = {
     cameraAccessError: 'カメラにアクセスできません: ',
     interrupted: 'AIレスポンスが中断されました',
     error: 'エラー: ',
-    ocrNotConfigured: '現在のモデルは画像入力に対応していません。設定でOCRモデルを構成するか、画像認識対応モデルを選択してください',
+    ocrNotConfigured: 'OCRモデルが設定されていません。「設定 - プリセットモデル - OCRモデル」で設定してください',
     notSet: '未設定',
     unlimited: '無制限',
     uploadDoc: 'ドキュメントをアップロード'
@@ -340,7 +339,7 @@ export const jaJP = {
     modelNotConfigured: '圧縮モデルが設定されていません。設定で構成してください',
     providerNotFound: '圧縮モデルプロバイダーが見つかりません',
     success: '会話の圧縮に成功しました！',
-    failed: '圧縮に失敗しました',
+    failed: '会話の圧縮に失敗しました',
     compressing: '圧縮中...',
     autoCompression: '自動圧縮',
     autoCompressionHint: 'メッセージ数がしきい値を超えた場合、履歴を自動的に圧縮します',
@@ -589,87 +588,87 @@ export const jaJP = {
   },
 
   help: {
-    title: 'ヘルプガイド',
-    description: 'AiPiBoxのデプロイと設定方法、および各機能の使用方法を学ぶ',
-    footer: 'さらなるヘルプが必要な場合は、プロジェクトドキュメントを参照するか、GitHubで問題を報告してください',
+    title: 'ヘルプセンター',
+    description: 'このドキュメントは、デプロイ、設定、および機能の使用に関する詳細なガイドを提供することを目的としています',
+    footer: '技術的な詳細については、公式ドキュメントを参照するか、GitHub を通じてフィードバックを送信してください',
 
     deployment: {
-      title: 'デプロイオプション',
+      title: 'マルチプラットフォームデプロイガイド',
       platforms: {
-        title: 'サポートされるプラットフォーム',
-        content: 'AiPiBoxはVercel、Netlify、Cloudflare Pages、GitHub Pages、ローカル開発環境を含む複数のデプロイプラットフォームをサポートしています。アプリケーションは実行環境を自動検出し、手動介入なしで適切な設定を使用します。'
+        title: '環境の自動識別',
+        content: 'AiPiBox は実行環境を自動的に感知し、Vercel、Netlify、および Cloudflare Pages などのプラットフォームに対して最適化された設定を適用します。'
       },
       vercel: {
-        title: 'Vercelデプロイ',
-        content: 'ドメインパターン *.vercel.app で自動検出。\nプロキシパス：/api/ai-proxy（自動）\n同期パス：/api/sync（自動）\nServerless Functionsをサポート、300秒の実行制限。\n\nデプロイ方法：\n1. Vercel CLIを使用：vercel --prod\n2. Vercelダッシュボード経由でGitHubリポジトリをインポート\n\nクラウドプロキシURLの設定不要、システムが自動検出します。'
+        title: 'Vercel デプロイ',
+        content: 'サポートされるドメイン特徴：*.vercel.app\nプロキシエントリ：/api/ai-proxy (全自動)\n同期インターフェース：/api/sync (全自動)\nプラットフォーム特性：Serverless Functions をサポート。デプロイ時に追加のプロキシ URL 設定は不要です。'
       },
       netlify: {
-        title: 'Netlifyデプロイ',
-        content: 'ドメインパターン *.netlify.app で自動検出。\nプロキシパス：/api/ai-proxy（自動）\n同期パス：/api/sync（自動）\nNetlify Functionsをサポート、300秒の実行制限。\n\nデプロイ方法：\n1. Netlify CLIを使用：netlify deploy --prod\n2. Netlifyダッシュボード経由でGitHubリポジトリを接続\n\nクラウドプロキシURLの設定不要、システムが自動検出します。'
+        title: 'Netlify デプロイ',
+        content: 'サポートされるドメイン特徴：*.netlify.app\nプロキシエントリ：/api/ai-proxy (全自動)\n同期インターフェース：/api/sync (全自動)\nプラットフォーム特性：Netlify Functions をサポート。GitHub リポジトリから直接連携してデプロイすることをお勧めします。'
       },
       cloudflare: {
-        title: 'Cloudflare Pagesデプロイ',
-        content: 'ドメインパターン *.pages.dev で自動検出。\nプロキシパス：/functions/ai-proxy（自動）\n同期パス：/functions/sync（自動）\nCloudflare Workersをサポート、実行時間制限なし。\n\nデプロイ方法：\n1. Wrangler CLIを使用：wrangler pages deploy dist\n2. Cloudflare Dashboard経由でGitを接続\n\nクラウド同期にKVネームスペースバインディングが必要（変数名：SYNC_DATA）。\nクラウドプロキシURLの設定不要、システムが自動検出します。'
+        title: 'Cloudflare Pages デプロイ',
+        content: 'サポートされるドメイン特徴：*.pages.dev\nプロキシエントリ：/api/ai-proxy (全自動)\n同期インターフェース：/api/sync (全自動)\nプラットフォーム特性：Cloudflare Workers 上で動作し、リクエスト時間の制限はありません。クラウド同期には、ダッシュボードで KV ネームスペース (変数名: SYNC_DATA) をバインドする必要があります。'
       },
       github: {
-        title: 'GitHub Pagesデプロイ',
-        content: 'ドメインパターン *.github.io で自動検出。\nGitHub Pagesは静的ファイルホスティングのみサポート、バックエンド関数を実行できません。\n\nデプロイ方法：\nプロジェクトには自動デプロイワークフローが含まれ、mainブランチにプッシュすると自動デプロイされます。\n\n重要な設定：\nAI機能を使用するには外部APIサービスを設定する必要があります。\nVercelまたはCloudflareの無料プランでAPIサービスをデプロイすることをお勧めします。\n設定でクラウドプロキシURLを入力：https://your-api.vercel.app/api/ai-proxy'
+        title: 'GitHub Pages デプロイ',
+        content: 'サポートされるドメイン特徴：*.github.io\n核心的な制限：GitHub Pages は静いホスティングのみをサポートし、バックエンドロジックの実行はサポートしていません。\n重要な設定：AI 機能を有効にするには、設定で本番環境の「クラウドプロキシ URL」を手動で指定する必要があります。'
       },
       local: {
-        title: 'ローカル開発',
-        content: 'ドメインパターン localhost または 127.0.0.1 で自動検出。\nプロキシパス：http://localhost:5000/api/proxy（自動）\n\n起動方法：\n方法1（推奨）：npm run dev:full\nプロキシサーバーと開発サーバーを自動起動。\n\n方法2：個別に起動\nターミナル1：npm run proxy\nターミナル2：npm run dev\n\n方法3：外部APIを使用\nnpm run dev のみ実行\n設定で本番環境のクラウドプロキシURLを設定。'
+        title: 'ローカル開発とデバッグ',
+        content: '識別特徴：localhost または 127.0.0.1\n起動プラン：npm run dev:full を使用して、フロントエンドとプロキシサービスを同時に起動することをお勧めします。npm run dev のみを実行する場合は、リモートプロキシアドレスが正しく設定されていることを確認してください。'
       }
     },
 
     proxy: {
-      title: 'プロキシ設定',
+      title: 'プロキシサービス設定',
       overview: {
-        title: 'プロキシ機能概要',
-        content: 'AIプロキシサービスは、すべてのAI APIリクエストを転送し、ブラウザのCORS制限を解決し、ネットワークの安定性とリクエストの継続性を確保します。すべてのAIリクエスト（チャット、画像生成、モデルリストなど）はプロキシサーバーを通じて転送され、クライアントのネットワークが切断されてもサーバー側の長時間実行リクエストは継続されます。'
+        title: 'プロキシメカニズムの説明',
+        content: 'AI プロキシサービスの核心は、クライアントリクエストを中継し、CORS クロスドメイン制限を解決し、複雑なネットワーク環境でより信頼性の高い長時間接続維持機能を提供して、ストリーミング出力の連続性を確保することにあります。'
       },
       cloudProxy: {
-        title: 'クラウドプロキシURL',
-        content: '用途：本番環境のプロキシサービスアドレス\n\n入力が必要な場合：\n1. GitHub Pagesにデプロイする場合（必須）\n2. カスタムドメインを使用する場合（推奨）\n3. フロントエンドとバックエンドを分離してデプロイする場合（必須）\n\n入力不要な場合：\n1. Vercel（*.vercel.app）にデプロイ\n2. Netlify（*.netlify.app）にデプロイ\n3. Cloudflare Pages（*.pages.dev）にデプロイ\n\nこれらのプラットフォームは自動検出し、相対パスを使用してプラットフォーム関数を呼び出すため、追加設定は不要です。'
+        title: '本番プロキシ設定',
+        content: 'Vercel、Netlify、または Cloudflare Pages などのネイティブ環境では、システムは自動的に相対パスを採用するため、通常は手動設定は不要です。クロスドメインデプロイ、カスタムドメイン、または GitHub Pages を使用する場合にのみ、このインターフェースアドレスを明示的に設定する必要があります。'
       },
       localProxy: {
-        title: 'ローカルプロキシURL',
-        content: '用途：ローカル開発環境のプロキシサービスアドレス\nデフォルト値：http://localhost:5000/api/proxy\n\n使用シナリオ：\nローカル開発中に npm run proxy または npm run dev:full を実行すると、アプリケーションは自動的にこのアドレスを使用します。ローカルプロキシを実行していない場合は、本番環境のプロキシアドレスを設定してテストできます。\n\n通常は変更不要、デフォルト値を保持してください。'
+        title: 'ローカルデバッグ設定',
+        content: 'デフォルトは http://localhost:5000/api/proxy です。この設定は主に開発段階で使用され、フロントエンドがローカルでシミュレートされたバックエンドプロキシロジックに正常にアクセスできるようにします。'
       },
       autoDetect: {
-        title: '環境自動検出',
-        content: 'アプリケーションにはインテリジェントな環境検出機構が組み込まれており、現在のドメインに基づいて適切なプロキシ設定を自動選択します：\n\n検出ロジック：\n- *.vercel.app → /api/ai-proxy を使用\n- *.netlify.app → /api/ai-proxy を使用\n- *.pages.dev → /functions/ai-proxy を使用\n- *.github.io → 設定された外部プロキシURLを使用\n- localhost → http://localhost:5000/api/proxy を使用\n- カスタムドメイン → 設定されたクラウドプロキシURLを使用\n\nこのプロセスは完全に自動であり、開発者は実装詳細を気にする必要がありません。'
+        title: 'インテリジェントな環境識別',
+        content: 'システムは現在のホスト名に基づいてプロキシ戦略を動的に切り替えます：\n- プラットフォームネイティブドメイン：内部 Serverless ルートに自動的に関連付けられます\n- 静的ホスティングドメイン：手動で設定されたリモートプロキシインターフェースにフォールバックします\n- 開発環境：Vite プロキシ設定に関連付けられます'
       }
     },
 
     sync: {
-      title: 'クラウド同期',
+      title: 'クラウド同期メカニズム',
       overview: {
-        title: 'クラウド同期機能',
-        content: 'クラウド同期機能により、会話履歴、設定、その他のデータをクラウドサーバーに同期し、複数のデバイス間でデータを共有し、バックアップできます。データ伝送にはエンドツーエンド暗号化が使用され、プライバシーセキュリティが確保されます。\n\n同期されるデータには次のものが含まれます：\n- 会話履歴\n- プロバイダー設定（API Keyは暗号化済み）\n- モデルプリセット設定\n- 会話設定と検索設定\n- ナレッジベース設定'
+        title: '同期機能の概要',
+        content: 'クラウド同期により、多次元データをリモートデータベースに安全に保存できます。すべての機密データはクライアント側でエンドツーエンドで暗号化されるため、送信中に同期サーバーを含む第三者がデータの内容を覗き見ることはできません。'
       },
       setup: {
-        title: 'クラウド同期の設定',
-        content: '有効化手順：\n1. バックエンド関数をサポートするプラットフォーム（Vercel/Netlify/Cloudflare）にデプロイされていることを確認\n2. データベース接続を設定（MySQLまたはPostgreSQL）\n3. 設定 → セキュリティとデータでクラウド同期を有効化\n4. 同期パスワードを設定（データ暗号化とユーザーID生成に使用）\n5. 「今すぐ同期」をクリックして最初の同期を実行\n\nデータベース設定：\nプラットフォームの環境変数で設定：\nDATABASE_URL=mysql://user:pass@host:3306/dbname\nDATABASE_TYPE=mysql'
+        title: '有効化手順ガイド',
+        content: '1. バックエンド関数プラットフォームのデプロイを完了する\n2. DATABASE_URL および DATABASE_TYPE 環境変数を設定する\n3. セキュリティ設定でクラウド同期をオンにし、独自の同期パスワードを設定する\n4. 基準を確立するために初回の手動同期を実行する'
       },
       platforms: {
-        title: '異なるプラットフォームでの同期サポート',
-        content: 'Vercel/Netlify：\nMySQLとPostgreSQLデータベースをサポート\nプラットフォーム設定でデータベース接続を設定する必要があります\n\nCloudflare Pages：\nKVストレージとD1データベースをサポート\nPages設定でKVネームスペースをバインドする必要があります（変数名：SYNC_DATA）\n\nGitHub Pages：\n外部同期サービスの設定が必要\n他のプラットフォームにデプロイされたAPIサービスを使用できます\n\nローカル開発：\nファイルストレージまたはリモートデータベース接続をサポート\n同期機能のテストに使用できます'
+        title: 'バックエンドストレージのサポート',
+        content: 'Vercel/Netlify：MySQL および PostgreSQL データベースと互換性があります。\nCloudflare Pages：KV キーバリューストレージを利用して軽量なデータ同期を実現します。'
       }
     },
 
     features: {
-      title: '機能特性',
+      title: 'コア機能の解析',
       aiProxy: {
-        title: 'AI APIプロキシ',
-        content: '技術実装：\nすべてのAIリクエストはクライアントブラウザが直接送信するのではなく、クラウドサーバープロキシ経由で送信されます。これによりネットワークの安定性とリクエストの継続性が確保されます。クライアントのネットワークが切断されても、サーバー側の長時間実行リクエストは継続されます。\n\nサポートされる機能：\n- ストリーミングレスポンス伝送（Server-Sent Events）\n- リクエストキュー管理\n- 自動再試行機構（最大3回）\n- リクエストキャッシュ（モデルリスト1時間キャッシュ）\n- タイムアウト制御（最大300秒）\n- 機密情報マスキング（API Key自動非表示）\n\nパフォーマンス最適化：\n- スマートキャッシュが重複リクエストを削減\n- デバッグ用リクエスト追跡\n- グローバルCDN加速'
+        title: 'フルオート API プロキシ',
+        content: '技術的なハイライト：\n- 完全な Server-Sent Events ストリーミング転送のサポート\n- 自動指数バックオフ再試行メカニズム\n- API 消費を抑えるためのグローバルリクエストキャッシュ\n- 自動化された API Key マスキング処理'
       },
       imageGen: {
-        title: '画像生成',
-        content: '画像ファクトリー機能は、テキストから画像へ、画像から画像への両方のモードをサポートし、AIプロキシサービスを通じてさまざまな画像生成モデルを呼び出します。\n\n機能特性：\n- 複数の解像度（512x512から1024x1024）\n- 調整可能なサンプリングステップとCFGガイダンス強度\n- 再現可能な生成のための固定シード値\n- さまざまな芸術スタイルプリセット\n- 画像履歴の保存\n- バッチ生成と管理\n\nすべての画像生成リクエストはクラウドプロキシを通じて生成の安定性を確保します。固定シードの結果はキャッシュされ、余分な計算を回避します。'
+        title: 'マルチモード画像生成',
+        content: '文生図（テキストから画像）と図生図（画像から画像）モードを統合。カスタム解像度、サンプリングステップ、および CFG パラメータをサポート。システムはプロキシサービスを通じて指示を出し、効率を高めるために固定シードの生成結果をキャッシュします。'
       },
       knowledge: {
-        title: 'ナレッジベース管理',
-        content: 'ナレッジベース機能により、ドキュメントをアップロードして会話で参照でき、複数のファイル形式をサポートします：\n\nサポートされる形式：\n- PDFドキュメント\n- Wordドキュメント（.docx）\n- Excelスプレッドシート（.xlsx）\n- PowerPointプレゼンテーション（.pptx）\n- テキストファイル（.txt, .md）\n- コードファイル\n\n技術実装：\nドキュメントコンテンツはローカルで解析され、ブラウザーIndexedDBに保存されます。会話中に、ドキュメントコンテンツをコンテキストに含めてAIモデルに送信できます。\n\nクラウド同期が有効になっている場合、ナレッジベース設定（ファイルコンテンツを除く）がクラウドに同期され、複数のデバイスでアクセスできます。'
+        title: 'ローカライズされたナレッジベース',
+        content: 'ナレッジベースはローカル解析戦略を採用しています：\n- PDF、Word、Excel、PPT、および各種テキスト形式に対応\n- ドキュメントの内容は完全にブラウザ側でインデックスされ、元のファイルはアップロードされません\n- クラウド同期を有効にした後は、ナレッジベースのメタデータとインデックス構造のみが同期されます'
       }
     }
   }

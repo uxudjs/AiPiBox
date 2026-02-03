@@ -210,21 +210,21 @@ export const enUS = {
 
     security: {
       title: 'Security & Data Management',
-      encryptionEnabled: 'Local Hardware-level Encryption Enabled',
-      encryptionHint: 'Your keys use Web Crypto API with master password to generate private keys. Data is stored as Ciphertext in IndexedDB.',
-      cloudSync: 'Enable Cloud Data Sync',
-      cloudSyncHint: 'Encrypt and sync configurations and conversation history to cloud servers for multi-device data sharing. Synced data includes: provider configurations (API Keys encrypted), conversation history, model presets, knowledge base configurations, etc.',
-      syncServerOnline: 'Sync server online',
-      syncServerOffline: 'Sync server offline - sync paused',
-      syncServerNotAvailable: 'Sync server is not available, please check the sync API URL',
+      encryptionEnabled: 'End-to-End Encryption Protected',
+      encryptionHint: 'The system uses AES-256 standards to encrypt API keys, conversation records, and configuration data locally, ensuring data is only accessible after unlocking with your master password.',
+      cloudSync: 'Cloud Sync Service',
+      cloudSyncHint: 'When enabled, encrypted configuration, conversation history, model presets, and knowledge base indices will be synced to the cloud. The sync process uses end-to-end encryption, ensuring original content cannot be decrypted even if cloud data is intercepted.',
+      syncServerOnline: 'Sync server connection normal',
+      syncServerOffline: 'Sync server connection interrupted',
+      syncServerNotAvailable: 'Sync service unavailable, please verify the sync API URL configuration',
       
       // Cloud Sync
       enableCloudSync: 'Enable Cloud Sync',
-      autoSync: 'Auto Sync',
-      autoSyncHint: 'Automatically sync data to cloud when changed',
-      syncApiUrl: 'Sync API URL',
-      syncApiUrlHint: 'Cloud sync service address. Auto-detected when deployed on Vercel/Netlify/Cloudflare default domains, no manual configuration needed. Only required for GitHub Pages or custom domains.',
-      syncApiUrlPlaceholder: 'https://your-app.vercel.app',
+      autoSync: 'Automatic Real-time Sync',
+      autoSyncHint: 'Automatically initiate cloud sync when local data changes are detected',
+      syncApiUrl: 'Sync Service API URL',
+      syncApiUrlHint: 'Specify the API entry point for the cloud sync service. Leave blank in native environments like Vercel or Cloudflare; the system will automatically identify and adopt the optimal path.',
+      syncApiUrlPlaceholder: 'Default path (Recommended)',
       syncNow: 'Sync Now',
       syncStatus: 'Sync Status',
       syncStatusIdle: 'Ready',
@@ -286,11 +286,11 @@ export const enUS = {
 
     proxy: {
       title: 'Network & Proxy',
-      proxyMode: 'Enable Proxy Service',
-      proxyHint: 'Proxy all AI API requests through backend server, resolving CORS restrictions and ensuring network stability and request continuity. All AI requests (chat, image generation, model list, etc.) are forwarded through the proxy server. Even if client network disconnects, server-side long-running requests continue.',
-      cloudProxyUrl: 'Cloud Proxy URL',
-      cloudProxyHint: 'Production environment proxy service address. Auto-detected when deployed on Vercel (*.vercel.app), Netlify (*.netlify.app), Cloudflare Pages (*.pages.dev) default domains, no manual configuration needed. Only required for GitHub Pages or custom domains.\n\nLocal development automatically uses http://localhost:5000/api/proxy, no configuration needed.',
-      cloudSyncDepends: 'Cloud sync depends on proxy service, disabling proxy will also stop sync'
+      proxyMode: 'Enable Global API Proxy',
+      proxyHint: 'The proxy service is designed to bypass browser Cross-Origin Resource Sharing (CORS) restrictions and enhance connection stability. When enabled, all AI requests are forwarded through the server-side proxy, ensuring the integrity and success rate of long-running requests even in unstable network environments.',
+      cloudProxyUrl: 'Production Proxy Address',
+      cloudProxyHint: 'Specify the AI proxy service interface for the production environment. The system automatically identifies default deployment paths for Vercel, Netlify, and Cloudflare Pages. Manual configuration is required if using custom domains or GitHub Pages.',
+      cloudSyncDepends: 'Cloud sync functionality depends on the proxy service; disabling the proxy will cause sync to fail'
     },
 
     footer: {
@@ -363,7 +363,7 @@ export const enUS = {
     cameraAccessError: 'Cannot access camera: ',
     interrupted: 'AI response interrupted',
     error: 'Error: ',
-    ocrNotConfigured: 'Current model does not support image input, please configure OCR model or choose a vision-supported model',
+    ocrNotConfigured: 'OCR model not configured, please configure it in Settings - Model Presets - OCR Model',
     notSet: 'Not Set',
     unlimited: 'Unlimited',
     uploadDoc: 'Upload Document'
@@ -589,87 +589,87 @@ export const enUS = {
   },
 
   help: {
-    title: 'Help Guide',
-    description: 'Learn how to deploy and configure AiPiBox, and how to use various features',
-    footer: 'For more help, please refer to the project documentation or submit issues on GitHub',
+    title: 'Help Center',
+    description: 'This documentation provides detailed guides on deployment, configuration, and feature usage.',
+    footer: 'For further technical details, please refer to the official documentation or submit feedback via GitHub.',
 
     deployment: {
-      title: 'Deployment Options',
+      title: 'Multi-platform Deployment',
       platforms: {
-        title: 'Supported Platforms',
-        content: 'AiPiBox supports multiple deployment platforms including Vercel, Netlify, Cloudflare Pages, GitHub Pages, and local development environments. The application automatically detects the runtime environment and uses the appropriate configuration without manual intervention.'
+        title: 'Environment Auto-recognition',
+        content: 'AiPiBox automatically senses its runtime environment and applies optimized configurations for platforms like Vercel, Netlify, and Cloudflare Pages.'
       },
       vercel: {
         title: 'Vercel Deployment',
-        content: 'Auto-detected by domain pattern *.vercel.app.\nProxy path: /api/ai-proxy (automatic)\nSync path: /api/sync (automatic)\nSupports Serverless Functions with 300 seconds runtime limit.\n\nDeployment methods:\n1. Using Vercel CLI: vercel --prod\n2. Import GitHub repository via Vercel dashboard\n\nNo need to configure cloud proxy URL, system auto-detects.'
+        content: 'Supported domain: *.vercel.app\nProxy Entry: /api/ai-proxy (Automatic)\nSync Interface: /api/sync (Automatic)\nPlatform Features: Supports Serverless Functions. No extra proxy URL configuration needed.'
       },
       netlify: {
         title: 'Netlify Deployment',
-        content: 'Auto-detected by domain pattern *.netlify.app.\nProxy path: /api/ai-proxy (automatic)\nSync path: /api/sync (automatic)\nSupports Netlify Functions with 300 seconds runtime limit.\n\nDeployment methods:\n1. Using Netlify CLI: netlify deploy --prod\n2. Connect GitHub repository via Netlify dashboard\n\nNo need to configure cloud proxy URL, system auto-detects.'
+        content: 'Supported domain: *.netlify.app\nProxy Entry: /api/ai-proxy (Automatic)\nSync Interface: /api/sync (Automatic)\nPlatform Features: Supports Netlify Functions. Recommended to deploy via direct GitHub repository link.'
       },
       cloudflare: {
         title: 'Cloudflare Pages Deployment',
-        content: 'Auto-detected by domain pattern *.pages.dev.\nProxy path: /functions/ai-proxy (automatic)\nSync path: /functions/sync (automatic)\nSupports Cloudflare Workers with no runtime limit.\n\nDeployment methods:\n1. Using Wrangler CLI: wrangler pages deploy dist\n2. Connect Git via Cloudflare Dashboard\n\nCloud sync requires KV namespace binding (variable name: SYNC_DATA).\nNo need to configure cloud proxy URL, system auto-detects.'
+        content: 'Supported domain: *.pages.dev\nProxy Entry: /api/ai-proxy (Automatic)\nSync Interface: /api/sync (Automatic)\nPlatform Features: Runs on Cloudflare Workers with no request duration limits. Cloud sync requires binding a KV namespace (Variable name: SYNC_DATA) in the Dashboard.'
       },
       github: {
         title: 'GitHub Pages Deployment',
-        content: 'Auto-detected by domain pattern *.github.io.\nGitHub Pages only supports static file hosting, cannot run backend functions.\n\nDeployment method:\nProject includes auto-deployment workflow, push to main branch to deploy automatically.\n\nImportant configuration:\nMust configure external API service to use AI features.\nRecommend using Vercel or Cloudflare free tier to deploy API service.\nFill in cloud proxy URL in settings: https://your-api.vercel.app/api/ai-proxy'
+        content: 'Supported domain: *.github.io\nCore Limitation: GitHub Pages supports static hosting only and cannot run backend logic.\nCritical Configuration: You must manually specify a production "Cloud Proxy URL" in settings to enable AI features.'
       },
       local: {
-        title: 'Local Development',
-        content: 'Auto-detected by domain localhost or 127.0.0.1.\nProxy path: http://localhost:5000/api/proxy (automatic)\n\nStartup methods:\nMethod 1 (recommended): npm run dev:full\nAutomatically starts proxy server and dev server.\n\nMethod 2: Start separately\nTerminal 1: npm run proxy\nTerminal 2: npm run dev\n\nMethod 3: Use external API\nRun npm run dev only\nConfigure production cloud proxy URL in settings.'
+        title: 'Local Development & Debugging',
+        content: 'Recognition traits: localhost or 127.0.0.1\nStartup Plan: Use "npm run dev:full" to start both the frontend and proxy services. If running only "npm run dev", ensure the remote proxy address is correctly configured.'
       }
     },
 
     proxy: {
-      title: 'Proxy Configuration',
+      title: 'Proxy Service Configuration',
       overview: {
-        title: 'Proxy Overview',
-        content: 'AI proxy service forwards all AI API requests, resolves browser CORS restrictions, and ensures network stability and request continuity. All AI requests (chat, image generation, model list, etc.) go through the proxy server. Even if client network disconnects, server-side long-running requests continue.'
+        title: 'Proxy Mechanism',
+        content: 'The core of the AI proxy service is to relay client requests, bypass CORS restrictions, and provide reliable long-connection maintenance in complex network environments, ensuring continuous streaming output.'
       },
       cloudProxy: {
-        title: 'Cloud Proxy URL',
-        content: 'Purpose: Production environment proxy service address\n\nWhen to fill in:\n1. When deploying to GitHub Pages (required)\n2. When using custom domain (recommended)\n3. When using separate frontend/backend deployment (required)\n\nWhen no need to fill in:\n1. Deploy to Vercel (*.vercel.app)\n2. Deploy to Netlify (*.netlify.app)\n3. Deploy to Cloudflare Pages (*.pages.dev)\n\nThese platforms auto-detect and use relative paths to call platform functions, no extra configuration needed.'
+        title: 'Production Proxy Configuration',
+        content: 'In native environments like Vercel, Netlify, or Cloudflare Pages, the system automatically uses relative paths, so manual setup is usually unnecessary. Manual configuration is only required for cross-domain deployments, custom domains, or GitHub Pages.'
       },
       localProxy: {
-        title: 'Local Proxy URL',
-        content: 'Purpose: Local development environment proxy service address\nDefault value: http://localhost:5000/api/proxy\n\nUsage scenario:\nDuring local development, if running npm run proxy or npm run dev:full, the app will automatically use this address. If not running local proxy, you can configure production proxy address here for testing.\n\nUsually no need to modify, keep default value.'
+        title: 'Local Debugging Configuration',
+        content: 'Defaults to http://localhost:5000/api/proxy. This setting is primarily for the development phase, ensuring the frontend can access locally simulated backend proxy logic.'
       },
       autoDetect: {
-        title: 'Auto Environment Detection',
-        content: 'Application has built-in intelligent environment detection mechanism that automatically selects appropriate proxy configuration based on current domain:\n\nDetection logic:\n- *.vercel.app → uses /api/ai-proxy\n- *.netlify.app → uses /api/ai-proxy\n- *.pages.dev → uses /functions/ai-proxy\n- *.github.io → uses configured external proxy URL\n- localhost → uses http://localhost:5000/api/proxy\n- Custom domain → uses configured cloud proxy URL\n\nThis process is fully automatic, developers need not worry about implementation details.'
+        title: 'Intelligent Environment Recognition',
+        content: 'The system dynamically switches proxy strategies based on the current Hostname:\n- Native platform domains: Automatically links to internal Serverless routes\n- Static hosting domains: Falls back to manually configured remote proxy interfaces\n- Development environment: Links to Vite proxy configuration'
       }
     },
 
     sync: {
-      title: 'Cloud Sync',
+      title: 'Cloud Sync Mechanism',
       overview: {
-        title: 'Cloud Sync Feature',
-        content: 'Cloud sync allows you to synchronize conversation history, configuration settings and other data to cloud servers, enabling multi-device data sharing and backup. Data transmission uses end-to-end encryption to ensure privacy security.\n\nSynced data includes:\n- Conversation history\n- Provider configurations (API Keys encrypted)\n- Model preset configurations\n- Conversation and search settings\n- Knowledge base configurations'
+        title: 'Cloud Sync Overview',
+        content: 'Cloud sync allows secure storage of multi-dimensional data in remote databases. All sensitive data is end-to-end encrypted on the client side, ensuring no third party (including the sync server) can peek at your data content during transmission.'
       },
       setup: {
-        title: 'Configure Cloud Sync',
-        content: 'Enable steps:\n1. Ensure deployed to platform supporting backend functions (Vercel/Netlify/Cloudflare)\n2. Configure database connection (MySQL or PostgreSQL)\n3. Enable cloud sync in Settings → Security & Data\n4. Set sync password (for data encryption and user ID generation)\n5. Click "Sync Now" for first sync\n\nDatabase configuration:\nSet in platform environment variables:\nDATABASE_URL=mysql://user:pass@host:3306/dbname\nDATABASE_TYPE=mysql'
+        title: 'Enabling Steps',
+        content: '1. Complete backend function platform deployment.\n2. Configure DATABASE_URL and DATABASE_TYPE environment variables.\n3. Enable cloud sync in security settings and set a unique sync password.\n4. Perform an initial manual sync to establish a baseline.'
       },
       platforms: {
-        title: 'Sync Support on Different Platforms',
-        content: 'Vercel/Netlify:\nSupports MySQL and PostgreSQL databases\nNeed to configure database connection in platform settings\n\nCloudflare Pages:\nSupports KV storage and D1 database\nNeed to bind KV namespace in Pages settings (variable name: SYNC_DATA)\n\nGitHub Pages:\nRequires external sync service configuration\nCan use API service deployed on other platforms\n\nLocal Development:\nSupports file storage or remote database connection\nCan be used for testing sync functionality'
+        title: 'Backend Storage Support',
+        content: 'Vercel/Netlify: Compatible with MySQL and PostgreSQL databases.\nCloudflare Pages: Leverages KV storage for lightweight data synchronization.'
       }
     },
 
     features: {
-      title: 'Features',
+      title: 'Core Features',
       aiProxy: {
-        title: 'AI API Proxy',
-        content: 'Technical implementation:\nAll AI requests go through cloud server proxy instead of client browser direct sending. This ensures network stability and request continuity. Even if client network disconnects, server-side long-running requests continue.\n\nSupported features:\n- Streaming response transmission (Server-Sent Events)\n- Request queue management\n- Auto-retry mechanism (up to 3 times)\n- Request caching (model list cached for 1 hour)\n- Timeout control (max 300 seconds)\n- Sensitive information masking (API Keys auto-hidden)\n\nPerformance optimization:\n- Smart caching reduces duplicate requests\n- Request tracking for debugging\n- Global CDN acceleration'
+        title: 'Fully Automated API Proxy',
+        content: 'Technical Highlights:\n- Full Server-Sent Events (SSE) streaming support\n- Automatic exponential backoff retry mechanism\n- Global request caching to reduce API consumption\n- Automated API Key masking'
       },
       imageGen: {
-        title: 'Image Generation',
-        content: 'Image Factory supports both text-to-image and image-to-image modes, calling various image generation models through AI proxy service.\n\nFeatures:\n- Multiple resolutions (512x512 to 1024x1024)\n- Adjustable sampling steps and CFG guidance strength\n- Fixed seed values for reproducible generation\n- Various artistic style presets\n- Image history saving\n- Batch generation and management\n\nAll image generation requests go through cloud proxy to ensure generation stability. Results with fixed seeds are cached to avoid redundant computation.'
+        title: 'Multi-mode Image Generation',
+        content: 'Integrates text-to-image and image-to-image modes. Supports custom resolution, sampling steps, and CFG parameters. The system issues commands via the proxy service and caches results for fixed seeds to improve efficiency.'
       },
       knowledge: {
-        title: 'Knowledge Base Management',
-        content: 'Knowledge base feature allows you to upload documents and reference them in conversations, supporting multiple file formats:\n\nSupported formats:\n- PDF documents\n- Word documents (.docx)\n- Excel spreadsheets (.xlsx)\n- PowerPoint presentations (.pptx)\n- Text files (.txt, .md)\n- Code files\n\nTechnical implementation:\nDocument content is parsed locally and stored in browser IndexedDB. During conversations, document content can be selectively included in context sent to AI models.\n\nIf cloud sync is enabled, knowledge base configuration (excluding file content) syncs to cloud for multi-device access.'
+        title: 'Localized Knowledge Base',
+        content: 'The knowledge base uses a local parsing strategy:\n- Compatible with PDF, Word, Excel, PPT, and various text formats.\n- Document content is indexed entirely in the browser; original files are not uploaded.\n- When cloud sync is enabled, only knowledge base metadata and index structures are synchronized.'
       }
     }
   }
