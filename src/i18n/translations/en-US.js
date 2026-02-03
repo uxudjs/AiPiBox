@@ -211,9 +211,9 @@ export const enUS = {
     security: {
       title: 'Security & Data Management',
       encryptionEnabled: 'End-to-End Encryption Protected',
-      encryptionHint: 'The system uses AES-256 standards to encrypt API keys, conversation records, and configuration data locally, ensuring data is only accessible after unlocking with your master password.',
+      encryptionHint: 'API keys, conversation records, and configuration data are encrypted with AES-256, accessible only after unlocking with your master password.',
       cloudSync: 'Cloud Sync Service',
-      cloudSyncHint: 'When enabled, encrypted configuration, conversation history, model presets, and knowledge base indices will be synced to the cloud. The sync process uses end-to-end encryption, ensuring original content cannot be decrypted even if cloud data is intercepted.',
+      cloudSyncHint: 'Sync configuration, conversation history, model presets, and knowledge base indices to the cloud with end-to-end encryption.',
       syncServerOnline: 'Sync server connection normal',
       syncServerOffline: 'Sync server connection interrupted',
       syncServerNotAvailable: 'Sync service unavailable, please verify the sync API URL configuration',
@@ -223,8 +223,8 @@ export const enUS = {
       autoSync: 'Automatic Real-time Sync',
       autoSyncHint: 'Automatically initiate cloud sync when local data changes are detected',
       syncApiUrl: 'Sync Service API URL',
-      syncApiUrlHint: 'Specify the API entry point for the cloud sync service. Leave blank in native environments like Vercel or Cloudflare; the system will automatically identify and adopt the optimal path.',
-      syncApiUrlPlaceholder: 'Default path (Recommended)',
+      syncApiUrlHint: 'Leave blank to use the default path of current domain. Manual configuration is only needed for custom domains or static hosting like GitHub Pages.',
+      syncApiUrlPlaceholder: 'Leave blank to auto-use: domain + /api/sync',
       syncNow: 'Sync Now',
       syncStatus: 'Sync Status',
       syncStatusIdle: 'Ready',
@@ -287,9 +287,9 @@ export const enUS = {
     proxy: {
       title: 'Network & Proxy',
       proxyMode: 'Enable Global API Proxy',
-      proxyHint: 'The proxy service is designed to bypass browser Cross-Origin Resource Sharing (CORS) restrictions and enhance connection stability. When enabled, all AI requests are forwarded through the server-side proxy, ensuring the integrity and success rate of long-running requests even in unstable network environments.',
-      cloudProxyUrl: 'Production Proxy Address',
-      cloudProxyHint: 'Specify the AI proxy service interface for the production environment. The system automatically identifies default deployment paths for Vercel, Netlify, and Cloudflare Pages. Manual configuration is required if using custom domains or GitHub Pages.',
+      proxyHint: 'Forward AI requests through the server to bypass browser cross-origin restrictions and improve connection stability.',
+      cloudProxyUrl: 'Proxy Service URL',
+      cloudProxyHint: 'Leave blank to use the default path of current domain. Manual configuration is only needed for custom domains or static hosting like GitHub Pages.',
       cloudSyncDepends: 'Cloud sync functionality depends on the proxy service; disabling the proxy will cause sync to fail'
     },
 
@@ -354,6 +354,7 @@ export const enUS = {
     selectKB: 'Select Knowledge Base',
     setSystemPrompt: 'System prompt set',
     takePhoto: 'Photo',
+    manualSync: 'Sync',
     camera: {
       rotate: 'Rotate',
       retake: 'Retake',

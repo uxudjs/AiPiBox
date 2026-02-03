@@ -1431,8 +1431,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             {t('settings.llm.testConnection')}
                           </button>
                         </div>
-                        <input
-                          type="text"
+                        <input 
+                          type="text" 
                           value={cloudSync.apiUrl || ''}
                           onChange={(e) => {
                             updateLocalConfig('cloudSync', { apiUrl: e.target.value });
@@ -1443,7 +1443,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             const cleanedUrl = e.target.value.trim().replace(/\/+$/, '');
                             updateLocalConfig('cloudSync', { apiUrl: cleanedUrl });
                           }}
-                          placeholder={t('settings.security.syncApiUrlPlaceholder') || "留空则使用默认路径 (/api/sync)"}
+                          placeholder={`${window.location.origin}${getSyncApiUrl()}`}
                           className="w-full px-4 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary text-sm"
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -1476,7 +1476,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       {/* 手动同步按钮 (注意：这会立即触发同步，但前提是配置已保存) */}
                       <button
                         onClick={handleManualSync}
-                        disabled={storeCloudSync?.syncStatus === 'syncing' || !cloudSync?.apiUrl}
+                        disabled={storeCloudSync?.syncStatus === 'syncing' || !cloudSync?.enabled}
                         className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-colors"
                       >
                         <RefreshCw className={cn(

@@ -39,6 +39,7 @@ class SyncService {
       lastCheckTime: 0,
       errorCount: 0
     };
+    this.pollingInterval = null;
     // 云端同步专用配置
     this.cloudSyncConfig = {
       apiBaseUrl: '', 
@@ -86,6 +87,30 @@ class SyncService {
     // Subscribe to stores to trigger sync
     if (ConfigStore && typeof ConfigStore.subscribe === 'function') {
       ConfigStore.subscribe((state, prevState) => {
+        // 核心机制：当云同步开关被手动开启时，立即触发一次全量同步(包含拉取)
+        // 这样新设备在开启同步后能立即获取云端数据，无需等待本地变动
+        if (state.cloudSync?.enabled && !prevState.cloudSync?.enabled) {
+          logger.info('SyncService', 'Cloud sync enabled, triggering initial sync...');
+          
+          // 开启健康检查和轮询
+          this.startProxyHealthMonitoring();
+          this.startCloudPolling();
+
+          const { sessionPassword } = useAuthStore.getState();
+          if (sessionPassword) {
+            this.syncWithConflictResolution(sessionPassword).catch(err => {
+              logger.error('SyncService', 'Initial sync failed:', err);
+            });
+          }
+          return;
+        }
+
+        // 当关闭同步时，停止相关计时器
+        if (!state.cloudSync?.enabled && prevState.cloudSync?.enabled) {
+          this.stopProxyHealthMonitoring();
+          this.stopCloudPolling();
+        }
+
         if (state.cloudSync?.enabled && state.cloudSync?.autoSync) {
           // 优化：仅在核心配置（非同步状态本身）发生变化时触发同步
           const importantKeys = ['providers', 'defaultModels', 'general', 'proxy', 'conversationPresets'];
@@ -124,6 +149,8 @@ class SyncService {
     if (config.cloudSync?.enabled) {
       // 启动代理健康监控
       this.startProxyHealthMonitoring();
+      // 启动定时轮询
+      this.startCloudPolling();
       // 延迟初次从云端同步，让应用先完成本地加载
       setTimeout(() => this.syncFromCloud(), 2000);
     }
@@ -180,7 +207,8 @@ class SyncService {
     // 执行同步前强制进行实时健康检查，确保不被旧的缓存错误阻断
     const isSyncAvailable = await this.checkProxyHealth(true);
     if (!isSyncAvailable) {
-      logger.error('SyncService', 'Cannot sync: cloud sync server is not available');
+      // 仅在真的离线时记录 warning
+      logger.warn('SyncService', 'Cannot sync: cloud sync server is not available');
       useConfigStore.getState().updateCloudSync({ 
         syncStatus: 'error', 
         lastError: 'Sync server unavailable' 
@@ -189,7 +217,7 @@ class SyncService {
     }
 
     this.isSyncing = true;
-    logger.info('SyncService', 'Starting sync to cloud...');
+    logger.debug('SyncService', 'Starting sync to cloud...');
 
     try {
       const syncId = await this.getSyncId(sessionPassword);
@@ -231,8 +259,11 @@ class SyncService {
       });
 
       // Update last sync time
-      useConfigStore.getState().updateCloudSync({ lastSyncTime: Date.now() });
-      logger.info('SyncService', 'Sync to cloud completed');
+      useConfigStore.getState().updateCloudSync({ 
+        lastSyncTime: Date.now(),
+        syncStatus: 'success'
+      });
+      logger.debug('SyncService', 'Sync to cloud completed');
 
     } catch (error) {
       const errorMessage = this._extractErrorMessage(error);
@@ -271,15 +302,11 @@ class SyncService {
     // 执行同步前强制进行实时健康检查
     const isSyncAvailable = await this.checkProxyHealth(true);
     if (!isSyncAvailable) {
-      logger.error('SyncService', 'Cannot sync from cloud: cloud sync server is not available');
-      useConfigStore.getState().updateCloudSync({ 
-        syncStatus: 'error', 
-        lastError: 'Sync server unavailable' 
-      });
+      logger.warn('SyncService', 'Cannot sync from cloud: sync server unavailable');
       return;
     }
 
-    logger.info('SyncService', 'Fetching from cloud...');
+    logger.debug('SyncService', 'Fetching from cloud...');
 
     try {
       const syncId = await this.getSyncId(sessionPassword);
@@ -292,20 +319,11 @@ class SyncService {
 
       if (!encryptedData) return;
 
-      // Check timestamp to see if we need to sync
-      // Actually, we should merge. But for simplicity, if cloud is newer, we pull.
-      // But "lastSyncTime" is local.
-      // If cloud timestamp > lastSyncTime, we pull.
-      
       // Decrypt
-      // response.data might be { data: "...", timestamp: ... }
-      // Wait, server returns JSON.parse(file). File contains { data, timestamp }.
-      
-      // response.data is the object from server
       const decrypted = await decryptData(response.data.data, sessionPassword);
       
       if (decrypted) {
-        logger.info('SyncService', 'Decrypted cloud data, applying changes...');
+        logger.debug('SyncService', 'Decrypted cloud data, applying changes...');
         await this.applyCloudData(decrypted);
       }
 
@@ -313,13 +331,9 @@ class SyncService {
         const errorMessage = this._extractErrorMessage(error);
         
         if (error.response && error.response.status === 404) {
-            logger.info('SyncService', 'No cloud data found.');
+            logger.debug('SyncService', 'No cloud data found.');
         } else if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-            logger.warn('SyncService', 'Cloud sync server unavailable');
-            useConfigStore.getState().updateCloudSync({ 
-              syncStatus: 'error', 
-              lastError: 'Cloud sync server unavailable' 
-            });
+            // 静默
         } else {
             logger.error('SyncService', 'Sync from cloud failed', { error, message: errorMessage });
             useConfigStore.getState().updateCloudSync({ 
@@ -359,11 +373,15 @@ class SyncService {
        });
     }
     
-    // Update sync time
-    useConfigStore.getState().updateCloudSync({ lastSyncTime: Date.now() });
+    // Update sync time and status
+    useConfigStore.getState().updateCloudSync({ 
+      lastSyncTime: Date.now(),
+      syncStatus: 'success'
+    });
     
     // Reload theme etc
     useConfigStore.getState().applyTheme();
+    
     logger.info('SyncService', 'Cloud data applied successfully');
   }
 
@@ -416,12 +434,17 @@ class SyncService {
       );
 
       if (isSuccess) {
+        const wasAvailable = this.proxyStatus.isAvailable;
         this.proxyStatus = {
           isAvailable: true,
           lastCheckTime: Date.now(),
           errorCount: 0
         };
-        logger.info('SyncService', `Sync health check passed: ${healthCheckUrl}`);
+        
+        // 降低日志频率：仅在状态从不可用变为可用时记录
+        if (!wasAvailable) {
+           logger.info('SyncService', `Sync server is now online: ${healthCheckUrl}`);
+        }
         return true;
       }
       
@@ -436,33 +459,17 @@ class SyncService {
       this.proxyStatus.isAvailable = false;
       return false;
     } catch (error) {
+      const wasAvailable = this.proxyStatus.isAvailable;
       this.proxyStatus.errorCount++;
       this.proxyStatus.lastCheckTime = Date.now();
       this.proxyStatus.isAvailable = false;
       
-      // 更详细的错误日志
-      let errorMsg = error.message;
-      if (error.code === 'ECONNREFUSED') {
-        errorMsg = `Connection refused (${healthCheckUrl})`;
-      } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
-        errorMsg = `Timeout (${healthCheckUrl})`;
-      } else if (error.response) {
-        errorMsg = `HTTP ${error.response.status} (${healthCheckUrl})`;
-        // 如果有响应体，也记录下来（可能是 Cloudflare 的错误页面）
-        if (error.response.data) {
-           const body = typeof error.response.data === 'string' 
-             ? error.response.data.substring(0, 100) 
-             : JSON.stringify(error.response.data).substring(0, 100);
-           errorMsg += ` - Response: ${body}`;
-        }
-      } else if (error.request) {
-        errorMsg = `Network Error/No response (${healthCheckUrl})`;
+      // 仅在状态变更时记录错误日志，避免刷屏
+      if (wasAvailable) {
+        logger.warn('SyncService', `Sync server went offline: ${error.message}`);
       }
-      
-      logger.warn('SyncService', `Proxy health check failed: ${errorMsg}`);
       return false;
     }
-    return false;
   }
 
   // 启动代理健康监控轮询
@@ -476,11 +483,7 @@ class SyncService {
         return;
       }
       
-      const isHealthy = await this.checkProxyHealth();
-      if (!isHealthy && cloudSync.enabled) {
-        logger.warn('SyncService', 'Proxy unavailable, pausing cloud sync');
-        // 暂停云同步但不自动禁用，等待代理恢复
-      }
+      await this.checkProxyHealth();
     }, 30000); // 30秒轮询
     
     logger.info('SyncService', 'Proxy health monitoring started');
@@ -492,6 +495,46 @@ class SyncService {
       clearInterval(this.proxyHealthCheckInterval);
       this.proxyHealthCheckInterval = null;
       logger.info('SyncService', 'Proxy health monitoring stopped');
+    }
+  }
+
+  /**
+   * 启动云端定时轮询
+   * 每 5 分钟检查一次云端更新
+   */
+  startCloudPolling() {
+    if (this.pollingInterval) return;
+    
+    // 5 分钟轮询一次
+    this.pollingInterval = setInterval(async () => {
+      const { cloudSync } = useConfigStore.getState();
+      if (!cloudSync?.enabled || !cloudSync?.autoSync) {
+        this.stopCloudPolling();
+        return;
+      }
+
+      // 如果当前正在同步中，跳过本次轮询
+      if (this.isSyncing) return;
+
+      // 执行静默同步(拉取)
+      try {
+        await this.syncFromCloud();
+      } catch (e) {
+        // 静默处理轮询错误
+      }
+    }, 1000 * 60 * 5);
+    
+    logger.info('SyncService', 'Cloud polling started (5min interval)');
+  }
+
+  /**
+   * 停止云端定时轮询
+   */
+  stopCloudPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+      logger.info('SyncService', 'Cloud polling stopped');
     }
   }
 
@@ -811,7 +854,7 @@ class SyncService {
       this.lastSyncVersions[dataType] = result.version;
       this._saveLastSyncVersions();
 
-      logger.info('SyncService', `Uploaded ${dataType} to cloud`, { version: result.version });
+      logger.debug('SyncService', `Uploaded ${dataType} to cloud`, { version: result.version });
       return result;
     } catch (error) {
       const errorMessage = this._extractErrorMessage(error);
@@ -872,7 +915,7 @@ class SyncService {
       }
 
       this._saveLastSyncVersions();
-      logger.info('SyncService', 'Downloaded data from cloud', { count: decryptedData.length });
+      logger.debug('SyncService', 'Downloaded data from cloud', { count: decryptedData.length });
       return decryptedData;
     } catch (error) {
       const errorMessage = this._extractErrorMessage(error);
@@ -919,7 +962,7 @@ class SyncService {
    */
   async syncAllDataToCloud(password) {
     try {
-      logger.info('SyncService', 'Starting full sync to cloud');
+      logger.debug('SyncService', 'Starting full sync to cloud');
       
       const userId = await this.generateUserId(password);
       const allData = await collectAllSyncData({
@@ -948,7 +991,7 @@ class SyncService {
         }
       }
 
-      logger.info('SyncService', 'Full sync to cloud completed', { results });
+      logger.debug('SyncService', 'Full sync to cloud completed', { results });
       return results;
     } catch (error) {
       logger.error('SyncService', 'Full sync to cloud failed', error);
@@ -963,7 +1006,7 @@ class SyncService {
    */
   async syncIncrementalToCloud(password, dataTypes = ['conversations', 'messages']) {
     try {
-      logger.info('SyncService', 'Starting incremental sync to cloud', { dataTypes });
+      logger.debug('SyncService', 'Starting incremental sync to cloud', { dataTypes });
       
       const userId = await this.generateUserId(password);
       const results = [];
@@ -1017,7 +1060,7 @@ class SyncService {
         }
       }
 
-      logger.info('SyncService', 'Incremental sync to cloud completed', { results });
+      logger.debug('SyncService', 'Incremental sync to cloud completed', { results });
       return results;
     } catch (error) {
       logger.error('SyncService', 'Incremental sync to cloud failed', error);
@@ -1089,7 +1132,7 @@ class SyncService {
         default:
           logger.warn('SyncService', `Unknown data type for apply: ${dataType}`);
       }
-      logger.info('SyncService', `Applied cloud data for ${dataType}`);
+      logger.debug('SyncService', `Applied cloud data for ${dataType}`);
     } catch (error) {
       logger.error('SyncService', `Failed to apply cloud data for ${dataType}`, error);
       throw error;
@@ -1138,7 +1181,7 @@ class SyncService {
       }
 
       const totalConflicts = conflicts.conversations.length + conflicts.messages.length;
-      logger.info('SyncService', `Detected ${totalConflicts} conflicts`);
+      logger.debug('SyncService', `Detected ${totalConflicts} conflicts`);
 
       // 4. 解决冲突
       if (totalConflicts > 0) {
@@ -1182,14 +1225,11 @@ class SyncService {
       await this.syncAllDataToCloud(password);
 
       // 更新同步状态
-      useConfigStore.setState(state => ({
-        cloudSync: {
-          ...state.cloudSync,
-          syncStatus: 'success',
-          lastSyncTime: Date.now(),
-          lastError: null
-        }
-      }));
+      useConfigStore.getState().updateCloudSync({
+        syncStatus: 'success',
+        lastSyncTime: Date.now(),
+        lastError: null
+      });
 
       logger.info('SyncService', 'Sync with conflict resolution completed successfully');
       return {

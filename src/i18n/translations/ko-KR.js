@@ -175,9 +175,9 @@ export const koKR = {
     security: {
       title: '보안 및 데이터 관리',
       encryptionEnabled: '종단간 암호화 보호',
-      encryptionHint: '시스템은 AES-256 표준을 사용하여 API 키, 대화 기록 및 구성 데이터를 로컬에 암호화하여 저장하며, 마스터 비밀번호로 잠금을 해제해야만 접근할 수 있습니다.',
+      encryptionHint: 'API 키, 대화 기록, 구성 데이터를 AES-256으로 암호화하며, 마스터 비밀번호로 잠금 해제 후에만 접근할 수 있습니다.',
       cloudSync: '클라우드 동기화 서비스',
-      cloudSyncHint: '활성화 시 암호화된 구성, 대화 기록, 모델 프리셋 및 지식 베이스 인덱스가 클라우드에 동기화됩니다. 동기화 과정은 종단간 암호화를 사용하여 클라우드 데이터가 가로채어지더라도 원본 내용을 복호화할 수 없도록 보장합니다.',
+      cloudSyncHint: '구성, 대화 기록, 모델 프리셋, 지식 베이스 인덱스를 종단간 암호화로 클라우드에 동기화합니다.',
       syncServerOnline: '동기화 서버 연결 정상',
       syncServerOffline: '동기화 서버 연결 끊김',
       syncServerNotAvailable: '동기화 서비스에 접근할 수 없습니다. 동기화 인터페이스 주소 설정이 올바른지 확인하십시오',
@@ -213,8 +213,8 @@ export const koKR = {
       autoSync: '자동 실시간 동기화',
       autoSyncHint: '로컬 데이터 변경 감지 시 자동으로 클라우드 동기화 시작',
       syncApiUrl: '동기화 서비스 인터페이스 주소',
-      syncApiUrlHint: '클라우드 동기화 서비스의 API 엔트리 포인트를 지정합니다. Vercel 또는 Cloudflare와 같은 기본 환경에서는 비워둘 수 있으며, 시스템이 환경을 자동 식별하여 최적의 경로를 채택합니다.',
-      syncApiUrlPlaceholder: '기본 경로 (권장)',
+      syncApiUrlHint: '비워두면 현재 도메인의 기본 경로를 사용합니다. 사용자 정의 도메인이나 GitHub Pages와 같은 정적 호스팅의 경우에만 수동 설정이 필요합니다.',
+      syncApiUrlPlaceholder: '비워두면 자동 사용: 도메인 + /api/sync',
       syncNow: '지금 동기화',
       syncStatus: '동기화 상태',
       syncStatusIdle: '준비됨',
@@ -250,9 +250,9 @@ export const koKR = {
     proxy: {
       title: '네트워크 및 프록시',
       proxyMode: '글로벌 API 프록시 활성화',
-      proxyHint: '프록시 서비스는 브라우저의 교차 출처 리소스 공유(CORS) 제한을 우회하고 연결 안정성을 강화하도록 설계되었습니다. 활성화 시 모든 AI 요청은 서버 측 프록시를 통해 전달되어 불안정한 네트워크 환경에서도 장시간 연결 요청의 무결성과 성공률을 보장합니다.',
-      cloudProxyUrl: '프로덕션 환경 프록시 주소',
-      cloudProxyHint: '프로덕션 환경의 AI 프록시 서비스 인터페이스를 지정합니다. 시스템은 Vercel, Netlify 및 Cloudflare Pages의 기본 배포 경로를 자동으로 식별합니다. 사용자 정의 도메인이나 GitHub Pages를 사용하는 경우 반드시 수동으로 구성하십시오.',
+      proxyHint: '서버를 통해 AI 요청을 전달하여 브라우저 교차 출처 제한을 우회하고 연결 안정성을 향상시킵니다.',
+      cloudProxyUrl: '프록시 서비스 URL',
+      cloudProxyHint: '비워두면 현재 도메인의 기본 경로를 사용합니다. 사용자 정의 도메인이나 GitHub Pages와 같은 정적 호스팅의 경우에만 수동 설정이 필요합니다.',
       cloudSyncDepends: '클라우드 동기화 기능은 프록시 서비스에 의존하며, 프록시 비활성화 시 동기화가 실패합니다'
     },
 
@@ -317,6 +317,7 @@ export const koKR = {
     selectKB: '지식 베이스 선택',
     setSystemPrompt: '시스템 프롬프트 설정됨',
     takePhoto: '사진',
+    manualSync: '동기화',
     camera: {
       rotate: '회전',
       retake: '다시 찍기',

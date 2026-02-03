@@ -175,9 +175,9 @@ export const zhTW = {
     security: {
       title: '安全與數據管理',
       encryptionEnabled: '端到端加密保護',
-      encryptionHint: '系統使用 AES-256 標準對 API 金鑰、對話記錄及配置數據進行本地加密儲存，確保數據僅在您的主密碼解鎖後可訪問。',
+      encryptionHint: '使用 AES-256 加密儲存 API 金鑰、對話記錄及配置數據，僅在主密碼解鎖後可訪問。',
       cloudSync: '雲端同步服務',
-      cloudSyncHint: '啟用後，加密的配置資訊、對話歷史、模型預設及知識庫索引將同步至雲端。同步過程採用端到端加密，即便雲端數據被截獲也無法解密原始內容。',
+      cloudSyncHint: '同步配置資訊、對話歷史、模型預設及知識庫索引至雲端，數據採用端到端加密。',
       syncServerOnline: '同步伺服器連線正常',
       syncServerOffline: '同步伺服器連線中斷',
       syncServerNotAvailable: '無法訪問同步服務，請確認同步介面位址配置無誤',
@@ -213,8 +213,8 @@ export const zhTW = {
       autoSync: '自動實時同步',
       autoSyncHint: '偵測到本地數據變更後自動發起雲端同步',
       syncApiUrl: '同步服務介面位址',
-      syncApiUrlHint: '指定雲端同步服務的 API 入口。在 Vercel 或 Cloudflare 等原生環境下可留空，系統將通過自動識別環境採用最優路徑。',
-      syncApiUrlPlaceholder: '默認路徑（推薦）',
+      syncApiUrlHint: '留空則使用當前域名的預設路徑。僅在使用自定義域名或 GitHub Pages 等靜態託管時需要手動配置。',
+      syncApiUrlPlaceholder: '留空則自動使用：域名 + /api/sync',
       syncNow: '立即同步',
       syncStatus: '同步狀態',
       syncStatusIdle: '就緒',
@@ -250,9 +250,9 @@ export const zhTW = {
     proxy: {
       title: '網路與代理',
       proxyMode: '啟用全局 API 代理',
-      proxyHint: '代理服務旨在繞過瀏覽器跨域限制（CORS）並增強連線穩定性。開啟後，所有 AI 請求將由服務端代理轉發，即便在不穩定的網路環境下，也能確保長連線請求的完整性與成功率。',
-      cloudProxyUrl: '生產環境代理位址',
-      cloudProxyHint: '指定生產環境下的 AI 代理服務介面。系統能自動識別 Vercel、Netlify 及 Cloudflare Pages 的默認部署路徑。若使用自定義域名或 GitHub Pages，請務必手動配置此項。',
+      proxyHint: '透過服務端轉發 AI 請求，解決瀏覽器跨域限制，提升連線穩定性。',
+      cloudProxyUrl: '代理服務位址',
+      cloudProxyHint: '留空則使用當前域名的預設路徑。僅在使用自定義域名或 GitHub Pages 等靜態託管時需要手動配置。',
       cloudSyncDepends: '雲端同步功能依賴代理服務，停用代理將導致同步失效'
     },
 
@@ -316,6 +316,7 @@ export const zhTW = {
     selectKB: '選擇知識庫',
     setSystemPrompt: '已設定系統提示詞',
     takePhoto: '拍照',
+    manualSync: '同步',
     camera: {
       rotate: '旋轉',
       retake: '重拍',

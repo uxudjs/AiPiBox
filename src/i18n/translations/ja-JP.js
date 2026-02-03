@@ -175,9 +175,9 @@ export const jaJP = {
     security: {
       title: 'セキュリティとデータ管理',
       encryptionEnabled: 'エンドツーエンドの暗号化保護',
-      encryptionHint: 'システムは AES-256 標準を使用して、API キー、会話記録、および設定データをローカルに暗号化して保存します。マスターパスワードでロックを解除した後にのみデータにアクセスできます。',
+      encryptionHint: 'API キー、会話記録、設定データを AES-256 で暗号化し、マスターパスワードでロック解除後にのみアクセス可能です。',
       cloudSync: 'クラウド同期サービス',
-      cloudSyncHint: '有効にすると、暗号化された設定、会話履歴、モデルプリセット、およびナレッジベースのインデックスがクラウドに同期されます。同期プロセスはエンドツーエンドの暗号化を使用し、クラウドデータが傍受された場合でも元のコンテンツを復号化できないようにします。',
+      cloudSyncHint: '設定、会話履歴、モデルプリセット、ナレッジベースインデックスをエンドツーエンド暗号化でクラウドに同期します。',
       syncServerOnline: '同期サーバー接続正常',
       syncServerOffline: '同期サーバー接続切断',
       syncServerNotAvailable: '同期サービスにアクセスできません。同期インターフェースアドレスの設定が正しいか確認してください',
@@ -213,8 +213,8 @@ export const jaJP = {
       autoSync: '自動リアルタイム同期',
       autoSyncHint: 'ローカルデータの変更を検出したときに自動的にクラウド同期を開始します',
       syncApiUrl: '同期サービスインターフェースアドレス',
-      syncApiUrlHint: 'クラウド同期サービスの API エントリポイントを指定します。Vercel や Cloudflare などのネイティブ環境では空のままにできます。システムは環境を自動的に識別し、最適なパスを採用します。',
-      syncApiUrlPlaceholder: 'デフォルトパス (推奨)',
+      syncApiUrlHint: '空欄にすると現在のドメインのデフォルトパスを使用します。カスタムドメインや GitHub Pages などの静的ホスティングの場合のみ手動設定が必要です。',
+      syncApiUrlPlaceholder: '空欄にすると自動使用：ドメイン + /api/sync',
       syncNow: '今すぐ同期',
       syncStatus: '同期ステータス',
       syncStatusIdle: '準備完了',
@@ -250,9 +250,9 @@ export const jaJP = {
     proxy: {
       title: 'ネットワークとプロキシ',
       proxyMode: 'グローバル API プロキシを有効にする',
-      proxyHint: 'プロキシサービスは、ブラウザのクロスドメイン制限 (CORS) を回避し、接続の安定性を向上させるように設計されています。有効にすると、すべての AI リクエストがサーバー側プロキシ経由で転送され、不安定なネットワーク環境でも長時間のリクエストの整合性と成功率が確保されます。',
-      cloudProxyUrl: '本番環境プロキシアドレス',
-      cloudProxyHint: '本番環境の AI プロキシサービスインターフェースを指定します。システムは Vercel、Netlify、および Cloudflare Pages のデフォルトのデプロイパスを自動的に識別します。カスタムドメインまたは GitHub Pages を使用している場合は、必ずこれを手動で設定してください。',
+      proxyHint: 'サーバー経由で AI リクエストを転送し、ブラウザのクロスドメイン制限を回避して接続の安定性を向上させます。',
+      cloudProxyUrl: 'プロキシサービス URL',
+      cloudProxyHint: '空欄にすると現在のドメインのデフォルトパスを使用します。カスタムドメインや GitHub Pages などの静的ホスティングの場合のみ手動設定が必要です。',
       cloudSyncDepends: 'クラウド同期機能はプロキシサービスに依存します。プロキシを無効にすると同期が失敗します'
     },
 
@@ -317,6 +317,7 @@ export const jaJP = {
     selectKB: 'ナレッジベースを選択',
     setSystemPrompt: 'システムプロンプト設定済み',
     takePhoto: '写真',
+    manualSync: '同期',
     camera: {
       rotate: '回転',
       retake: '撮り直し',
