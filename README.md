@@ -59,7 +59,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/AiPiBox.git
+git clone https://github.com/uxudjs/AiPiBox.git
 cd AiPiBox
 
 # 安装依赖
@@ -286,7 +286,7 @@ location.reload();
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 MIT 许可证 - 详见 [LICENSE](https://github.com/uxudjs/AiPiBox/blob/main/LICENSE) 文件
 
 ## 🙏 致谢
 
@@ -304,9 +304,9 @@ location.reload();
 
 ## 📞 联系方式
 
-- 项目主页：[GitHub Repository]
-- 问题反馈：[Issue Tracker]
-- 讨论区：[Discussions]
+- 项目主页：[https://github.com/uxudjs/AiPiBox](https://github.com/uxudjs/AiPiBox)
+- 问题反馈：[https://github.com/uxudjs/AiPiBox/issues](https://github.com/uxudjs/AiPiBox/issues)
+- 讨论区：[https://github.com/uxudjs/AiPiBox/discussions](https://github.com/uxudjs/AiPiBox/discussions)
 
 ---
 
