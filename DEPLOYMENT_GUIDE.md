@@ -191,11 +191,14 @@ npm run deploy:cf
 2. 进入 Workers & Pages
 3. 创建 → Pages → 连接 Git
 4. 选择 GitHub 仓库
-5. 构建设置:
-   - Framework preset: None
-   - Build command: `npm run build`
-   - Build output: `/dist`
+5. 构建设置 (⚠️ **非常重要**):
+   - **Framework preset**: `None`
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+   - **Deploy command** (如果出现): 确保设置为 `npx wrangler pages deploy dist` 或留空，**不要** 设置为 `npx wrangler deploy`。
 6. 点击 "Save and Deploy"
+
+> 💡 **提示**: 如果部署报错 `Workers-specific command in a Pages project`，请检查项目设置中的 "Deploy Command" 是否被错误地设为了 `npx wrangler deploy`。将其修正为 `npx wrangler pages deploy dist` 即可。
 
 ### Cloudflare Workers Functions
 
