@@ -4,6 +4,16 @@
  */
 
 export async function onRequest(context) {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,HEAD,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  if (context.request.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   return new Response(JSON.stringify({
     status: 'ok',
     platform: 'cloudflare-pages',
@@ -13,6 +23,7 @@ export async function onRequest(context) {
   }), {
     status: 200,
     headers: { 
+      ...corsHeaders,
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache'
     }

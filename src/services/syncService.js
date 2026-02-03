@@ -404,12 +404,14 @@ class SyncService {
       });
       
       // 检查响应是否有效：支持多种成功标识以适配不同后端实现（KV, MySQL, 文件系统等）
-      if (response.data && (
+      const isSuccess = response.data && (
         response.data.status === 'ok' || 
         response.data.status === 'healthy' || 
         response.data.success === true ||
         response.data.database === 'online'
-      )) {
+      );
+
+      if (isSuccess) {
         this.proxyStatus = {
           isAvailable: true,
           lastCheckTime: Date.now(),
@@ -419,7 +421,14 @@ class SyncService {
         return true;
       }
       
-      logger.warn('SyncService', `Health check returned unexpected data format`, response.data);
+      // 增强调试日志
+      const dataType = typeof response.data;
+      const dataPreview = dataType === 'string' ? response.data.substring(0, 100) : JSON.stringify(response.data).substring(0, 100);
+      logger.warn('SyncService', `Health check failed: Unexpected data format. URL: ${healthCheckUrl}`, {
+        type: dataType,
+        data: dataPreview
+      });
+      
       this.proxyStatus.isAvailable = false;
       return false;
     } catch (error) {
@@ -428,15 +437,25 @@ class SyncService {
       this.proxyStatus.isAvailable = false;
       
       // 更详细的错误日志
+      let errorMsg = error.message;
       if (error.code === 'ECONNREFUSED') {
-        logger.warn('SyncService', `Proxy health check failed: Connection refused (${healthCheckUrl})`);
+        errorMsg = `Connection refused (${healthCheckUrl})`;
       } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
-        logger.warn('SyncService', `Proxy health check failed: Timeout (${healthCheckUrl})`);
+        errorMsg = `Timeout (${healthCheckUrl})`;
       } else if (error.response) {
-        logger.warn('SyncService', `Proxy health check failed: HTTP ${error.response.status} (${healthCheckUrl})`);
-      } else {
-        logger.warn('SyncService', `Proxy health check failed: ${error.message} (${healthCheckUrl})`);
+        errorMsg = `HTTP ${error.response.status} (${healthCheckUrl})`;
+        // 如果有响应体，也记录下来（可能是 Cloudflare 的错误页面）
+        if (error.response.data) {
+           const body = typeof error.response.data === 'string' 
+             ? error.response.data.substring(0, 100) 
+             : JSON.stringify(error.response.data).substring(0, 100);
+           errorMsg += ` - Response: ${body}`;
+        }
+      } else if (error.request) {
+        errorMsg = `Network Error/No response (${healthCheckUrl})`;
       }
+      
+      logger.warn('SyncService', `Proxy health check failed: ${errorMsg}`);
       return false;
     }
     return false;

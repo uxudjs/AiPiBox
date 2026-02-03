@@ -7,6 +7,16 @@ export async function onRequest(context) {
   const { request, env, params } = context;
   const path = params.path?.[0] || '';
 
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,HEAD,POST,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   // 绑定 KV 命名空间
   const KV = env.SYNC_DATA;
 
@@ -16,28 +26,36 @@ export async function onRequest(context) {
       message: 'Please bind a KV namespace named SYNC_DATA'
     }), {
       status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  let response;
+  // 路由分发逻辑
+  if (request.method === 'GET' && path) {
+    // 处理数据获取
+    response = await handleDownload(KV, path, request);
+  } else if (request.method === 'POST' && !path) {
+    // 处理数据保存
+    response = await handleUpload(KV, request);
+  } else if (request.method === 'DELETE' && path) {
+    // 处理数据移除
+    response = await handleDelete(KV, path);
+  } else {
+    response = new Response(JSON.stringify({
+      error: 'Invalid request'
+    }), {
+      status: 400,
       headers: { 'Content-Type': 'application/json' }
     });
   }
 
-  // 路由分发逻辑
-  if (request.method === 'GET' && path) {
-    // 处理数据获取
-    return handleDownload(KV, path, request);
-  } else if (request.method === 'POST' && !path) {
-    // 处理数据保存
-    return handleUpload(KV, request);
-  } else if (request.method === 'DELETE' && path) {
-    // 处理数据移除
-    return handleDelete(KV, path);
-  }
-
-  return new Response(JSON.stringify({
-    error: 'Invalid request'
-  }), {
-    status: 400,
-    headers: { 'Content-Type': 'application/json' }
+  // 为所有响应添加 CORS 头
+  const newResponse = new Response(response.body, response);
+  Object.keys(corsHeaders).forEach(key => {
+    newResponse.headers.set(key, corsHeaders[key]);
   });
+  return newResponse;
 }
 
 /**
