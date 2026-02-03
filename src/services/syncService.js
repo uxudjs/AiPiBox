@@ -152,21 +152,15 @@ class SyncService {
     if (this.isSyncing) return;
     
     const { sessionPassword, isAuthenticated } = useAuthStore.getState();
-    const { cloudSync, proxy } = useConfigStore.getState();
+    const { cloudSync } = useConfigStore.getState();
 
     if (!isAuthenticated || !sessionPassword || !cloudSync?.enabled) {
       return;
     }
 
-    // 检查代理服务是否可用
-    if (!proxy.enabled) {
-      logger.error('SyncService', 'Cannot sync: proxy is not enabled');
-      return;
-    }
-
-    const isProxyAvailable = await this.checkProxyHealth();
-    if (!isProxyAvailable) {
-      logger.error('SyncService', 'Cannot sync: proxy server is not available');
+    const isSyncAvailable = await this.checkProxyHealth();
+    if (!isSyncAvailable) {
+      logger.error('SyncService', 'Cannot sync: cloud sync server is not available');
       return;
     }
 
@@ -188,8 +182,6 @@ class SyncService {
             providers: configState.providers,
             defaultModels: configState.defaultModels,
             general: configState.general,
-            // Exclude proxy settings to avoid locking out if bad proxy syncs? 
-            // Maybe exclude proxy, or include. Let's include.
             proxy: configState.proxy, 
             searchSettings: configState.searchSettings,
             conversationPresets: configState.conversationPresets,
@@ -204,18 +196,17 @@ class SyncService {
       const encryptedData = await encryptData(payload, sessionPassword);
       
       // Send
-      const baseUrl = proxy.enabled && proxy.url ? proxy.url.replace('/api/proxy', '') : 'http://localhost:5000';
-      // Note: If using proxy.url, we need to handle it. 
-      // Assuming localhost server is running on 5000. 
-      // If deployed, this URL needs to be configurable or relative.
-      // For now, hardcode localhost:5000 or use relative if same origin.
+      const apiBaseUrl = this._getApiBaseUrl();
+      if (!apiBaseUrl) {
+        throw new Error('Sync API URL not configured');
+      }
       
-      await axios.post('http://localhost:5000/api/sync', {
+      await axios.post(`${apiBaseUrl}/api/sync`, {
         id: syncId,
         data: encryptedData,
         timestamp: payload.timestamp
       }, {
-        timeout: 3000 // 3秒超时
+        timeout: 5000
       });
 
       // Update last sync time
@@ -241,21 +232,15 @@ class SyncService {
    */
   async syncFromCloud() {
     const { sessionPassword, isAuthenticated } = useAuthStore.getState();
-    const { cloudSync, proxy } = useConfigStore.getState();
+    const { cloudSync } = useConfigStore.getState();
 
     if (!isAuthenticated || !sessionPassword || !cloudSync?.enabled) {
       return;
     }
 
-    // 检查代理服务是否可用
-    if (!proxy.enabled) {
-      logger.error('SyncService', 'Cannot sync from cloud: proxy is not enabled');
-      return;
-    }
-
-    const isProxyAvailable = await this.checkProxyHealth();
-    if (!isProxyAvailable) {
-      logger.error('SyncService', 'Cannot sync from cloud: proxy server is not available');
+    const isSyncAvailable = await this.checkProxyHealth();
+    if (!isSyncAvailable) {
+      logger.error('SyncService', 'Cannot sync from cloud: cloud sync server is not available');
       return;
     }
 
@@ -263,9 +248,13 @@ class SyncService {
 
     try {
       const syncId = await this.getSyncId(sessionPassword);
+      const apiBaseUrl = this._getApiBaseUrl();
+      if (!apiBaseUrl) {
+        throw new Error('Sync API URL not configured');
+      }
       
-      const response = await axios.get(`http://localhost:5000/api/sync/${syncId}`, {
-        timeout: 3000 // 3秒超时
+      const response = await axios.get(`${apiBaseUrl}/api/sync/${syncId}`, {
+        timeout: 5000
       });
       const { data: encryptedData, timestamp } = response.data; // data here is the encrypted string
 
@@ -340,7 +329,6 @@ class SyncService {
 
   async deleteCloudData() {
     const { sessionPassword, isAuthenticated } = useAuthStore.getState();
-    const { proxy } = useConfigStore.getState();
 
     if (!isAuthenticated || !sessionPassword) {
       return;
@@ -348,9 +336,12 @@ class SyncService {
 
     try {
       const syncId = await this.getSyncId(sessionPassword);
-      const baseUrl = proxy.enabled && proxy.url ? proxy.url.replace('/api/proxy', '') : 'http://localhost:5000';
+      const apiBaseUrl = this._getApiBaseUrl();
+      if (!apiBaseUrl) {
+        throw new Error('Sync API URL not configured');
+      }
       
-      await axios.delete(`${baseUrl}/api/sync/${syncId}`);
+      await axios.delete(`${apiBaseUrl}/api/sync/${syncId}`);
       logger.info('SyncService', 'Cloud data deleted successfully');
     } catch (error) {
       logger.error('SyncService', 'Failed to delete cloud data', error);
@@ -359,7 +350,7 @@ class SyncService {
   }
 
   /**
-   * 后端代理健康检查
+   * 后端同步服务健康检查
    */
   async checkProxyHealth() {
     // 性能优化：5秒内不重复进行物理健康检查
@@ -367,54 +358,15 @@ class SyncService {
       return this.proxyStatus.isAvailable;
     }
 
-    const { proxy } = useConfigStore.getState();
+    const { cloudSync } = useConfigStore.getState();
+    const apiBaseUrl = this._getApiBaseUrl();
     
-    // 使用环境检测工具获取正确的代理URL
-    let healthCheckUrl;
-    try {
-      const { getProxyApiUrl, detectPlatform, Platform } = await import('../utils/envDetect.js');
-      const platform = detectPlatform();
-      const proxyUrl = getProxyApiUrl();
-      
-      // 根据平台和代理URL构建健康检查URL
-      if (proxyUrl.startsWith('http')) {
-        // 完整URL（本地开发），如 http://localhost:5000/api/proxy
-        const url = new URL(proxyUrl);
-        healthCheckUrl = `${url.protocol}//${url.host}/api/health`;
-      } else {
-        // 相对路径（生产环境），如 /api/ai-proxy 或 /functions/ai-proxy
-        // 对于生产环境，我们直接假设代理可用，因为它们是无服务器函数
-        // 只在本地环境进行实际的健康检查
-        if (platform === Platform.LOCAL) {
-          healthCheckUrl = `${window.location.origin}/api/health`;
-        } else {
-          // 生产环境：Vercel/Netlify/Cloudflare
-          // 这些平台的函数总是可用的，不需要健康检查
-          this.proxyStatus = {
-            isAvailable: true,
-            lastCheckTime: Date.now(),
-            errorCount: 0
-          };
-          logger.debug('SyncService', `Production platform detected (${platform}), assuming proxy is available`);
-          return true;
-        }
-      }
-    } catch (error) {
-      // 如果环境检测失败，使用配置或默认值
-      logger.warn('SyncService', 'Failed to detect environment, using fallback health check');
-      if (proxy.cloudUrl) {
-        try {
-          const url = new URL(proxy.cloudUrl);
-          healthCheckUrl = `${url.protocol}//${url.host}/api/health`;
-        } catch (e) {
-          healthCheckUrl = `${window.location.origin}/api/health`;
-        }
-      } else if (proxy.url) {
-        healthCheckUrl = proxy.url.replace('/api/proxy', '/api/health');
-      } else {
-        healthCheckUrl = 'http://localhost:5000/api/health';
-      }
+    if (!apiBaseUrl) {
+      this.proxyStatus.isAvailable = false;
+      return false;
     }
+
+    let healthCheckUrl = `${apiBaseUrl}/api/health`;
     
     try {
       const response = await axios.get(healthCheckUrl, { 
@@ -423,13 +375,13 @@ class SyncService {
       });
       
       // 检查响应是否有效
-      if (response.data && (response.data.status === 'ok' || response.data.status === 'healthy' || response.data.version)) {
+      if (response.data && (response.data.status === 'ok' || response.data.status === 'healthy' || response.data.database === 'online')) {
         this.proxyStatus = {
           isAvailable: true,
           lastCheckTime: Date.now(),
           errorCount: 0
         };
-        logger.info('SyncService', `Proxy health check passed (${healthCheckUrl})`);
+        logger.info('SyncService', `Sync health check passed (${healthCheckUrl})`);
         return true;
       }
     } catch (error) {

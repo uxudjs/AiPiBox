@@ -30,7 +30,8 @@ export const zhTW = {
     all: '全部',
     download: '下載',
     deleteConfirm: '確定要刪除嗎？',
-    pleaseSelect: '請選擇'
+    pleaseSelect: '請選擇',
+    saveSuccess: '儲存成功'
   },
 
   sidebar: {
@@ -50,7 +51,8 @@ export const zhTW = {
     unread: '未讀訊息',
     editTitle: '修改標題',
     saveTitle: '保存標題',
-    cancelEdit: '取消修改'
+    cancelEdit: '取消修改',
+    clearAllConfirm: '確定要清空所有對話歷史嗎？此操作不可撤銷。'
   },
 
   settings: {
@@ -176,10 +178,9 @@ export const zhTW = {
       encryptionHint: '您的 API 金鑰和對話數據使用您的主密碼進行 AES-256 加密存儲。',
       cloudSync: '雲端同步',
       cloudSyncHint: '將配置和對話歷史加密同步至雲端服務器，實現多設備資料共享。同步的資料包括：提供商配置（API Key已加密）、對話歷史、模型預設、知識庫配置等。',
-      cloudSyncRequiresProxy: '雲端同步需要先啟用代理服務',
-      proxyOnline: '代理服務線上',
-      proxyOffline: '代理服務離線 - 雲端同步已暫停',
-      proxyNotAvailable: '代理伺服器不可用，請先啟動代理伺服器',
+      syncServerOnline: '同步服務線上',
+      syncServerOffline: '同步服務離線 - 雲端同步已暫停',
+      syncServerNotAvailable: '同步伺服器不可用，請檢查同步 API 地址',
       persistence: '登錄狀態保持',
       persistenceHint: '設置自動退出登錄的時間，保護您的數據安全。',
       persistenceNone: '不保持 (關閉瀏覽器即退出)',
@@ -251,9 +252,7 @@ export const zhTW = {
       proxyMode: '啟用代理服務',
       proxyHint: '通過後端服務器代理所有AI API請求，解決CORS跨域限制，確保網路穩定性和請求連續性。所有AI請求（聊天、圖像生成、模型清單等）均通過代理服務器轉發，即使用戶端網路中斷，服務端長連接請求仍可繼續執行。',
       cloudProxyUrl: '雲端代理 URL',
-      cloudProxyHint: '生產環境代理服務地址。當部署在Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）默認域名時，系統自動檢測，無需填寫。僅在使用GitHub Pages或自定義域名時需要手動配置。',
-      localProxyUrl: '本地代理 URL',
-      localProxyHint: '本地開發環境代理服務地址，默認值：http://localhost:5000/api/proxy。需要先運行 npm run proxy 或 npm run dev:full 啟動本地代理服務。如未運行本地代理，可配置生產環境代理地址用於測試。',
+      cloudProxyHint: '生產環境代理服務地址。當部署在Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）默認域名時，系統自動檢測，無需填寫。僅在使用GitHub Pages或自定義域名時需要手動配置。\n\n本地開發環境會自動使用 http://localhost:5000/api/proxy，無需配置。',
       cloudSyncDepends: '雲端同步依賴於代理服務，停用後雲端同步也將停止'
     },
 
@@ -456,7 +455,9 @@ export const zhTW = {
     invalidResponse: '無效的回應',
     timeout: '請求逾時',
     unauthorized: '未授權，請檢查 API 金鑰',
-    unknown: '未知錯誤'
+    unknown: '未知錯誤',
+    saveFailed: '儲存失敗',
+    clearDataConfirm: '此操作將清除所有本地數據（包括對話歷史、設定等），確定繼續嗎？'
   },
 
   message: {
@@ -493,7 +494,8 @@ export const zhTW = {
     unlock: '解鎖',
     start: '開始使用',
     passwordWeak: '密碼強度不足：需至少8位，包含大小寫字母、數字和特殊字符',
-    passwordError: '密碼錯誤'
+    passwordError: '密碼錯誤',
+    pleaseLogin: '請先登錄'
   },
 
   ocr: {

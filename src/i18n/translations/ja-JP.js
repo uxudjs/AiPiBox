@@ -30,7 +30,8 @@ export const jaJP = {
     all: 'すべて',
     download: 'ダウンロード',
     deleteConfirm: '削除してもよろしいですか？',
-    pleaseSelect: '選択してください'
+    pleaseSelect: '選択してください',
+    saveSuccess: '保存成功'
   },
 
   sidebar: {
@@ -50,7 +51,8 @@ export const jaJP = {
     unread: '未読メッセージ',
     editTitle: 'タイトルを編集',
     saveTitle: 'タイトルを保存',
-    cancelEdit: '編集をキャンセル'
+    cancelEdit: '編集をキャンセル',
+    clearAllConfirm: 'すべての会話履歴をクリアしてもよろしいですか？この操作は元に戻せません。'
   },
 
   settings: {
@@ -177,10 +179,9 @@ export const jaJP = {
       encryptionHint: 'キーはWeb Crypto APIとマスターパスワードを組み合わせて秘密鍵を生成します。データはIndexedDBに暗号文として保存されます。',
       cloudSync: 'クラウドデータ同期を有効化',
       cloudSyncHint: '設定と会話履歴を暗号化してクラウドサーバーに同期し、複数のデバイス間でデータを共有します。同期されるデータには、プロバイダー設定（API Keyは暗号化済み）、会話履歴、モデルプリセット、ナレッジベース設定などが含まれます。',
-      cloudSyncRequiresProxy: 'クラウド同期にはプロキシを有効にする必要があります',
-      proxyOnline: 'プロキシサービスオンライン',
-      proxyOffline: 'プロキシサービスオフライン - 同期一時停止',
-      proxyNotAvailable: 'プロキシサーバーが利用できません。まずプロキシサーバーを起動してください',
+      syncServerOnline: '同期サービスオンライン',
+      syncServerOffline: '同期サービスオフライン - 同期一時停止',
+      syncServerNotAvailable: '同期サーバーが利用できません。同期APIアドレスを確認してください',
       persistence: '持続ログイン',
       selectDuration: 'ログイン期間を選択',
       persistenceNone: '無効（ブラウザを閉じるとログアウト）',
@@ -252,9 +253,7 @@ export const jaJP = {
       proxyMode: 'プロキシサービスを有効にする',
       proxyHint: 'すべてのAI APIリクエストをバックエンドサーバー経由でプロキシし、CORS制限を解決し、ネットワークの安定性とリクエストの継続性を確保します。すべてのAIリクエスト（チャット、画像生成、モデルリストなど）はプロキシサーバーを通じて転送され、クライアントのネットワークが切断されてもサーバー側の長時間実行リクエストは継続されます。',
       cloudProxyUrl: 'クラウドプロキシURL',
-      cloudProxyHint: '本番環境のプロキシサービスアドレス。Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）のデフォルトドメインにデプロイする場合、システムが自動検出し、入力不要です。GitHub Pagesまたはカスタムドメインを使用する場合のみ手動設定が必要です。',
-      localProxyUrl: 'ローカルプロキシURL',
-      localProxyHint: 'ローカル開発環境のプロキシサービスアドレス。デフォルト値：http://localhost:5000/api/proxy。まず npm run proxy または npm run dev:full を実行してローカルプロキシサービスを起動する必要があります。ローカルプロキシを実行していない場合は、本番環境のプロキシアドレスを設定してテストできます。',
+      cloudProxyHint: '本番環境のプロキシサービスアドレス。Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）のデフォルトドメインにデプロイする場合、システムが自動検出し、入力不要です。GitHub Pagesまたはカスタムドメインを使用する場合のみ手動設定が必要です。\n\nローカル開発環境では自動的に http://localhost:5000/api/proxy を使用します。設定不要です。',
       cloudSyncDepends: 'クラウド同期はプロキシサービスに依存します。プロキシを無効にすると同期も停止します'
     },
 
@@ -457,7 +456,9 @@ export const jaJP = {
     invalidResponse: '無効な応答',
     timeout: 'リクエストタイムアウト',
     unauthorized: '未承認、APIキーを確認してください',
-    unknown: '不明なエラー'
+    unknown: '不明なエラー',
+    saveFailed: '保存失敗',
+    clearDataConfirm: 'この操作はすべてのローカルデータ（会話履歴、設定など）をクリアします。続けてもよろしいですか？'
   },
 
   message: {
@@ -494,7 +495,8 @@ export const jaJP = {
     unlock: 'ロック解除',
     start: '利用開始',
     passwordWeak: 'パスワードの強度が不足しています：8文字以上で、英大文字・小文字、数字、特殊文字を含める必要があります',
-    passwordError: 'パスワードが正しくありません'
+    passwordError: 'パスワードが正しくありません',
+    pleaseLogin: '先にログインしてください'
   },
 
   ocr: {

@@ -4,11 +4,13 @@ import { X, Camera, RefreshCw, Check, RotateCcw, Crop, Sun, Moon, SwitchCamera }
 import { useTranslation } from '../../i18n';
 import { cn } from '../../utils/cn';
 import { logger } from '../../services/logger';
+import { isMobileDevice } from '../../utils/envDetect';
 
 const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
   const { t } = useTranslation();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const nativeRetakeInputRef = useRef(null);
   
   // States
   const [stream, setStream] = useState(null);
@@ -270,6 +272,34 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     setRotation(prev => (prev + 90) % 360);
   };
 
+  const handleRetake = () => {
+    if (isMobileDevice() && nativeRetakeInputRef.current) {
+      nativeRetakeInputRef.current.click();
+    } else {
+      setMode('camera');
+    }
+  };
+
+  const handleNativeRetakeChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCapturedImage(event.target.result);
+      setMode('edit');
+      // Reset edit controls for the new photo
+      setRotation(0);
+      setBrightness(100);
+      setContrast(100);
+      setAspectRatio('original');
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    e.target.value = '';
+  };
+
   const cycleAspectRatio = () => {
     const ratios = ['original', '1:1', '4:3', '16:9', 'custom'];
     const currentIndex = ratios.indexOf(aspectRatio);
@@ -293,6 +323,14 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] bg-black flex flex-col animate-in fade-in duration-300 overflow-hidden">
+      <input
+        type="file"
+        ref={nativeRetakeInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleNativeRetakeChange}
+      />
       {/* Top Bar */}
       <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm z-10 flex-shrink-0">
          <button onClick={handleClose} className="p-2 bg-black/50 rounded-full text-white hover:bg-white/20 transition-colors">
@@ -409,7 +447,7 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
                   <span className="text-[10px]">{t('common.edit') || 'Crop'}</span>
                </button>
 
-               <button onClick={() => setMode('camera')} className="flex flex-col items-center gap-1 text-white/70 hover:text-white transition-colors">
+               <button onClick={handleRetake} className="flex flex-col items-center gap-1 text-white/70 hover:text-white transition-colors">
                   <div className="p-2.5 bg-white/10 rounded-full"><RefreshCw className="w-5 h-5" /></div>
                   <span className="text-[10px]">{t('inputArea.camera.retake') || 'Retake'}</span>
                </button>
@@ -417,7 +455,7 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
             
             {/* Confirm Actions */}
             <div className="flex items-center gap-3 mt-2">
-               <button onClick={() => setMode('camera')} className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors">
+               <button onClick={handleRetake} className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors">
                   {t('common.cancel') || 'Cancel'}
                </button>
                <button onClick={handleConfirm} className="flex-1 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold transition-colors flex items-center justify-center gap-2">

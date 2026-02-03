@@ -598,9 +598,13 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   const handleManualSync = async () => {
     const { sessionPassword } = useAuthStore.getState();
     if (!sessionPassword) {
-      alert('请先登录');
+      alert(t('auth.pleaseLogin'));
       return;
     }
+
+    // 同步前自动保存当前 UI 配置，确保使用的是最新 URL
+    const saved = await applyAllChanges();
+    if (!saved) return;
 
     try {
       await syncService.syncWithConflictResolution(sessionPassword);
@@ -1278,25 +1282,16 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       <p className="font-medium text-sm">{t('settings.proxy.proxyMode')}</p>
                       <p className="text-xs text-muted-foreground">{t('settings.proxy.proxyHint')}</p>
                       
-                      {/* 云同步关联提示 */}
-                      {cloudSync?.enabled && (
-                        <div className="mt-2 flex items-center gap-2 text-xs text-blue-500">
-                          <Info className="w-3 h-3" />
-                          <span>{t('settings.proxy.cloudSyncDepends')}</span>
-                        </div>
-                      )}
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer ml-4">
                       <input 
                         type="checkbox" 
                         checked={proxy.enabled}
-                        disabled={cloudSync?.enabled}
                         onChange={(e) => updateLocalConfig('proxy', { enabled: e.target.checked })}
                         className="sr-only peer" 
                       />
                       <div className={cn(
-                        "w-11 h-6 bg-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary",
-                        cloudSync?.enabled && "opacity-50 cursor-not-allowed"
+                        "w-11 h-6 bg-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
                       )}></div>
                     </label>
                   </div>
@@ -1314,20 +1309,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         />
                         <p className="text-xs text-muted-foreground">
                           {t('settings.proxy.cloudProxyHint')}
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">{t('settings.proxy.localProxyUrl')}</label>
-                        <input 
-                          type="text" 
-                          value={proxy.url}
-                          onChange={(e) => updateLocalConfig('proxy', { url: e.target.value })}
-                          placeholder="http://localhost:5000/api/proxy"
-                          className="w-full px-4 py-3 bg-accent rounded-xl border-none focus:ring-2 focus:ring-primary text-sm"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {t('settings.proxy.localProxyHint')}
                         </p>
                       </div>
 
@@ -1361,21 +1342,21 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       <p className="font-medium text-sm">{t('settings.security.cloudSync')}</p>
                       <p className="text-xs text-muted-foreground">{t('settings.security.cloudSyncHint')}</p>
                       
-                      {/* 代理状态显示 */}
-                      {proxy.enabled && cloudSync?.enabled && (
+                      {/* 同步服务状态显示 */}
+                      {cloudSync?.enabled && (
                         <div className="mt-2 flex items-center gap-2 text-xs">
                           {proxyStatus.isAvailable ? (
                             <>
                               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                               <span className="text-green-600 dark:text-green-400">
-                                {t('settings.security.proxyOnline')}
+                                {t('settings.security.syncServerOnline')}
                               </span>
                             </>
                           ) : (
                             <>
                               <div className="w-2 h-2 bg-red-500 rounded-full" />
                               <span className="text-red-600 dark:text-red-400">
-                                {t('settings.security.proxyOffline')}
+                                {t('settings.security.syncServerOffline')}
                               </span>
                             </>
                           )}
@@ -1398,15 +1379,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             setCloudSyncError(null);
                             const updates = { enabled: e.target.checked };
                             
-                            // 这里我们只是在本地状态模拟更新，不进行实际检查，除非点击保存
-                            // 但是为了用户体验，我们可能还是需要在这里调用检查
                             if (e.target.checked) {
-                              if (!proxy.enabled) {
-                                throw new Error('CLOUD_SYNC_REQUIRES_PROXY');
-                              }
-                              const isProxyAvailable = await syncService.checkProxyHealth();
-                              if (!isProxyAvailable) {
-                                throw new Error('PROXY_NOT_AVAILABLE');
+                              const isSyncAvailable = await syncService.checkProxyHealth();
+                              if (!isSyncAvailable) {
+                                throw new Error('SYNC_SERVER_NOT_AVAILABLE');
                               }
                               setProxyStatus(syncService.getProxyStatus());
                             }
@@ -1414,10 +1390,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             updateLocalConfig('cloudSync', updates);
                           } catch (error) {
                             let errorMessage = error.message;
-                            if (error.message === 'CLOUD_SYNC_REQUIRES_PROXY') {
-                              errorMessage = t('settings.security.cloudSyncRequiresProxy');
-                            } else if (error.message === 'PROXY_NOT_AVAILABLE') {
-                              errorMessage = t('settings.security.proxyNotAvailable');
+                            if (error.message === 'SYNC_SERVER_NOT_AVAILABLE') {
+                              errorMessage = t('settings.security.syncServerNotAvailable');
                             }
                             setCloudSyncError(errorMessage);
                           }

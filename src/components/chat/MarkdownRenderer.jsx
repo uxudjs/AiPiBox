@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { 
   Copy, Play, ExternalLink, Check, Info, Loader2
 } from 'lucide-react';
@@ -222,7 +223,21 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
       prose-img:rounded-lg prose-img:shadow-md">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex, rehypeRaw]}
+        rehypePlugins={[
+          rehypeKatex, 
+          rehypeRaw,
+          [rehypeSanitize, {
+            ...defaultSchema,
+            attributes: {
+              ...defaultSchema.attributes,
+              code: [...(defaultSchema.attributes?.code || []), 'className'],
+              span: [...(defaultSchema.attributes?.span || []), 'className', 'style'],
+              div: [...(defaultSchema.attributes?.div || []), 'className', 'style'],
+              iframe: ['srcDoc', 'className', 'style', 'title', 'sandbox', 'width', 'height']
+            },
+            tagNames: [...(defaultSchema.tagNames || []), 'iframe']
+          }]
+        ]}
         components={{
           code({ node, inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
@@ -241,7 +256,6 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
               </code>
             );
           },
-          // 确保正确渲染各种元素
           p({ children }) {
             return <p className="mb-4 last:mb-0">{children}</p>;
           },
@@ -263,11 +277,9 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
           li({ children }) {
             return <li className="leading-7">{children}</li>;
           },
-          // 引用块样式
           blockquote({ children }) {
             return <blockquote className="border-l-4 border-primary pl-4 my-4 italic text-muted-foreground">{children}</blockquote>;
           },
-          // 表格容器（支持水平滚动）
           table({ children }) {
             return (
               <div className="my-4 overflow-x-auto">
@@ -275,11 +287,9 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
               </div>
             );
           },
-          // 表头样式
           thead({ children }) {
             return <thead className="bg-muted">{children}</thead>;
           },
-          // 表体样式
           tbody({ children }) {
             return <tbody className="divide-y divide-border">{children}</tbody>;
           },
@@ -292,11 +302,9 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
           td({ children }) {
             return <td className="px-4 py-2 border border-border">{children}</td>;
           },
-          // 水平分割线
           hr() {
             return <hr className="my-6 border-border" />;
           },
-          // 链接（新窗口打开）
           a({ href, children }) {
             return (
               <a 
@@ -309,12 +317,12 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
               </a>
             );
           },
-          // 图片样式
           img({ src, alt }) {
             return (
               <img 
                 src={src} 
                 alt={alt} 
+                loading="lazy"
                 className="rounded-lg shadow-md max-w-full h-auto max-h-[500px] my-2 cursor-pointer hover:opacity-90 transition-opacity" 
                 onClick={() => setPreviewImage(src)}
               />

@@ -30,7 +30,8 @@ export const zhCN = {
     all: '全部',
     download: '下载',
     deleteConfirm: '确定要删除吗？',
-    pleaseSelect: '请选择'
+    pleaseSelect: '请选择',
+    saveSuccess: '保存成功'
   },
 
   sidebar: {
@@ -50,7 +51,8 @@ export const zhCN = {
     unread: '未读消息',
     editTitle: '修改标题',
     saveTitle: '保存标题',
-    cancelEdit: '取消修改'
+    cancelEdit: '取消修改',
+    clearAllConfirm: '确定要清空所有对话历史吗？此操作不可撤销。'
   },
 
   imageFactory: {
@@ -212,10 +214,9 @@ export const zhCN = {
       encryptionHint: '您的 API 密钥和对话数据使用您的主密码进行 AES-256 加密存储。',
       cloudSync: '云端同步',
       cloudSyncHint: '将配置和对话历史加密同步至云端服务器，实现多设备数据共享。同步的数据包括：提供商配置（API Key已加密）、对话历史、模型预设、知识库配置等。',
-      cloudSyncRequiresProxy: '云同步需要先启用代理服务',
-      proxyOnline: '代理服务在线',
-      proxyOffline: '代理服务离线 - 云同步已暂停',
-      proxyNotAvailable: '代理服务器不可用，请先启动代理服务器',
+      syncServerOnline: '同步服务在线',
+      syncServerOffline: '同步服务离线 - 云同步已暂停',
+      syncServerNotAvailable: '同步服务器不可用，请检查同步 API 地址',
       
       // 云端同步新增
       enableCloudSync: '启用云端同步',
@@ -288,9 +289,7 @@ export const zhCN = {
       proxyMode: '启用代理服务',
       proxyHint: '通过后端服务器代理所有AI API请求，解决CORS跨域限制，确保网络稳定性和请求连续性。所有AI请求（聊天、图像生成、模型列表等）均通过代理服务器转发，即使客户端网络中断，服务端长连接请求仍可继续执行。',
       cloudProxyUrl: '云端代理 URL',
-      cloudProxyHint: '生产环境代理服务地址。当部署在Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）默认域名时，系统自动检测，无需填写。仅在使用GitHub Pages或自定义域名时需要手动配置。',
-      localProxyUrl: '本地代理 URL',
-      localProxyHint: '本地开发环境代理服务地址，默认值：http://localhost:5000/api/proxy。需要先运行 npm run proxy 或 npm run dev:full 启动本地代理服务。如未运行本地代理，可配置生产环境代理地址用于测试。',
+      cloudProxyHint: '生产环境代理服务地址。当部署在Vercel（*.vercel.app）、Netlify（*.netlify.app）、Cloudflare Pages（*.pages.dev）默认域名时，系统自动检测，无需填写。仅在使用GitHub Pages或自定义域名时需要手动配置。\n\n本地开发环境会自动使用 http://localhost:5000/api/proxy，无需配置。',
       cloudSyncDepends: '云同步依赖于代理服务，禁用后云同步也将停止'
     },
 
@@ -493,7 +492,9 @@ export const zhCN = {
     invalidResponse: '无效的响应',
     timeout: '请求超时',
     unauthorized: '未授权，请检查 API 密钥',
-    unknown: '未知错误'
+    unknown: '未知错误',
+    saveFailed: '保存失败',
+    clearDataConfirm: '此操作将清除所有本地数据（包括对话历史、设置等），确定继续吗？'
   },
 
   message: {
@@ -530,7 +531,8 @@ export const zhCN = {
     unlock: '解锁',
     start: '开始使用',
     passwordWeak: '密码强度不足：需至少8位，包含大小写字母、数字和特殊字符',
-    passwordError: '密码错误'
+    passwordError: '密码错误',
+    pleaseLogin: '请先登录'
   },
 
   ocr: {

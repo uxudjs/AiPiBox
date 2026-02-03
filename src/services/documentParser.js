@@ -5,9 +5,6 @@
  */
 import { logger } from './logger';
 import * as pdfjsLib from 'pdfjs-dist';
-import mammoth from 'mammoth';
-import * as XLSX from 'xlsx';
-import JSZip from 'jszip';
 
 /**
  * PDF Worker CDN 容灾列表
@@ -204,6 +201,7 @@ async function parsePDF(file) {
  * Word (.docx) 文件解析逻辑
  */
 async function parseWord(file) {
+  const { default: mammoth } = await import('mammoth');
   const arrayBuffer = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer });
   
@@ -224,6 +222,7 @@ async function parseWord(file) {
  * 将各 sheet 转换为 CSV 风格的纯文本
  */
 async function parseExcel(file) {
+  const XLSX = await import('xlsx');
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
   
@@ -255,6 +254,7 @@ async function parseExcel(file) {
  * 通过解压并解析 OpenXML 结构提取每页幻灯片的文字
  */
 async function parsePowerPoint(file) {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   const content = await zip.loadAsync(file);
   let fullText = '';

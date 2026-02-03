@@ -217,3 +217,21 @@ export function getEnvironmentConfig() {
   }
   return initializeEnvironment();
 }
+
+/**
+ * 检测是否为移动设备
+ * 涵盖 iPhone, iPad, iPod, Android, HarmonyOS 以及各种移动浏览器
+ */
+export function isMobileDevice() {
+  if (typeof window === 'undefined') return false;
+  
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  
+  // 涵盖主流移动设备标识
+  const mobileRegex = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|harmonyos|harmony/i;
+  
+  // 额外检测 iPad 在 desktop 模式下的特殊 UA
+  const isIPadOS = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  
+  return mobileRegex.test(userAgent.toLowerCase()) || isIPadOS;
+}

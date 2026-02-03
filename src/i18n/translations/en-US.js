@@ -30,7 +30,8 @@ export const enUS = {
     all: 'All',
     download: 'Download',
     deleteConfirm: 'Are you sure you want to delete?',
-    pleaseSelect: 'Please select'
+    pleaseSelect: 'Please select',
+    saveSuccess: 'Saved successfully'
   },
 
   sidebar: {
@@ -50,7 +51,8 @@ export const enUS = {
     unread: 'Unread Messages',
     editTitle: 'Edit Title',
     saveTitle: 'Save Title',
-    cancelEdit: 'Cancel Edit'
+    cancelEdit: 'Cancel Edit',
+    clearAllConfirm: 'Are you sure you want to clear all conversation history? This action cannot be undone.'
   },
 
   imageFactory: {
@@ -212,10 +214,9 @@ export const enUS = {
       encryptionHint: 'Your keys use Web Crypto API with master password to generate private keys. Data is stored as Ciphertext in IndexedDB.',
       cloudSync: 'Enable Cloud Data Sync',
       cloudSyncHint: 'Encrypt and sync configurations and conversation history to cloud servers for multi-device data sharing. Synced data includes: provider configurations (API Keys encrypted), conversation history, model presets, knowledge base configurations, etc.',
-      cloudSyncRequiresProxy: 'Cloud sync requires proxy to be enabled',
-      proxyOnline: 'Proxy service online',
-      proxyOffline: 'Proxy service offline - sync paused',
-      proxyNotAvailable: 'Proxy server is not available, please start the proxy server first',
+      syncServerOnline: 'Sync server online',
+      syncServerOffline: 'Sync server offline - sync paused',
+      syncServerNotAvailable: 'Sync server is not available, please check the sync API URL',
       
       // Cloud Sync
       enableCloudSync: 'Enable Cloud Sync',
@@ -288,9 +289,7 @@ export const enUS = {
       proxyMode: 'Enable Proxy Service',
       proxyHint: 'Proxy all AI API requests through backend server, resolving CORS restrictions and ensuring network stability and request continuity. All AI requests (chat, image generation, model list, etc.) are forwarded through the proxy server. Even if client network disconnects, server-side long-running requests continue.',
       cloudProxyUrl: 'Cloud Proxy URL',
-      cloudProxyHint: 'Production environment proxy service address. Auto-detected when deployed on Vercel (*.vercel.app), Netlify (*.netlify.app), Cloudflare Pages (*.pages.dev) default domains, no manual configuration needed. Only required for GitHub Pages or custom domains.',
-      localProxyUrl: 'Local Proxy URL',
-      localProxyHint: 'Local development environment proxy service address. Default: http://localhost:5000/api/proxy. Requires running npm run proxy or npm run dev:full to start local proxy service first. If not running local proxy, can configure production proxy address for testing.',
+      cloudProxyHint: 'Production environment proxy service address. Auto-detected when deployed on Vercel (*.vercel.app), Netlify (*.netlify.app), Cloudflare Pages (*.pages.dev) default domains, no manual configuration needed. Only required for GitHub Pages or custom domains.\n\nLocal development automatically uses http://localhost:5000/api/proxy, no configuration needed.',
       cloudSyncDepends: 'Cloud sync depends on proxy service, disabling proxy will also stop sync'
     },
 
@@ -493,7 +492,9 @@ export const enUS = {
     invalidResponse: 'Invalid response',
     timeout: 'Request timeout',
     unauthorized: 'Unauthorized, please check API key',
-    unknown: 'Unknown error'
+    unknown: 'Unknown error',
+    saveFailed: 'Save failed',
+    clearDataConfirm: 'This action will clear all local data (including conversation history, settings, etc.). Are you sure you want to continue?'
   },
 
   message: {
@@ -530,7 +531,8 @@ export const enUS = {
     unlock: 'Unlock',
     start: 'Start Using',
     passwordWeak: 'Password too weak: minimum 8 characters, including upper/lowercase letters, numbers and special characters',
-    passwordError: 'Incorrect password'
+    passwordError: 'Incorrect password',
+    pleaseLogin: 'Please log in first'
   },
 
   ocr: {

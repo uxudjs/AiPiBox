@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { logger } from '../services/logger';
+import { useI18nStore } from '../i18n';
 
 /**
  * 全局错误边界组件
@@ -55,7 +56,8 @@ class ErrorBoundary extends React.Component {
   };
 
   handleClearData = () => {
-    if (window.confirm('此操作将清除所有本地数据（包括对话历史、设置等），确定继续吗？')) {
+    const { t } = useI18nStore.getState();
+    if (window.confirm(t('error.clearDataConfirm'))) {
       // 清除所有localStorage数据
       localStorage.clear();
       // 清除所有sessionStorage数据

@@ -50,7 +50,7 @@ export const useConfigStore = create((set, get) => ({
   
   // 网络代理配置
   proxy: {
-    enabled: true, 
+    enabled: false, 
     url: '/api/proxy',        // 本地开发代理
     cloudUrl: '',             // 生产环境云端代理
     encryptKey: true,         // 是否加密传输 API Key
@@ -286,23 +286,6 @@ export const useConfigStore = create((set, get) => ({
 
   // 更新代理配置
   updateProxy: (updates) => {
-    // 如果禁用代理，也必须禁用云同步
-    if (updates.enabled === false) {
-      const { cloudSync } = get();
-      if (cloudSync?.enabled) {
-        logger.warn('ConfigStore', 'Disabling proxy will also disable cloud sync');
-        // 动态导入避免循环依赖
-        import('../services/syncService').then(({ syncService }) => {
-          syncService.stopProxyHealthMonitoring();
-        });
-        set((state) => ({
-          proxy: { ...state.proxy, ...updates },
-          cloudSync: { ...state.cloudSync, enabled: false }
-        }));
-        return;
-      }
-    }
-    
     set((state) => ({
       proxy: { ...state.proxy, ...updates }
     }));
@@ -312,22 +295,14 @@ export const useConfigStore = create((set, get) => ({
   updateCloudSync: async (updates) => {
     // 如果尝试启用云同步
     if (updates.enabled === true) {
-      const { proxy } = get();
-      
-      // 检查代理是否启用
-      if (!proxy.enabled) {
-        logger.error('ConfigStore', 'Cannot enable cloud sync: proxy is not enabled');
-        throw new Error('CLOUD_SYNC_REQUIRES_PROXY');
-      }
-      
       // 动态导入避免循环依赖
       const { syncService } = await import('../services/syncService');
       
-      // 检查代理服务是否可用
-      const isProxyAvailable = await syncService.checkProxyHealth();
-      if (!isProxyAvailable) {
-        logger.error('ConfigStore', 'Cannot enable cloud sync: proxy server is not available');
-        throw new Error('PROXY_NOT_AVAILABLE');
+      // 检查同步服务是否可用
+      const isSyncAvailable = await syncService.checkProxyHealth();
+      if (!isSyncAvailable) {
+        logger.error('ConfigStore', 'Cannot enable cloud sync: sync server is not available');
+        throw new Error('SYNC_SERVER_NOT_AVAILABLE');
       }
       
       // 启动健康监控

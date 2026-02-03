@@ -30,7 +30,8 @@ export const koKR = {
     all: '전체',
     download: '다운로드',
     deleteConfirm: '삭제하시겠습니까?',
-    pleaseSelect: '선택하세요'
+    pleaseSelect: '선택하세요',
+    saveSuccess: '저장 성공'
   },
 
   sidebar: {
@@ -50,7 +51,8 @@ export const koKR = {
     unread: '읽지 않은 메시지',
     editTitle: '제목 편집',
     saveTitle: '제목 저장',
-    cancelEdit: '편집 취소'
+    cancelEdit: '편집 취소',
+    clearAllConfirm: '모든 대화 기록을 지우시겠습니까? 이 작업은 취소할 수 없습니다.'
   },
 
   settings: {
@@ -176,10 +178,9 @@ export const koKR = {
       encryptionHint: '키는 Web Crypto API와 마스터 비밀번호를 결합하여 개인 키를 생성합니다. 데이터는 IndexedDB에 암호문으로 저장됩니다.',
       cloudSync: '클라우드 데이터 동기화 활성화',
       cloudSyncHint: '구성 및 대화 기록을 암호화하여 클라우드 서버에 동기화하여 다중 장치 데이터 공유를 구현합니다. 동기화되는 데이터에는 공급자 구성(API Key 암호화됨), 대화 기록, 모델 프리셋, 지식 베이스 구성 등이 포함됩니다.',
-      cloudSyncRequiresProxy: '클라우드 동기화를 사용하려면 프록시를 활성화해야 합니다',
-      proxyOnline: '프록시 서비스 온라인',
-      proxyOffline: '프록시 서비스 오프라인 - 동기화 일시 중지',
-      proxyNotAvailable: '프록시 서버를 사용할 수 없습니다。 먼저 프록시 서버를 시작하십시오',
+      syncServerOnline: '동기화 서비스 온라인',
+      syncServerOffline: '동기화 서비스 오프라인 - 동기화 일시 중지',
+      syncServerNotAvailable: '동기화 서버를 사용할 수 없습니다. 동기화 API 주소를 확인하십시오',
       persistence: '영구 로그인',
       selectDuration: '로그인 기간 선택',
       persistenceNone: '비활성화 (브라우저 닫으면 로그아웃)',
@@ -251,9 +252,7 @@ export const koKR = {
       proxyMode: '프록시 서비스 활성화',
       proxyHint: '백엔드 서버를 통해 모든 AI API 요청을 프록시하여 CORS 제한을 해결하고 네트워크 안정성과 요청 연속성을 보장합니다. 모든 AI 요청(채팅, 이미지 생성, 모델 목록 등)은 프록시 서버를 통해 전달되며, 클라이언트 네트워크가 끊어져도 서버 측 장시간 실행 요청은 계속됩니다.',
       cloudProxyUrl: '클라우드 프록시 URL',
-      cloudProxyHint: '프로덕션 환경 프록시 서비스 주소. Vercel(*.vercel.app), Netlify(*.netlify.app), Cloudflare Pages(*.pages.dev) 기본 도메인에 배포할 때 시스템이 자동으로 감지하므로 입력할 필요가 없습니다. GitHub Pages 또는 사용자 지정 도메인을 사용하는 경우에만 수동 구성이 필요합니다.',
-      localProxyUrl: '로컬 프록시 URL',
-      localProxyHint: '로컬 개발 환경 프록시 서비스 주소, 기본값: http://localhost:5000/api/proxy. 먼저 npm run proxy 또는 npm run dev:full을 실행하여 로컬 프록시 서비스를 시작해야 합니다. 로컬 프록시를 실행하지 않은 경우 테스트를 위해 프로덕션 환경 프록시 주소를 구성할 수 있습니다.',
+      cloudProxyHint: '프로덕션 환경 프록시 서비스 주소. Vercel(*.vercel.app), Netlify(*.netlify.app), Cloudflare Pages(*.pages.dev) 기본 도메인에 배포할 때 시스템이 자동으로 감지하므로 입력할 필요가 없습니다. GitHub Pages 또는 사용자 지정 도메인을 사용하는 경우에만 수동 구성이 필요합니다.\n\n로컬 개발 환경에서는 자동으로 http://localhost:5000/api/proxy를 사용합니다. 구성이 필요하지 않습니다.',
       cloudSyncDepends: '클라우드 동기화는 프록시 서비스에 의존합니다. 프록시를 비활성화하면 동기화도 중지됩니다'
     },
 
@@ -456,7 +455,9 @@ export const koKR = {
     invalidResponse: '잘못된 응답',
     timeout: '요청 시간 초과',
     unauthorized: '권한 없음, API 키를 확인하세요',
-    unknown: '알 수 없는 오류'
+    unknown: '알 수 없는 오류',
+    saveFailed: '저장 실패',
+    clearDataConfirm: '이 작업은 모든 로컬 데이터（대화 기록, 설정 등）를 삭제합니다. 계속하시겠습니까?'
   },
 
   message: {
@@ -493,7 +494,8 @@ export const koKR = {
     unlock: '잠금 해제',
     start: '시작하기',
     passwordWeak: '비밀번호 강도가 부족합니다: 최소 8자 이상, 대소문자, 숫자 및 특수문자를 포함해야 합니다',
-    passwordError: '비밀번호가 올바르지 않습니다'
+    passwordError: '비밀번호가 올바르지 않습니다',
+    pleaseLogin: '먼저 로그인하세요'
   },
 
   ocr: {

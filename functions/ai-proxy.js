@@ -3,12 +3,49 @@
  * 代理 AI 服务请求以绕过网络限制并确保连接稳定性
  */
 
-// 内存请求记录，用于调试
-const requestQueue = new Map();
+/**
+ * 允许代理的域名白名单，防止 SSRF 攻击
+ */
+const ALLOWED_HOSTS = [
+  'api.openai.com',
+  'api.anthropic.com',
+  'api.google.com',
+  'generativelanguage.googleapis.com',
+  'api.deepseek.com',
+  'api.siliconflow.cn',
+  'openrouter.ai',
+  'api.mistral.ai',
+  'api.groq.com',
+  'api.perplexity.ai',
+  'api.x.ai',
+  'dashscope.aliyuncs.com',
+  'open.bigmodel.cn',
+  'ark.cn-beijing.volces.com',
+  'api.tavily.com',
+  'api.bing.microsoft.com',
+  'www.googleapis.com',
+  'api.replicate.com',
+  'api.stability.ai'
+];
+
+/**
+ * 敏感信息脱敏工具 (URLs)
+ */
+function maskUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.searchParams.has('key')) {
+      const key = urlObj.searchParams.get('key');
+      urlObj.searchParams.set('key', '****' + String(key).slice(-4));
+    }
+    return urlObj.toString();
+  } catch (e) {
+    return url;
+  }
+}
 
 /**
  * Cloudflare Workers 请求处理入口
- * @param {Object} context Workers 上下文对象
  */
 export async function onRequest(context) {
   const { request, env } = context;
@@ -32,7 +69,7 @@ export async function onRequest(context) {
     const body = await request.json();
     const { url, method = 'POST', headers = {}, data, stream = false } = body;
 
-    // 校验必填参数：目标 URL
+    // 1. 校验必填参数
     if (!url) {
       return new Response(JSON.stringify({ 
         error: 'Bad Request',
@@ -43,21 +80,45 @@ export async function onRequest(context) {
       });
     }
 
-    // 记录简要请求日志
-    console.log(`[${new Date().toISOString()}] [${requestId}] ${method} ${url}`);
+    // 2. SSRF 安全校验：验证域名白名单
+    try {
+      const targetHost = new URL(url).hostname;
+      const isAllowed = ALLOWED_HOSTS.some(allowed => 
+        targetHost === allowed || targetHost.endsWith('.' + allowed)
+      );
+      
+      const isAzure = targetHost.endsWith('.openai.azure.com');
 
-    // 封装 Fetch 请求参数
+      if (!isAllowed && !isAzure) {
+        console.warn(`[${requestId}] [Security Alert] Blocked request to unauthorized host: ${targetHost}`);
+        return new Response(JSON.stringify({ 
+          error: 'Forbidden', 
+          message: `Domain ${targetHost} is not in the allowlist.` 
+        }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Invalid target URL' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 3. 记录日志（脱敏）
+    console.log(`[${new Date().toISOString()}] [${requestId}] ${method} ${maskUrl(url)}`);
+
+    // 4. 封装 Fetch 请求参数
     const fetchOptions = {
       method: method || 'POST',
       headers: {
         ...headers,
         'User-Agent': 'AiPiBox-Cloud-Proxy/2.0-Cloudflare',
-        // 透传 Cloudflare 识别出的客户端真实 IP
         'X-Forwarded-For': request.headers.get('cf-connecting-ip') || 'unknown',
       },
     };
 
-    // 非 GET 请求附带 JSON 序列化后的请求体
     if (method && method.toUpperCase() !== 'GET' && data) {
       fetchOptions.body = JSON.stringify(data);
     }
@@ -68,7 +129,6 @@ export async function onRequest(context) {
 
       const response = await fetch(url, fetchOptions);
 
-      // 直接转发响应流，并配置必要的 SSE 响应头
       return new Response(response.body, {
         status: response.status,
         headers: {
@@ -86,7 +146,6 @@ export async function onRequest(context) {
 
     console.log(`[${requestId}] Completed: ${response.status} in ${duration}ms`);
 
-    // 根据 Content-Type 自动解析响应体
     const contentType = response.headers.get('content-type');
     let responseData;
 
@@ -96,7 +155,6 @@ export async function onRequest(context) {
       responseData = await response.text();
     }
 
-    // 注入元数据后返回标准化 JSON 响应
     return new Response(JSON.stringify({
       ...responseData,
       _meta: {
@@ -114,18 +172,14 @@ export async function onRequest(context) {
     });
 
   } catch (error) {
-    // 捕获异步请求链中的任何错误
     const duration = Date.now() - startTime;
-
     console.error(`[${requestId}] Error after ${duration}ms:`, error.message);
 
     return new Response(JSON.stringify({
       error: true,
       message: error.message,
-      code: error.code || 'UNKNOWN_ERROR',
       requestId,
-      duration,
-      timestamp: new Date().toISOString()
+      duration
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

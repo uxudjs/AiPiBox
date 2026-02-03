@@ -23,17 +23,56 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' })); // 增大请求限制以支持完整数据备份
 
 /**
- * 敏感请求头脱敏工具
- * @param {Object} headers 原始请求头
- * @returns {Object} 脱敏后的请求头
+ * 允许代理的域名白名单，防止 SSRF 攻击
  */
-const maskHeaders = (headers) => {
-  const masked = { ...headers };
-  ['authorization', 'x-api-key', 'cookie'].forEach(h => {
-    if (masked[h]) masked[h] = '********' + masked[h].slice(-4);
-    if (masked[h.toLowerCase()]) masked[h.toLowerCase()] = '********' + masked[h.toLowerCase()].slice(-4);
-  });
-  return masked;
+const ALLOWED_HOSTS = [
+  'api.openai.com',
+  'api.anthropic.com',
+  'api.google.com',
+  'generativelanguage.googleapis.com',
+  'api.deepseek.com',
+  'api.siliconflow.cn',
+  'openrouter.ai',
+  'api.mistral.ai',
+  'api.groq.com',
+  'api.perplexity.ai',
+  'api.x.ai',
+  'dashscope.aliyuncs.com',
+  'open.bigmodel.cn',
+  'ark.cn-beijing.volces.com',
+  'api.tavily.com',
+  'api.bing.microsoft.com',
+  'www.googleapis.com',
+  'api.replicate.com',
+  'api.stability.ai'
+];
+
+/**
+ * 敏感信息脱敏工具 (Headers & URLs)
+ */
+const maskSensitiveInfo = (info, type = 'header') => {
+  if (type === 'header') {
+    const masked = { ...info };
+    ['authorization', 'x-api-key', 'api-key', 'cookie'].forEach(h => {
+      if (masked[h]) masked[h] = '********' + String(masked[h]).slice(-4);
+      if (masked[h.toLowerCase()]) masked[h.toLowerCase()] = '********' + String(masked[h.toLowerCase()]).slice(-4);
+    });
+    return masked;
+  }
+  
+  if (type === 'url') {
+    try {
+      const urlObj = new URL(info);
+      if (urlObj.searchParams.has('key')) {
+        const key = urlObj.searchParams.get('key');
+        urlObj.searchParams.set('key', '********' + String(key).slice(-4));
+      }
+      return urlObj.toString();
+    } catch (e) {
+      return info;
+    }
+  }
+  return info;
 };
 
 /**
@@ -43,12 +82,35 @@ const maskHeaders = (headers) => {
 app.post('/api/proxy', async (req, res) => {
   const { url, method, headers, data, stream } = req.body;
 
-  // 基础参数校验
+  // 1. 基础参数校验
   if (!url) return res.status(400).json({ error: 'Target URL is required' });
 
-  // 打印脱敏日志
-  console.log(`[Proxy] ${method || 'POST'} ${url}`);
-  console.log(`[Headers]`, maskHeaders(headers));
+  // 2. SSRF 安全校验：验证域名白名单
+  try {
+    const targetHost = new URL(url).hostname;
+    const isAllowed = ALLOWED_HOSTS.some(allowed => 
+      targetHost === allowed || targetHost.endsWith('.' + allowed)
+    );
+    
+    // 允许用户配置的 Azure 域名 (通常包含 .openai.azure.com)
+    const isAzure = targetHost.endsWith('.openai.azure.com');
+    // 允许本地开发地址
+    const isLocal = targetHost === 'localhost' || targetHost === '127.0.0.1';
+
+    if (!isAllowed && !isAzure && !isLocal) {
+      console.warn(`[Security Alert] Blocked proxy request to unauthorized host: ${targetHost}`);
+      return res.status(403).json({ 
+        error: 'Forbidden', 
+        message: `Domain ${targetHost} is not in the allowlist. For security reasons, the proxy only supports recognized AI service providers.` 
+      });
+    }
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid target URL' });
+  }
+
+  // 3. 打印脱敏日志
+  console.log(`[Proxy] ${method || 'POST'} ${maskSensitiveInfo(url, 'url')}`);
+  console.log(`[Headers]`, maskSensitiveInfo(headers, 'header'));
   if (data) console.log(`[Data]`, typeof data === 'string' ? data.substring(0, 200) : JSON.stringify(data).substring(0, 200));
 
   try {
@@ -198,13 +260,6 @@ app.post('/api/sync', async (req, res) => {
 
     const filePath = path.join(DATA_DIR, `${id}.json`);
     
-    // 冲突检测逻辑占位 (当前采用客户端覆盖策略)
-    try {
-      await fs.readFile(filePath, 'utf8');
-    } catch (e) {
-      // 首次保存，文件尚不存在
-    }
-
     // 执行写入
     await fs.writeFile(filePath, JSON.stringify({ data, timestamp }));
     

@@ -1,5 +1,14 @@
 # 🤖 AiPiBox
 
+<div align="center">
+
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](./docs/README.en.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](./docs/README.ja.md)
+[![한국어](https://img.shields.io/badge/lang-한국어-green.svg)](./docs/README.ko.md)
+[![繁體中文](https://img.shields.io/badge/lang-繁體中文-orange.svg)](./docs/README.zh-TW.md)
+
+</div>
+
 一个功能强大、注重隐私的现代化 AI 对话助手应用，支持多模型、多语言、知识库管理和图像生成。
 
 ## ✨ 核心特性
@@ -83,39 +92,755 @@ npm run preview
 
 ## 📦 部署
 
-AiPiBox 支持多种部署方式，详见 [部署指南](./DEPLOYMENT_GUIDE.md)。
+AiPiBox 支持多种部署方式，所有核心功能在各平台都能正常运行。
 
-### 推荐平台
+### 平台对比
 
-#### 1️⃣ Vercel（推荐）
+| 平台 | AI代理 | 云端同步 | 图像生成 | 自动部署 | 成本 | 推荐度 |
+|------|--------|---------|---------|---------|------|--------|
+| Vercel | ✅ | ✅ | ✅ | ✅ | 免费 | ⭐⭐⭐⭐⭐ |
+| Netlify | ✅ | ✅ | ✅ | ✅ | 免费 | ⭐⭐⭐⭐⭐ |
+| Cloudflare Pages | ✅ | ✅ | ✅ | ✅ | 免费 | ⭐⭐⭐⭐⭐ |
+| GitHub Pages | ⚠️* | ⚠️* | ✅ | ✅ | 免费 | ⭐⭐⭐ |
+| 本地开发 | ✅ | ✅ | ✅ | - | - | ⭐⭐⭐⭐ |
+
+*GitHub Pages 需要配置外部 API 服务
+
+### 1️⃣ Vercel（推荐）
+
+**优势**：部署简单、性能强大、自动 HTTPS、全球 CDN
+
+**适用场景**：个人项目、团队协作、生产环境
+
+**免费额度**：
+- 100GB 带宽/月
+- 100 小时函数执行时间/月
+- 无限静态文件托管
+- 自动 SSL 证书
+
+#### 方法一：命令行部署（最快）
+
 ```bash
+# 1. 安装 Vercel CLI
 npm install -g vercel
+
+# 2. 登录 Vercel 账号（首次使用）
+vercel login
+# 会自动打开浏览器进行授权
+
+# 3. 在项目目录下执行部署
 vercel --prod
+# 首次部署会询问项目配置，后续部署直接使用
+
+# 或使用快捷命令
+npm run deploy:vercel
 ```
 
-#### 2️⃣ Netlify
+部署完成后，您将获得：
+- 生产环境 URL：`https://your-project.vercel.app`
+- 每次推送自动部署
+- 实时预览功能
+
+#### 方法二：网页界面部署（新手友好）
+
+**步骤详解：**
+
+1. **Fork 本仓库**
+   - 访问 [AiPiBox GitHub](https://github.com/uxudjs/AiPiBox)
+   - 点击右上角 "Fork" 按钮
+   - 仓库将被复制到你的 GitHub 账号下
+
+2. **登录 Vercel**
+   - 访问 [vercel.com](https://vercel.com)
+   - 使用 GitHub 账号登录（推荐）
+   - 授权 Vercel 访问你的 GitHub 仓库
+
+3. **创建新项目**
+   - 点击 **"Add New Project"** 或 **"Import Project"**
+   - 在列表中找到 "AiPiBox" 仓库
+   - 点击 **"Import"**
+
+4. **配置项目**
+   - **Project Name**: 自定义项目名称（如 `my-aipibox`）
+   - **Framework Preset**: 选择 `Vite`（通常自动检测）
+   - **Root Directory**: 保持默认 `./`
+   - **Build Settings**:
+     - Build Command: `npm run build`
+     - Output Directory: `dist`
+     - Install Command: `npm install`
+   - **Environment Variables**: 暂时留空（后续可添加）
+
+5. **开始部署**
+   - 点击 **"Deploy"** 按钮
+   - 等待 2-3 分钟（首次部署稍慢）
+   - 部署过程可以在日志中查看
+
+6. **部署成功**
+   - 获得生产环境 URL：`https://your-project.vercel.app`
+   - 每次推送代码到 GitHub，Vercel 自动重新部署
+   - 可以在 Vercel 控制台查看部署历史和日志
+
+#### 环境变数（可选）
+
+如果需要启用云端同步功能：
+
+1. **在 Vercel 项目设置中添加环境变量**：
+   - 进入项目 → Settings → Environment Variables
+   - 添加以下变量：
+     ```
+     DATABASE_TYPE=mysql
+     DATABASE_URL=mysql://user:password@host:3306/aipibox
+     ```
+   - 或使用 PostgreSQL：
+     ```
+     DATABASE_TYPE=postgresql  
+     DATABASE_URL=postgresql://user:password@host:5432/aipibox
+     ```
+
+2. **触发重新部署**：
+   - 方法1：在 Vercel 控制台点击 "Redeploy"
+   - 方法2：推送新的提交到 GitHub
+
+3. **验证配置**：
+   - 访问 `https://your-project.vercel.app/api/health`
+   - 如果配置正确，会显示数据库连接状态
+
+#### 验证部署
+
+**检查 API 健康状态：**
+
+访问 `https://your-project.vercel.app/api/health` 应该看到：
+```json
+{"status": "ok", "version": "1.0.0"}
+```
+
+**检查代理服务：**
+
+访问 `https://your-project.vercel.app/api/ai-proxy`，应该返回：
+```json
+{"error": "Method not allowed"}
+```
+这表示代理 API 已正常运行（仅接受 POST 请求）。
+
+**常见问题：**
+
+- ❌ **404 错误**：检查 `api/` 目录是否正确上传
+- ❌ **500 错误**：查看 Vercel 部署日志，检查构建错误
+- ❌ **超时错误**：免费计划函数执行时间限制为 10 秒（Pro 计划 60 秒）
+
+---
+
+### 2️⃣ Netlify
+
+**优势**：丰富的插件生态、表单处理、身份验证、一键部署
+
+**适用场景**：个人项目、小型团队、静态站点
+
+**免费额度**：
+- 100GB 带宽/月
+- 300 分钟构建时间/月
+- 125,000 次函数调用/月
+- 自动 SSL 证书
+
+#### 方法一：命令行部署
+
 ```bash
+# 1. 安装 Netlify CLI
 npm install -g netlify-cli
+
+# 2. 登录 Netlify
+netlify login
+# 自动打开浏览器进行授权
+
+# 3. 初始化项目（首次部署）
+netlify init
+# 选择：
+# - 创建新站点还是连接现有站点
+# - 选择团队
+# - 输入站点名称
+
+# 4. 部署到生产环境
 netlify deploy --prod
+# 或先部署预览版本：netlify deploy
+
+# 或使用快捷命令
+npm run deploy:netlify
 ```
 
-#### 3️⃣ Cloudflare Pages
+**部署后获得：**
+- 生产环境 URL：`https://your-site-name.netlify.app`
+- 预览 URL：`https://deploy-preview-xxx.netlify.app`
+- 分支部署：每个分支自动生成预览
+
+#### 方法二：网页界面部署
+
+**步骤详解：**
+
+1. **访问 Netlify**
+   - 打开 [netlify.com](https://netlify.com)
+   - 使用 GitHub 账号登录
+
+2. **导入项目**
+   - 点击 **"Add new site"** → **"Import an existing project"**
+   - 选择 **"GitHub"** 并授权
+   - 在仓库列表中选择 "AiPiBox"
+
+3. **配置构建设置**
+   - **Branch to deploy**: `main` （默认）
+   - **Build command**: `npm run build`
+   - **Publish directory**: `dist`
+   - **Functions directory**: `api` （自动检测）
+
+4. **高级设置**（可选）
+   - 点击 **"Show advanced"**
+   - **Environment variables**: 暂时不填
+   - **Build settings**: 使用默认值
+
+5. **开始部署**
+   - 点击 **"Deploy site"**
+   - 等待 3-5 分钟
+   - 部署日志实时显示
+
+6. **部署完成**
+   - 获得随机生成的 URL：`https://random-name-123456.netlify.app`
+   - 可以在设置中修改为自定义名称
+
+#### 自定义域名（可选）
+
+**步骤：**
+
+1. **购买域名**（如果还没有）
+   - 从域名注册商购买（如 Namecheap、GoDaddy、阿里云等）
+
+2. **在 Netlify 中添加域名**
+   - 进入站点设置
+   - 点击 **"Domain management"** → **"Add custom domain"**
+   - 输入你的域名：`aipibox.yourdomain.com`
+
+3. **配置 DNS**
+   - 在域名注册商控制台添加 DNS 记录：
+     ```
+     类型: CNAME
+     主机记录: aipibox
+     值: your-site.netlify.app
+     ```
+   - 或使用 Netlify DNS（更简单）
+
+4. **等待 SSL 证书**
+   - Netlify 自动提供 Let's Encrypt SSL 证书
+   - 通常 1-2 小时生效
+
+5. **强制 HTTPS**
+   - 在 Domain management 中启用 "Force HTTPS"
+
+---
+
+### 3️⃣ Cloudflare Pages
+
+**优势**：全球最快 CDN、无限带宽、Workers 集成、完全免费
+
+**适用场景**：高性能需求、全球用户、生产环境
+
+**免费额度**：
+- 无限带宽（真正免费）
+- 500 次构建/月
+- 100,000 次 Workers 请求/天
+- 全球 275+ 个数据中心
+
+#### 方法一：命令行部署
+
 ```bash
+# 1. 安装 Wrangler CLI
+npm install -g wrangler
+
+# 2. 登录 Cloudflare
+wrangler login
+# 会自动打开浏览器进行 OAuth 授权
+
+# 3. 构建项目
 npm run build
-wrangler pages deploy dist
+# 生成 dist/ 目录
+
+# 4. 部署到 Cloudflare Pages
+wrangler pages deploy dist --project-name=aipibox
+# 首次部署会创建项目
+# 后续部署直接使用同一命令
+
+# 或使用快捷命令
+npm run deploy:cf
 ```
 
-### 环境变量配置
+**部署后获得：**
+- 生产环境 URL：`https://aipibox.pages.dev`
+- 预览环境：每次提交生成唯一 URL
+- 全球 CDN 加速
 
-如需云端同步功能，需配置数据库：
+#### 方法二：网页界面部署
+
+**步骤详解：**
+
+1. **访问 Cloudflare Dashboard**
+   - 打开 [dash.cloudflare.com](https://dash.cloudflare.com)
+   - 登录或注册 Cloudflare 账号
+
+2. **创建 Pages 项目**
+   - 左侧菜单选择 **"Workers & Pages"**
+   - 点击 **"Create application"**
+   - 选择 **"Pages"** 标签
+   - 点击 **"Connect to Git"**
+
+3. **连接 GitHub**
+   - 选择 **"GitHub"**
+   - 授权 Cloudflare 访问你的 GitHub 账号
+   - 选择 "AiPiBox" 仓库
+
+4. **配置构建设置**
+   - **Project name**: 输入项目名（如 `aipibox`）
+   - **Production branch**: `main`
+   - **Framework preset**: 选择 `Vite` 或 `None`
+   - **Build command**: `npm run build`
+   - **Build output directory**: `/dist`
+   - **Root directory**: 保持默认 `/`
+
+5. **高级设置**（可选）
+   - **Environment variables**: 暂时不设置
+   - **Compatibility flags**: 使用默认值
+   - **Node.js version**: 18 或更高
+
+6. **开始部署**
+   - 点击 **"Save and Deploy"**
+   - 等待 2-4 分钟
+   - 实时查看构建日志
+
+7. **部署完成**
+   - 获得 URL：`https://aipibox.pages.dev`
+   - 可以在设置中添加自定义域名
+
+#### 配置 KV 命名空间（云端同步）
+
+**什么是 KV？**
+- Cloudflare KV 是全球分布式键值存储
+- 用于保存加密后的用户数据
+- 免费额度：1GB 存储 + 100,000 次读取/天
+
+**配置步骤：**
+
+1. **创建 KV Namespace**
+   - 在 Cloudflare Dashboard 中选择 **"Workers & Pages"** → **"KV"**
+   - 点击 **"Create a namespace"**
+   - 命名为：`AIPIBOX_SYNC_DATA`
+   - 点击 **"Add"**
+
+2. **绑定到 Pages 项目**
+   - 进入你的 Pages 项目
+   - 点击 **"Settings"** → **"Functions"**
+   - 滚动到 **"KV namespace bindings"**
+   - 点击 **"Add binding"**
+   - 配置：
+     ```
+     Variable name: SYNC_DATA
+     KV namespace: AIPIBOX_SYNC_DATA
+     ```
+   - 点击 **"Save"**
+
+3. **重新部署**
+   - 回到 **"Deployments"** 标签
+   - 点击最新部署上的 **"Retry deployment"**
+   - 或推送新的提交到 GitHub
+
+4. **验证配置**
+   - 在应用中进入 **设置** → **安全与数据**
+   - 启用云端同步
+   - 点击 **测试连接**
+   - 如果显示“连接成功”，则配置正确
+
+---
+
+### 4️⃣ GitHub Pages
+
+**优势**：完全免费、与 GitHub 集成无缝、适合演示项目
+
+**适用场景**：开源项目展示、个人作品集、文档站点
+
+**免费额度**：
+- 100GB 带宽/月
+- 100GB 存储空间
+- 每小时 10 次构建
+- 完全免费，无需信用卡
+
+**⚠️ 重要限制**：
+- 仅支持静态文件托管
+- 无法运行后端 API 函数
+- 需要配置外部代理服务才能完整使用
+
+#### 自动部署（已配置）
+
+**项目已包含 GitHub Actions 配置**，推送代码到 `main` 分支即可自动部署。
+
+**步骤：**
+
+1. **Fork 本仓库**
+   - 访问 [AiPiBox GitHub](https://github.com/uxudjs/AiPiBox)
+   - 点击右上角 **"Fork"** 按钮
+   - 仓库被复制到你的账号下
+
+2. **启用 GitHub Pages**
+   - 进入你 Fork 的仓库
+   - 点击 **Settings** → **Pages**
+   - **Source** 选择 `GitHub Actions`
+   - 保存设置
+
+3. **等待自动部署**
+   - 进入 **Actions** 标签
+   - 查看 "Deploy to GitHub Pages" 工作流
+   - 等待 3-5 分钟完成构建
+   - 绿色勾号表示部署成功
+
+4. **访问应用**
+   - 回到 **Settings** → **Pages**
+   - 找到你的站点地址：`https://<username>.github.io/AiPiBox/`
+   - 点击访问
+
+5. **后续更新**
+   - 每次推送代码到 `main` 分支
+   - GitHub Actions 自动重新构建和部署
+   - 无需手动操作
+
+#### 配置外部 API 服务
+
+因为 GitHub Pages 不支持后端函数，需要配置外部代理。
+
+**方案一：使用 Vercel 免费套餐（推荐）**
+
+1. **再次 Fork 本项目**（或使用同一仓库）
+   - 这次仅用于部署 API 服务
+
+2. **在 Vercel 上部署这个项目**
+   - 访问 [vercel.com](https://vercel.com)
+   - 点击 **"Add New Project"**
+   - 选择相同的仓库
+   - 配置：
+     - Project Name: `aipibox-api` （区分于前端）
+     - Framework: Vite
+     - 其他使用默认值
+   - 点击 **"Deploy"**
+
+3. **获取 Vercel 部署地址**
+   - 部署完成后获得：`https://aipibox-api.vercel.app`
+   - 这个地址仅用于 API 代理
+
+4. **在 GitHub Pages 应用中配置**
+   - 打开你的 GitHub Pages 应用
+   - 点击 **设置** → **网络与代理**
+   - 勾选 **启用代理服务**
+   - **云端代理 URL** 填写：
+     ```
+     https://aipibox-api.vercel.app/api/ai-proxy
+     ```
+   - 点击 **保存并应用**
+
+5. **测试连接**
+   - 在设置界面点击 **测试连接**
+   - 如果显示成功，则配置正确
+   - 现在可以正常使用 AI 功能
+
+**方案二：Cloudflare Workers**
+
+1. **部署到 Cloudflare Workers**
+   ```bash
+   # 安装 Wrangler
+   npm install -g wrangler
+   
+   # 登录
+   wrangler login
+   
+   # 部署 Worker
+   wrangler deploy
+   ```
+
+2. **获得 Worker URL**
+   - 部署后获得：`https://aipibox.your-username.workers.dev`
+
+3. **在应用中配置**
+   - 云端代理 URL：`https://aipibox.your-username.workers.dev/ai-proxy`
+
+**方案三：Netlify 免费套餐**
+
+1. 同样在 Netlify 上部署该项目
+2. 获得 URL：`https://aipibox-api.netlify.app`
+3. 配置代理 URL：`https://aipibox-api.netlify.app/api/ai-proxy`
+
+**注意事项：**
+- ✅ 外部 API 服务与 GitHub Pages 应用完全独立
+- ✅ 可以使用不同的平台组合（如 GitHub Pages + Vercel API）
+- ✅ API 服务同样享有各平台免费额度
+- ⚠️ 需要同时维护两个部署（前端 + API）
+
+---
+
+### 5️⃣ 本地开发
+
+**适用场景**：开发测试、功能调试、离线使用、二次开发
+
+**优势**：
+- 完全本地运行，无需网络
+- 实时热重载（HMR）
+- 完整的调试功能
+- 数据完全可控
+
+#### 完整环境搭建
+
+**方法一：一键启动（推荐）**
 
 ```bash
-DATABASE_TYPE=mysql
-DATABASE_URL=mysql://user:pass@host:3306/dbname
-# 或
-DATABASE_TYPE=postgres
-DATABASE_URL=postgresql://user:pass@host:5432/dbname
+# 1. 克隆项目
+git clone https://github.com/uxudjs/AiPiBox.git
+cd AiPiBox
+
+# 2. 安装依赖
+npm install
+# 第一次安装可能需要 3-5 分钟
+
+# 3. 一键启动（代理 + 开发服务器）
+npm run dev:full
+# 自动启动：
+# - 代理服务器：localhost:5000
+# - 前端开发服务器：localhost:3000
 ```
+
+**方法二：分开启动（更灵活）**
+
+```bash
+# 终端 1：启动代理服务器
+npm run proxy
+# 输出：
+# Proxy server running on http://localhost:5000
+# Ready to forward AI requests
+
+# 终端 2（新窗口）：启动前端开发服务器
+npm run dev
+# 输出：
+# VITE ready in 500ms
+# Local: http://localhost:3000
+# Network: use --host to expose
+```
+
+**访问应用：**
+- 打开浏览器访问 `http://localhost:3000`
+- 首次启动会自动运行诊断
+- 检查浏览器控制台确认无错误
+
+#### 环境自动检测
+
+**应用会自动检测本地环境，使用：**
+
+- **代理地址**：`http://localhost:5000/api/proxy`
+  - 用于 AI API 请求代理
+  - 解决 CORS 跨域问题
+  - 支持长连接请求
+
+- **同步地址**：`http://localhost:5000/api/sync`
+  - 用于测试云端同步功能
+  - 本地开发无需配置
+
+**无需手动配置！**应用启动时会：
+1. 自动检测 `localhost` 环境
+2. 自动使用本地代理地址
+3. 在控制台输出检测结果
+
+#### 开发工具
+
+**内置功能：**
+
+- **Vite HMR**：热模块更换
+  - 修改代码后自动刷新
+  - 保持应用状态
+  - 极快的更新速度
+
+- **React DevTools**：React 开发工具
+  - 安装浏览器扩展
+  - 查看组件树
+  - 调试状态和 Props
+
+- **自动诊断**：开发模式自动运行
+  - 检查浏览器兼容性
+  - 验证 IndexedDB 支持
+  - 检测网络连接
+
+**调试命令：**
+
+```javascript
+// 在浏览器控制台执行
+
+// 运行完整诊断
+window.__AiPiBoxDiagnostics.runDiagnostics()
+
+// 查看应用状态
+console.log('Config:', useConfigStore.getState())
+console.log('Chat:', useChatStore.getState())
+
+// 清空数据库（测试用）
+await db.delete()
+location.reload()
+```
+
+#### 生产构建测试
+
+**测试生产版本：**
+
+```bash
+# 1. 构建生产版本
+npm run build
+# 输出：
+# vite v5.x building for production...
+# dist/index.html                  0.xx kB
+# dist/assets/index-xxxxx.js     xxx.xx kB
+# Build completed in x.xxs
+
+# 2. 预览构建结果
+npm run preview
+# 输出：
+# Local: http://localhost:4173
+# 按 h 查看帮助
+
+# 3. 测试生产版本
+# 访问 http://localhost:4173
+# 验证所有功能是否正常
+```
+
+**构建优化：**
+
+- ✅ 代码分割（Code Splitting）
+- ✅ Tree Shaking（去除未使用代码）
+- ✅ 资源压缩（Gzip/Brotli）
+- ✅ CSS 压缩与提取
+- ✅ 图片优化
+
+**构建输出目录：**
+
+```
+dist/
+├── index.html              # 入口文件
+├── assets/                 # 静态资源
+│   ├── index-xxxxx.js      # 主代码打包
+│   ├── vendor-xxxxx.js     # 第三方库
+│   └── index-xxxxx.css     # 样式文件
+└── api/                    # Serverless 函数
+    ├── ai-proxy.js
+    ├── health.js
+    └── sync/
+```
+
+---
+
+### 🔧 部署后配置
+
+无论使用哪种部署方式，首次访问应用时需要：
+
+#### 步骤 1：设置访问密码
+
+**作用：**用于加密本地数据，保护你的 API 密钥和对话历史。
+
+1. 首次启动应用时，会自动显示“初始化安全设置”界面
+2. 输入一个强密码（推荐规则）：
+   - ✅ 至少 8 位字符
+   - ✅ 包含大小写字母
+   - ✅ 包含数字
+   - ✅ 包含特殊字符（`!@#$%^&*`）
+3. 点击“开始使用”
+
+**重要提示：**
+- ⚠️ 请牢记此密码，忘记后无法找回！
+- ⚠️ 密码丢失会导致所有加密数据无法解密
+- ✅ 建议使用密码管理器生成和保存
+#### 步骤 2：配置 API 密钥
+
+**进入设置界面：**
+
+1. 点击左侧栏“设置”按钮（齿轮图标）
+2. 选择“提供商与模型”标签
+
+**添加 API 密钥：**
+
+**方式一：OpenAI**
+
+1. 点击 **OpenAI** 分组
+2. 填写 **API Key**：
+   - 在 [platform.openai.com](https://platform.openai.com/api-keys) 获取
+   - 格式：`sk-xxxxxxxxxxxxxxxxxxxxxxxx`
+3. （可选）修改 **Base URL**：
+   - 默认：`https://api.openai.com/v1`
+   - 使用第三方代理时修改
+4. 选择要使用的模型（如 `gpt-4`、`gpt-3.5-turbo`）
+5. 点击 **测试连接**
+6. 看到“连接成功”后，点击 **保存并应用**
+
+**方式二：Claude（Anthropic）**
+
+1. 点击 **Anthropic** 分组
+2. 填写 **API Key**：
+   - 在 [console.anthropic.com](https://console.anthropic.com/) 获取
+   - 格式：`sk-ant-xxxxxxxxxxxxxxxxxxxxx`
+3. Base URL 保持默认：`https://api.anthropic.com`
+4. 选择模型（如 `claude-3-opus`、`claude-3-sonnet`）
+5. **测试连接** → **保存并应用**
+
+**方式三：其他 AI 服务**
+
+- **Gemini**：[ai.google.dev](https://ai.google.dev)
+- **文心一言**：[cloud.baidu.com](https://cloud.baidu.com/product/wenxinworkshop)
+- **通义千问**：[open.bigmodel.cn](https://open.bigmodel.cn)
+- **自定义提供商**：任何兼容 OpenAI API 的服务
+
+**验证配置：**
+
+1. 保存后点击 **测试连接**
+2. 如果显示“连接成功”且返回了模型列表，则配置正确
+3. 如果失败，检查：
+   - ❌ API Key 是否正确
+   - ❌ Base URL 是否正确
+   - ❌ 网络连接是否正常
+   - ❌ 代理设置是否正确（如果使用）
+#### 步骤 3：选择语言
+
+1. 在设置界面中，选择“一般设置”标签
+2. 找到“语言”下拉菜单
+3. 选择你偏好的界面语言：
+   - 🇨🇳 简体中文
+   - 🇹🇼 繁體中文
+   - 🇬🇧 English
+   - 🇯🇵 日本語
+   - 🇰🇷 한국어
+4. AI 将自动使用相同语言回复
+
+🎉 **现在就可以开始使用了！**
+
+---
+
+### 📊 部署对比总结
+
+| 功能 | Vercel | Netlify | Cloudflare | GitHub Pages | 本地开发 |
+|------|--------|---------|------------|--------------|----------|
+| **部署难度** | ⭐️ | ⭐️ | ⭐️⭐️ | ⭐️⭐️⭐️ | ⭐️ |
+| **AI 代理** | ✅ | ✅ | ✅ | ⚠️ 需外部 | ✅ |
+| **云端同步** | ✅ | ✅ | ✅ KV | ⚠️ 需外部 | ✅ |
+| **带宽限制** | 100GB/月 | 100GB/月 | 无限制 | 100GB/月 | 无限制 |
+| **函数执行** | 100h/月 | 125k次/月 | 100k次/天 | N/A | 无限制 |
+| **构建时间** | 2-3分钟 | 3-5分钟 | 2-4分钟 | 3-5分钟 | 30秒 |
+| **CDN 速度** | ⭐️⭐️⭐️⭐️ | ⭐️⭐️⭐️⭐️ | ⭐️⭐️⭐️⭐️⭐️ | ⭐️⭐️⭐️ | N/A |
+| **自动部署** | ✅ | ✅ | ✅ | ✅ | N/A |
+| **自定义域名** | ✅ | ✅ | ✅ | ✅ | N/A |
+| **SSL 证书** | 自动 | 自动 | 自动 | 自动 | 需配置 |
+| **适用场景** | 👍 全部 | 👍 全部 | 👍 生产 | 👍 演示 | 👍 开发 |
+| **推荐指数** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+
+---
+
+### 📚 更多文档
+
+- [📖 完整部署指南](./DEPLOYMENT_GUIDE.md)
+- [🌐 云端代理配置](./CLOUD_PROXY_SETUP.md)
+- [💾 云端同步配置](./CLOUD_SYNC_SETUP.md)
 
 ## 🛠️ 技术栈
 
@@ -307,6 +1032,12 @@ location.reload();
 - 项目主页：[https://github.com/uxudjs/AiPiBox](https://github.com/uxudjs/AiPiBox)
 - 问题反馈：[https://github.com/uxudjs/AiPiBox/issues](https://github.com/uxudjs/AiPiBox/issues)
 - 讨论区：[https://github.com/uxudjs/AiPiBox/discussions](https://github.com/uxudjs/AiPiBox/discussions)
+
+---
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=uxudjs/AiPiBox&type=Date)](https://star-history.com/#uxudjs/AiPiBox&Date)
 
 ---
 

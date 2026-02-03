@@ -184,7 +184,8 @@ export const useChatStore = create((set, get) => ({
    * 危险操作：清空本地数据库中的所有对话与消息
    */
   clearAllHistory: async () => {
-    if (confirm('确定要清空所有对话历史吗？此操作不可撤销。')) {
+    const { t } = useI18nStore.getState();
+    if (confirm(t('sidebar.clearAllConfirm'))) {
       await db.conversations.clear();
       await db.messages.clear();
       set({ currentConversationId: null, selectedConversations: [] });

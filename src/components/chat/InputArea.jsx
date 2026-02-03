@@ -10,6 +10,7 @@ import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
 import { chatCompletion, search, compressMessages } from '../../services/aiService';
 import { logger } from '../../services/logger';
 import { cn } from '../../utils/cn';
+import { isMobileDevice } from '../../utils/envDetect';
 import { shallow } from 'zustand/shallow';
 import { db } from '../../db';
 import FileUpload from './FileUpload';
@@ -1165,8 +1166,7 @@ Question: ${userMsg}`;
   const nativeCameraRef = useRef(null);
 
   const handleCamera = async () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile && nativeCameraRef.current) {
+    if (isMobileDevice() && nativeCameraRef.current) {
       nativeCameraRef.current.click();
     } else {
       setCameraInitialImage(null);
