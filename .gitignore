@@ -42,6 +42,8 @@ pnpm-debug.log*
 # Local development
 .vercel
 .netlify
+.wrangler
+.dev.vars
 
 # Test coverage
 coverage/
