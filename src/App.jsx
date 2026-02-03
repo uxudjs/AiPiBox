@@ -73,7 +73,7 @@ function App() {
         try {
           // 启动云同步后台监听
           if (syncService && typeof syncService.init === 'function') {
-            syncService.init();
+            await syncService.init();
           }
         } catch (e) {
           logger.error('App', 'Failed to init sync service:', e);

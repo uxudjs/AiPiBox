@@ -83,33 +83,39 @@ class SyncService {
     logger.info('SyncService', 'Initializing...');
     
     // Subscribe to stores to trigger sync
-    ConfigStore.subscribe((state, prevState) => {
-      if (state.cloudSync?.enabled && state.cloudSync?.autoSync) {
-        // 优化：仅在核心配置（非同步状态本身）发生变化时触发同步
-        const importantKeys = ['providers', 'defaultModels', 'general', 'proxy', 'conversationPresets'];
-        const hasChanged = importantKeys.some(key => 
-          JSON.stringify(state[key]) !== JSON.stringify(prevState[key])
-        );
-        
-        if (hasChanged) {
-          this.debouncedSync();
+    if (ConfigStore && typeof ConfigStore.subscribe === 'function') {
+      ConfigStore.subscribe((state, prevState) => {
+        if (state.cloudSync?.enabled && state.cloudSync?.autoSync) {
+          // 优化：仅在核心配置（非同步状态本身）发生变化时触发同步
+          const importantKeys = ['providers', 'defaultModels', 'general', 'proxy', 'conversationPresets'];
+          const hasChanged = importantKeys.some(key => 
+            JSON.stringify(state[key]) !== JSON.stringify(prevState[key])
+          );
+          
+          if (hasChanged) {
+            this.debouncedSync();
+          }
         }
-      }
-    });
+      });
+    }
 
     // 监听数据库变化以触发自动同步
-    if (db.on) {
-       db.on('changes', (changes) => {
-         const config = useConfigStore.getState();
-         if (config.cloudSync?.enabled && config.cloudSync?.autoSync) {
-            // 优化：排除日志表的变更，仅监听核心业务表
-            const relevantTables = ['conversations', 'messages', 'images', 'knowledgeBases'];
-            const relevant = changes.some(c => relevantTables.includes(c.table));
-            if (relevant) {
-               this.debouncedSync();
-            }
-         }
-       });
+    try {
+      if (db.on) {
+         db.on('changes', (changes) => {
+           const config = useConfigStore.getState();
+           if (config.cloudSync?.enabled && config.cloudSync?.autoSync) {
+              // 优化：排除日志表的变更，仅监听核心业务表
+              const relevantTables = ['conversations', 'messages', 'images', 'knowledgeBases'];
+              const relevant = changes.some(c => relevantTables.includes(c.table));
+              if (relevant) {
+                 this.debouncedSync();
+              }
+           }
+         });
+      }
+    } catch (e) {
+      logger.warn('SyncService', 'Database observer (dexie-observable) not available, auto-sync on DB changes disabled');
     }
 
     // Initial sync on startup if enabled
