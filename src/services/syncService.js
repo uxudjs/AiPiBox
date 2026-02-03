@@ -235,6 +235,8 @@ class SyncService {
       logger.info('SyncService', 'Sync to cloud completed');
 
     } catch (error) {
+      const errorMessage = this._extractErrorMessage(error);
+      
       // 网络错误时，静默处理，避免频繁报错
       if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
         logger.warn('SyncService', 'Cloud sync server unavailable, will retry later');
@@ -244,10 +246,10 @@ class SyncService {
           lastError: 'Cloud sync server unavailable' 
         });
       } else {
-        logger.error('SyncService', 'Sync to cloud failed', error);
+        logger.error('SyncService', 'Sync to cloud failed', { error, message: errorMessage });
         useConfigStore.getState().updateCloudSync({ 
           syncStatus: 'error', 
-          lastError: error.message 
+          lastError: errorMessage 
         });
       }
     } finally {
@@ -308,6 +310,8 @@ class SyncService {
       }
 
     } catch (error) {
+        const errorMessage = this._extractErrorMessage(error);
+        
         if (error.response && error.response.status === 404) {
             logger.info('SyncService', 'No cloud data found.');
         } else if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
@@ -317,10 +321,10 @@ class SyncService {
               lastError: 'Cloud sync server unavailable' 
             });
         } else {
-            logger.error('SyncService', 'Sync from cloud failed', error);
+            logger.error('SyncService', 'Sync from cloud failed', { error, message: errorMessage });
             useConfigStore.getState().updateCloudSync({ 
               syncStatus: 'error', 
-              lastError: error.message 
+              lastError: errorMessage 
             });
         }
     }
@@ -649,6 +653,33 @@ class SyncService {
   }
 
   /**
+   * 提取详细的错误信息
+   * @param {Error} error - 错误对象
+   * @returns {string} 错误信息
+   * @private
+   */
+  _extractErrorMessage(error) {
+    if (!error) return 'Unknown error';
+    
+    // 处理 Axios 响应错误
+    if (error.response && error.response.data) {
+      const data = error.response.data;
+      if (typeof data === 'object') {
+        return data.message || data.error || JSON.stringify(data);
+      }
+      return String(data);
+    }
+    
+    // 处理 Axios 请求无响应
+    if (error.request) {
+      return 'No response from server. Please check your network connection.';
+    }
+    
+    // 处理普通错误信息
+    return error.message || String(error);
+  }
+
+  /**
    * 生成用户ID(基于密码派生)
    * @param {string} password - 用户密码
    * @returns {Promise<string>} 用户ID
@@ -783,8 +814,9 @@ class SyncService {
       logger.info('SyncService', `Uploaded ${dataType} to cloud`, { version: result.version });
       return result;
     } catch (error) {
-      logger.error('SyncService', `Failed to upload ${dataType}`, error);
-      throw error;
+      const errorMessage = this._extractErrorMessage(error);
+      logger.error('SyncService', `Failed to upload ${dataType}`, { error, message: errorMessage });
+      throw new Error(errorMessage);
     }
   }
 
@@ -843,8 +875,9 @@ class SyncService {
       logger.info('SyncService', 'Downloaded data from cloud', { count: decryptedData.length });
       return decryptedData;
     } catch (error) {
-      logger.error('SyncService', 'Failed to download from cloud', error);
-      throw error;
+      const errorMessage = this._extractErrorMessage(error);
+      logger.error('SyncService', 'Failed to download from cloud', { error, message: errorMessage });
+      throw new Error(errorMessage);
     }
   }
 
@@ -874,8 +907,9 @@ class SyncService {
       logger.info('SyncService', 'Deleted data from cloud', { dataType: dataType || 'all' });
       return result;
     } catch (error) {
-      logger.error('SyncService', 'Failed to delete from cloud', error);
-      throw error;
+      const errorMessage = this._extractErrorMessage(error);
+      logger.error('SyncService', 'Failed to delete from cloud', { error, message: errorMessage });
+      throw new Error(errorMessage);
     }
   }
 
@@ -1166,18 +1200,19 @@ class SyncService {
       };
 
     } catch (error) {
-      logger.error('SyncService', 'Sync with conflict resolution failed', error);
+      const errorMessage = this._extractErrorMessage(error);
+      logger.error('SyncService', 'Sync with conflict resolution failed', { error, message: errorMessage });
       
       // 更新同步状态
       useConfigStore.setState(state => ({
         cloudSync: {
           ...state.cloudSync,
           syncStatus: 'error',
-          lastError: error.message
+          lastError: errorMessage
         }
       }));
 
-      throw error;
+      throw new Error(errorMessage);
     }
   }
 }
