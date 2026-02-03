@@ -10,9 +10,10 @@
     "proxy": "node proxy/server.js",
     "init-db": "node scripts/init-db.js",
     "dev:full": "concurrently \"npm run proxy\" \"npm run dev\"",
+    "deploy": "npm run build && npm run deploy:cf",
     "deploy:vercel": "vercel --prod",
     "deploy:netlify": "netlify deploy --prod",
-    "deploy:cf": "wrangler pages deploy dist"
+    "deploy:cf": "wrangler pages deploy dist --project-name=aipibox"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.10",
