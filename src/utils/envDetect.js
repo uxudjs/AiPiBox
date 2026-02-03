@@ -66,7 +66,7 @@ export function getProxyApiUrl(platform = null) {
   if (detectedPlatform !== Platform.LOCAL) {
     switch (detectedPlatform) {
       case Platform.CLOUDFLARE:
-        return '/functions/ai-proxy';
+        return '/ai-proxy';
       case Platform.VERCEL:
       case Platform.NETLIFY:
         return '/api/ai-proxy';
@@ -97,7 +97,7 @@ export function getSyncApiUrl(platform = null) {
   if (detectedPlatform !== Platform.LOCAL) {
     switch (detectedPlatform) {
       case Platform.CLOUDFLARE:
-        return '/functions/sync';
+        return '/sync';
       case Platform.VERCEL:
       case Platform.NETLIFY:
         return '/api/sync';

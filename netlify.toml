@@ -1,6 +1,15 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "api"
+
+[functions]
+  node_bundle = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/api/:splat"
+  status = 200
 
 [[redirects]]
   from = "/*"

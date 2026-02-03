@@ -1,7 +1,22 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/sync/:id",
+      "destination": "/api/sync/download.js",
+      "methods": ["GET"]
+    },
+    {
+      "source": "/api/sync/:id",
+      "destination": "/api/sync/delete.js",
+      "methods": ["DELETE"]
+    },
+    {
+      "source": "/api/sync",
+      "destination": "/api/sync/upload.js",
+      "methods": ["POST"]
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
