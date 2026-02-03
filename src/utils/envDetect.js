@@ -1,6 +1,6 @@
 /**
  * 运行时环境探测工具
- * 自动识别部署平台（Vercel, Netlify, Cloudflare 等）并动态调整 API 端点路由
+ * 自动识别部署平台并动态调整 API 端点路由
  */
 
 import { logger } from '../services/logger';
@@ -26,66 +26,54 @@ export function detectPlatform() {
   }
 
   const hostname = window.location.hostname;
-  const userAgent = navigator.userAgent || '';
 
-  // Vercel
-  if (hostname.endsWith('.vercel.app') || hostname.endsWith('.vercel.sh')) {
-    return Platform.VERCEL;
-  }
-
-  // Netlify
-  if (hostname.endsWith('.netlify.app') || hostname.endsWith('.netlify.com')) {
-    return Platform.NETLIFY;
-  }
-
-  // Cloudflare Pages
-  if (hostname.endsWith('.pages.dev') || window.__CF_PAGES__) {
-    return Platform.CLOUDFLARE;
-  }
-
-  // GitHub Pages
-  if (hostname.endsWith('.github.io')) {
-    return Platform.GITHUB_PAGES;
-  }
-
-  // 本地开发
+  // 1. 本地开发
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
     return Platform.LOCAL;
   }
 
+  // 2. GitHub Pages (特指 *.github.io)
+  if (hostname.endsWith('.github.io')) {
+    return Platform.GITHUB_PAGES;
+  }
+
+  // 3. Cloudflare Pages
+  if (hostname.endsWith('.pages.dev') || window.__CF_PAGES__) {
+    return Platform.CLOUDFLARE;
+  }
+
+  // 4. Vercel
+  if (hostname.endsWith('.vercel.app') || hostname.endsWith('.vercel.sh')) {
+    return Platform.VERCEL;
+  }
+
+  // 5. Netlify
+  if (hostname.endsWith('.netlify.app') || hostname.endsWith('.netlify.com')) {
+    return Platform.NETLIFY;
+  }
+
+  // 6. 默认判定为通用生产环境（包括自定义域名）
   return Platform.UNKNOWN;
 }
 
 /**
  * 自动路由：获取 AI 代理端点地址
+ * 采用相对路径策略，实现自动域名识别
  */
 export function getProxyApiUrl(platform = null) {
   const detectedPlatform = platform || detectPlatform();
 
-  // 生产环境使用相对路径,自动使用当前域名
-  if (detectedPlatform !== Platform.LOCAL) {
-    switch (detectedPlatform) {
-      case Platform.CLOUDFLARE:
-        return '/ai-proxy';
-      case Platform.VERCEL:
-      case Platform.NETLIFY:
-        return '/api/ai-proxy';
-      case Platform.GITHUB_PAGES:
-        // GitHub Pages需要配置外部代理服务
-        // 可以使用Vercel/Cloudflare的免费套餐部署代理
-        const externalProxy = window.EXTERNAL_PROXY_URL;
-        if (externalProxy) {
-          return externalProxy;
-        }
-        logger.warn('envDetect', 'GitHub Pages detected but no external proxy configured');
-        return '/api/ai-proxy'; // 回退到相对路径
-      default:
-        return '/api/ai-proxy';
-    }
+  // GitHub Pages 特殊处理：因为它是纯静态的，通常需要指向外部 API
+  if (detectedPlatform === Platform.GITHUB_PAGES) {
+    const externalProxy = window.EXTERNAL_PROXY_URL;
+    if (externalProxy) return externalProxy;
+    logger.warn('envDetect', 'GitHub Pages detected but no external proxy configured');
   }
 
-  // 本地开发环境
-  return 'http://localhost:5000/api/proxy';
+  // 通用策略：使用相对路径
+  // 1. 本地开发：通过 Vite Proxy 转发到 5000 端口
+  // 2. 生产环境：无论是 Cloudflare/Vercel/Netlify 还是自定义域名，均统一使用 /api/ 路径
+  return '/api/ai-proxy';
 }
 
 /**
@@ -94,25 +82,12 @@ export function getProxyApiUrl(platform = null) {
 export function getSyncApiUrl(platform = null) {
   const detectedPlatform = platform || detectPlatform();
 
-  if (detectedPlatform !== Platform.LOCAL) {
-    switch (detectedPlatform) {
-      case Platform.CLOUDFLARE:
-        return '/sync';
-      case Platform.VERCEL:
-      case Platform.NETLIFY:
-        return '/api/sync';
-      case Platform.GITHUB_PAGES:
-        const externalSync = window.EXTERNAL_SYNC_URL;
-        if (externalSync) {
-          return externalSync;
-        }
-        return '/api/sync';
-      default:
-        return '/api/sync';
-    }
+  if (detectedPlatform === Platform.GITHUB_PAGES) {
+    const externalSync = window.EXTERNAL_SYNC_URL;
+    if (externalSync) return externalSync;
   }
 
-  return 'http://localhost:5000/api/sync';
+  return '/api/sync';
 }
 
 /**
@@ -133,62 +108,26 @@ export function getPlatformConfig(platform = null) {
     isProduction: detectedPlatform !== Platform.LOCAL,
     proxyUrl: getProxyApiUrl(detectedPlatform),
     syncUrl: getSyncApiUrl(detectedPlatform),
-  };
-
-  // 平台特定配置
-  const platformConfigs = {
-    [Platform.VERCEL]: {
-      ...baseConfig,
-      timeout: 300, // Vercel Pro支持300秒
-      features: {
-        serverlessFunctions: true,
-        edgeRuntime: true,
-        analytics: true,
-      }
-    },
-    [Platform.NETLIFY]: {
-      ...baseConfig,
-      timeout: 300, // Netlify Pro支持300秒
-      features: {
-        serverlessFunctions: true,
-        edgeFunctions: true,
-        splitTesting: true,
-      }
-    },
-    [Platform.CLOUDFLARE]: {
-      ...baseConfig,
-      timeout: 300, // Cloudflare Workers默认支持长时间运行
-      features: {
-        workers: true,
-        kv: true,
-        d1: true,
-        durable: true,
-      }
-    },
-    [Platform.GITHUB_PAGES]: {
-      ...baseConfig,
-      timeout: 60,
-      features: {
-        staticOnly: true,
-        externalApiRequired: true,
-      }
-    },
-    [Platform.LOCAL]: {
-      ...baseConfig,
-      timeout: 300,
-      features: {
-        hotReload: true,
-        debugging: true,
-      }
+    timeout: 300,
+    features: {
+      serverlessFunctions: true,
+      edgeRuntime: true,
+      kv: true
     }
   };
 
-  return platformConfigs[detectedPlatform] || baseConfig;
+  // 针对已知平台的微调
+  if (detectedPlatform === Platform.GITHUB_PAGES) {
+    baseConfig.timeout = 60;
+    baseConfig.features.serverlessFunctions = false;
+    baseConfig.features.externalApiRequired = true;
+  }
+
+  return baseConfig;
 }
 
 /**
  * 环境感知初始化
- * 将识别出的配置注入全局 window 对象，供后续服务层直接调用
  */
 export function initializeEnvironment() {
   const config = getPlatformConfig();
@@ -200,7 +139,6 @@ export function initializeEnvironment() {
     syncUrl: config.syncUrl
   });
 
-  // 存储到全局对象供其他模块使用
   if (typeof window !== 'undefined') {
     window.__PLATFORM_CONFIG__ = config;
   }
@@ -220,18 +158,11 @@ export function getEnvironmentConfig() {
 
 /**
  * 检测是否为移动设备
- * 涵盖 iPhone, iPad, iPod, Android, HarmonyOS 以及各种移动浏览器
  */
 export function isMobileDevice() {
   if (typeof window === 'undefined') return false;
-  
   const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-  
-  // 涵盖主流移动设备标识
   const mobileRegex = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|harmonyos|harmony/i;
-  
-  // 额外检测 iPad 在 desktop 模式下的特殊 UA
   const isIPadOS = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  
   return mobileRegex.test(userAgent.toLowerCase()) || isIPadOS;
 }

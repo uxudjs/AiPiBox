@@ -33,10 +33,10 @@ export const useConfigStore = create((set, get) => ({
   
   // 各业务场景的默认模型绑定
   defaultModels: {
-    chat: 'gpt-3.5-turbo',
-    naming: 'gpt-3.5-turbo',
-    search: 'gpt-3.5-turbo',
-    compression: 'gpt-3.5-turbo',
+    chat: '',
+    naming: '',
+    search: '',
+    compression: '',
     ocr: ''
   },
   

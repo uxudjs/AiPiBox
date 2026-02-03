@@ -608,10 +608,40 @@ ${t('ocr.contextFooter')}`;
       const currentMessages = await getMessages(convId);
       const parentId = currentMessages.length > 0 ? currentMessages[currentMessages.length - 1].id : null;
 
+      // 先检查模型配置，如果没有配置就直接显示错误消息并返回，避免创建空的assistant消息
+      let provider, modelId, modelConfig;
+      if (currentModel) {
+        provider = providers.find(p => p.id === currentModel.providerId);
+        modelId = currentModel.modelId;
+      } else {
+        provider = providers.find(p => p.apiKey);
+        modelId = defaultModels.chat;
+      }
+
+      if (provider && provider.models) {
+        modelConfig = provider.models.find(m => m.id === modelId);
+      }
+
+      if (!provider || !provider.apiKey) {
+        logger.error('InputArea', 'Model configuration error');
+        // 直接添加错误消息并返回，不创建空的assistant消息
+        await addMessage({
+          role: 'assistant',
+          content: t('inputArea.configureModels')
+        }, convId);
+        setIsLoading(false);
+        setIsSending(false);
+        setConversationState(convId, { isAIGenerating: false });
+        await setConversationGenerating(convId, false);
+        return;
+      }
+      
+      logger.info('InputArea', 'Using model:', { providerId: provider.id, modelId });
+
       const assistantMsgId = await addMessage({
         role: 'assistant',
         content: '',
-        model: currentModel?.modelId || defaultModels.chat,
+        model: modelId,
         thinkingTime: null
       }, convId, parentId);
 
@@ -625,7 +655,7 @@ ${t('ocr.contextFooter')}`;
           role: 'assistant', 
           content: '', 
           conversationId: convId, 
-          model: currentModel?.modelId || defaultModels.chat
+          model: modelId
         },
         isReasoning: false,
         reasoningContent: '',
@@ -886,20 +916,6 @@ ${t('ocr.contextFooter')}`;
         finalMessages.unshift(finalSystemMessage);
       }
 
-      // 获取当前选中的模型配置
-      let provider, modelId, modelConfig;
-      if (currentModel) {
-        provider = providers.find(p => p.id === currentModel.providerId);
-        modelId = currentModel.modelId;
-      } else {
-        provider = providers.find(p => p.apiKey);
-        modelId = defaultModels.chat;
-      }
-
-      if (provider && provider.models) {
-        modelConfig = provider.models.find(m => m.id === modelId);
-      }
-
       // 添加深度思考指令
       if (isReasoningEnabled) {
         const isNativeThinking = modelConfig?.capabilities?.thinking;
@@ -917,13 +933,8 @@ ${t('ocr.contextFooter')}`;
           }
         }
       }
-
-      if (!provider || !provider.apiKey) {
-        logger.error('InputArea', 'Model configuration error');
-        throw new Error(t('inputArea.configureModels'));
-      }
       
-      logger.info('InputArea', 'Using model:', { providerId: provider.id, modelId });
+      logger.debug('InputArea', 'Using model:', { providerId: provider.id, modelId });
 
       // 如果模型不支持多模态，过滤掉消息中的图片内容，将OCR内容合并到文本
       if (!modelConfig?.capabilities?.multimodal) {
@@ -961,18 +972,6 @@ ${t('ocr.contextFooter')}`;
 
       let reasoningText = '';
       let thinkingStartTime = Date.now();
-
-      // 更新streamingMessage的modelId（使用最终确定的modelId）
-      // 前面已经初始化了streamingMessage，这里只更新modelId字段
-      const convState = useChatStore.getState().getConversationState(convId);
-      if (convState.streamingMessage) {
-        setConversationState(convId, {
-          streamingMessage: { 
-            ...convState.streamingMessage,
-            model: modelId 
-          }
-        });
-      }
 
       // 如果启用了联网搜索
       if (isSearchEnabled) {
