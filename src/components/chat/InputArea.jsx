@@ -443,8 +443,12 @@ const InputArea = () => {
         // 使用智能模型选择获取有效的OCR模型
         const effectiveOCR = getEffectiveModel('ocr');
         
-        if (!effectiveOCR) {
-          // 未配置OCR模型或无法找到可用模型，显示错误并中断发送
+        // 查找模型配置以检查能力
+        const ocrModelConfig = effectiveOCR?.provider?.models?.find(m => m.id === effectiveOCR.modelId);
+        const isOCRSupported = ocrModelConfig?.capabilities?.multimodal;
+
+        if (!effectiveOCR || !isOCRSupported) {
+          // 未配置OCR模型或找到的模型不支持视觉，显示错误并中断发送
           await addMessage({
             role: 'assistant',
             content: t('inputArea.ocrNotConfigured')
@@ -1282,12 +1286,8 @@ Question: ${userMsg}`;
       
       logger.info('InputArea', `Using compression model: ${compressionModelId}`);
       
-      // 构建需要压缩的消息列表（保留最后 2 条消息）
-      const messagesToCompress = uncompressedMessages.slice(0, -2);
-      
-      if (messagesToCompress.length === 0) {
-        throw new Error(t('compression.tooFewMessages'));
-      }
+      // 构建需要压缩的消息列表（包含所有未压缩的消息）
+      const messagesToCompress = uncompressedMessages;
       
       // 调用 AI 压缩服务
       const compressedContent = await compressMessages({
@@ -1522,7 +1522,7 @@ Question: ${userMsg}`;
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="p-4 max-h-[400px] overflow-y-auto">
+              <div className="p-4 max-h-[400px] overflow-y-auto custom-scrollbar">
                 <FileUpload conversationId={currentConversationId || 'temp'} onFileUploaded={(file) => logger.info('InputArea', 'File uploaded:', file.name)} />
               </div>
             </div>

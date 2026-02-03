@@ -98,15 +98,15 @@ class ErrorBoundary extends React.Component {
             {/* 错误详情 */}
             <div className="bg-accent/50 p-4 rounded-lg border border-border">
               <h3 className="text-sm font-semibold mb-2 text-foreground">错误详情：</h3>
-              <div className="text-xs font-mono text-muted-foreground overflow-auto max-h-32">
+              <div className="text-xs font-mono text-muted-foreground overflow-auto custom-scrollbar max-h-32">
                 {error && error.toString()}
               </div>
               {errorInfo && (
-                <details className="mt-2">
-                  <summary className="text-xs cursor-pointer text-primary hover:underline">
-                    查看组件堆栈
+                <details className="mt-4">
+                  <summary className="text-xs cursor-pointer hover:text-primary transition-colors">
+                    {t('error.stackTrace')}
                   </summary>
-                  <div className="text-xs font-mono text-muted-foreground mt-2 overflow-auto max-h-40">
+                  <div className="text-xs font-mono text-muted-foreground mt-2 overflow-auto custom-scrollbar max-h-40">
                     {errorInfo.componentStack}
                   </div>
                 </details>

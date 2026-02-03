@@ -821,7 +821,7 @@ export const useChatStore = create((set, get) => ({
       
       // 过滤掉已压缩的消息和压缩摘要消息
       const uncompressedMessages = messages.filter(
-        m => !compressedMessageIds.includes(m.id) && !m.isCompressionSummary
+        m => !compressedMessageIds.includes(m.id) && !m.isCompressionSummary && !m.isCompressed
       );
       
       // 找到压缩消息中最早的一个时间戳作为虚拟消息的时间戳

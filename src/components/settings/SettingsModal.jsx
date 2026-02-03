@@ -70,6 +70,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [logSearchQuery, setLogSearchQuery] = useState('');
   const [editingModel, setEditingModel] = useState(null);
+  const [isTestingSync, setIsTestingSync] = useState(false);
   const [proxyStatus, setProxyStatus] = useState(() => {
     // 初始化时检查环境
     try {
@@ -708,7 +709,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar */}
           <div className={cn(
-            "w-16 md:w-64 border-r bg-accent/20 flex flex-col py-4 overflow-y-auto",
+            "w-16 md:w-64 border-r bg-accent/20 flex flex-col py-4 overflow-y-auto custom-scrollbar",
             editingProvider && "hidden md:flex"
           )}>
             {tabs.map(tab => (
@@ -1376,25 +1377,18 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         type="checkbox" 
                         checked={cloudSync?.enabled ?? false}
                         onChange={async (e) => {
-                          try {
-                            setCloudSyncError(null);
-                            const updates = { enabled: e.target.checked };
-                            
-                            if (e.target.checked) {
-                              const isSyncAvailable = await syncService.checkProxyHealth();
-                              if (!isSyncAvailable) {
-                                throw new Error('SYNC_SERVER_NOT_AVAILABLE');
-                              }
+                          const enabled = e.target.checked;
+                          setCloudSyncError(null);
+                          updateLocalConfig('cloudSync', { enabled });
+                          
+                          if (enabled) {
+                            // 异步检查但不阻塞
+                            syncService.checkProxyHealth().then(isHealthy => {
                               setProxyStatus(syncService.getProxyStatus());
-                            }
-                            
-                            updateLocalConfig('cloudSync', updates);
-                          } catch (error) {
-                            let errorMessage = error.message;
-                            if (error.message === 'SYNC_SERVER_NOT_AVAILABLE') {
-                              errorMessage = t('settings.security.syncServerNotAvailable');
-                            }
-                            setCloudSyncError(errorMessage);
+                              if (!isHealthy) {
+                                setCloudSyncError(t('settings.security.syncServerNotAvailable'));
+                              }
+                            });
                           }
                         }}
                         className="sr-only peer" 
@@ -1408,11 +1402,42 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     <div className="space-y-4 mt-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800 animate-in slide-in-from-top-2">
                       {/* API URL配置 */}
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">{t('settings.security.syncApiUrl')}</label>
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">{t('settings.security.syncApiUrl')}</label>
+                          <button
+                            onClick={async () => {
+                              setIsTestingSync(true);
+                              setCloudSyncError(null);
+                              // 临时将当前填写的URL同步到syncService供检查（通过更新Store实现）
+                              // 注意：这里需要先把本地URL同步到Store才能让syncService读到
+                              // 但为了简单，我们可以暂时直接调用checkProxyHealth，它会读store
+                              // 所以我们必须先应用一次本地配置
+                              const success = await applyAllChanges();
+                              if (success) {
+                                const isHealthy = await syncService.checkProxyHealth(true); // 强制检查
+                                setProxyStatus(syncService.getProxyStatus());
+                                if (!isHealthy) {
+                                  setCloudSyncError(t('settings.security.syncServerNotAvailable'));
+                                } else {
+                                  alert(t('settings.security.syncServerOnline'));
+                                }
+                              }
+                              setIsTestingSync(false);
+                            }}
+                            disabled={isTestingSync}
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            {isTestingSync ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
+                            {t('settings.llm.testConnection')}
+                          </button>
+                        </div>
                         <input
                           type="text"
                           value={cloudSync.apiUrl || ''}
-                          onChange={(e) => updateLocalConfig('cloudSync', { apiUrl: e.target.value })}
+                          onChange={(e) => {
+                            updateLocalConfig('cloudSync', { apiUrl: e.target.value });
+                            if (cloudSyncError) setCloudSyncError(null);
+                          }}
                           placeholder={`${window.location.origin}${getSyncApiUrl()}`}
                           className="w-full px-4 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary text-sm"
                         />
@@ -1566,7 +1591,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
             )}
 
             {activeTab === 'help' && (
-              <div className="h-full overflow-y-auto animate-in fade-in">
+              <div className="h-full overflow-y-auto custom-scrollbar animate-in fade-in">
                 <HelpGuide />
               </div>
             )}

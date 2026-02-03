@@ -84,7 +84,7 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
       )}
 
       {/* 知识库列表 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[300px]">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 max-h-[300px]">
         {knowledgeBases.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="p-4 bg-accent rounded-2xl mb-4">
@@ -225,7 +225,7 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
         )}
 
         {/* 知识库列表 */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
           {knowledgeBases.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="p-4 bg-accent rounded-2xl mb-4">

@@ -298,12 +298,12 @@ export const useConfigStore = create((set, get) => ({
       // 动态导入避免循环依赖
       const { syncService } = await import('../services/syncService');
       
-      // 检查同步服务是否可用
-      const isSyncAvailable = await syncService.checkProxyHealth();
-      if (!isSyncAvailable) {
-        logger.error('ConfigStore', 'Cannot enable cloud sync: sync server is not available');
-        throw new Error('SYNC_SERVER_NOT_AVAILABLE');
-      }
+      // 检查同步服务是否可用 (非阻塞)
+      syncService.checkProxyHealth().then(isAvailable => {
+        if (!isAvailable) {
+          logger.warn('ConfigStore', 'Cloud sync enabled but sync server is not currently available');
+        }
+      });
       
       // 启动健康监控
       syncService.startProxyHealthMonitoring();

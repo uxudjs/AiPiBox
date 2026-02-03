@@ -179,6 +179,10 @@ class SyncService {
     const isSyncAvailable = await this.checkProxyHealth();
     if (!isSyncAvailable) {
       logger.error('SyncService', 'Cannot sync: cloud sync server is not available');
+      useConfigStore.getState().updateCloudSync({ 
+        syncStatus: 'error', 
+        lastError: 'Sync server unavailable' 
+      });
       return;
     }
 
@@ -235,10 +239,17 @@ class SyncService {
       // 网络错误时，静默处理，避免频繁报错
       if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
         logger.warn('SyncService', 'Cloud sync server unavailable, will retry later');
-        // 自动禁用云同步，避免持续失败
-        useConfigStore.getState().updateCloudSync({ enabled: false });
+        // 仅更新状态，不自动禁用，等待下次自动重试或代理恢复
+        useConfigStore.getState().updateCloudSync({ 
+          syncStatus: 'error', 
+          lastError: 'Cloud sync server unavailable' 
+        });
       } else {
         logger.error('SyncService', 'Sync to cloud failed', error);
+        useConfigStore.getState().updateCloudSync({ 
+          syncStatus: 'error', 
+          lastError: error.message 
+        });
       }
     } finally {
       this.isSyncing = false;
@@ -259,6 +270,10 @@ class SyncService {
     const isSyncAvailable = await this.checkProxyHealth();
     if (!isSyncAvailable) {
       logger.error('SyncService', 'Cannot sync from cloud: cloud sync server is not available');
+      useConfigStore.getState().updateCloudSync({ 
+        syncStatus: 'error', 
+        lastError: 'Sync server unavailable' 
+      });
       return;
     }
 
@@ -300,10 +315,16 @@ class SyncService {
             logger.info('SyncService', 'No cloud data found.');
         } else if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
             logger.warn('SyncService', 'Cloud sync server unavailable');
-            // 自动禁用云同步，避免持续失败
-            useConfigStore.getState().updateCloudSync({ enabled: false });
+            useConfigStore.getState().updateCloudSync({ 
+              syncStatus: 'error', 
+              lastError: 'Cloud sync server unavailable' 
+            });
         } else {
             logger.error('SyncService', 'Sync from cloud failed', error);
+            useConfigStore.getState().updateCloudSync({ 
+              syncStatus: 'error', 
+              lastError: error.message 
+            });
         }
     }
   }
@@ -369,10 +390,11 @@ class SyncService {
 
   /**
    * 后端同步服务健康检查
+   * @param {boolean} force - 是否强制刷新，跳过缓存
    */
-  async checkProxyHealth() {
-    // 性能优化：5秒内不重复进行物理健康检查
-    if (Date.now() - this.proxyStatus.lastCheckTime < 5000 && this.proxyStatus.lastCheckTime !== 0) {
+  async checkProxyHealth(force = false) {
+    // 性能优化：5秒内不重复进行物理健康检查，除非强制刷新
+    if (!force && Date.now() - this.proxyStatus.lastCheckTime < 5000 && this.proxyStatus.lastCheckTime !== 0) {
       return this.proxyStatus.isAvailable;
     }
 
