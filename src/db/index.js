@@ -1,4 +1,5 @@
 import Dexie from 'dexie';
+import 'dexie-observable';
 import { logger } from '../services/logger';
 
 /**
