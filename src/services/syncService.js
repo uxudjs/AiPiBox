@@ -64,14 +64,26 @@ class SyncService {
    * 启动同步服务
    * 建立 Store 订阅，监听核心数据变更并触发自动同步
    */
-  init() {
+  async init() {
     if (this.initialized) return;
-    this.initialized = true;
 
+    // 动态获取 store 以解决可能的循环依赖导致的 undefined 问题
+    let ConfigStore = useConfigStore;
+    if (!ConfigStore) {
+      const storeModule = await import('../store/useConfigStore');
+      ConfigStore = storeModule.useConfigStore;
+    }
+
+    if (!ConfigStore) {
+      logger.error('SyncService', 'Failed to initialize: useConfigStore is undefined');
+      return;
+    }
+
+    this.initialized = true;
     logger.info('SyncService', 'Initializing...');
     
     // Subscribe to stores to trigger sync
-    useConfigStore.subscribe((state, prevState) => {
+    ConfigStore.subscribe((state, prevState) => {
       if (state.cloudSync?.enabled && state.cloudSync?.autoSync) {
         // 优化：仅在核心配置（非同步状态本身）发生变化时触发同步
         const importantKeys = ['providers', 'defaultModels', 'general', 'proxy', 'conversationPresets'];

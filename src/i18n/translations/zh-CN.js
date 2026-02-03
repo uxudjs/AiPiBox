@@ -609,7 +609,7 @@ export const zhCN = {
       },
       cloudflare: {
         title: 'Cloudflare Pages部署',
-        content: '使用域名特征 *.pages.dev 自动识别。\n代理路径：/functions/ai-proxy（自动）\n同步路径：/functions/sync（自动）\n支持Cloudflare Workers，无执行时间限制。\n\n部署方式：\n1. 使用Wrangler CLI：wrangler pages deploy dist\n2. 通过Cloudflare Dashboard连接Git\n\n云端同步需要配置KV命名空间（变量名：SYNC_DATA）。\n无需配置云端代理URL，系统自动检测。'
+        content: '使用域名特征 *.pages.dev 自动识别。\n代理路径：/api/ai-proxy（自动）\n同步路径：/api/sync（自动）\n支持Cloudflare Workers，无执行时间限制。\n\n部署方式：\n1. 使用Wrangler CLI：wrangler pages deploy dist\n2. 通过Cloudflare Dashboard连接Git\n\n云端同步需要配置KV命名空间（变量名：SYNC_DATA）。\n无需配置云端代理URL，系统自动检测。'
       },
       github: {
         title: 'GitHub Pages部署',
@@ -637,7 +637,7 @@ export const zhCN = {
       },
       autoDetect: {
         title: '环境自动检测',
-        content: '应用内置智能环境检测机制，根据当前访问的域名自动选择合适的代理配置：\n\n检测逻辑：\n- *.vercel.app → 使用 /api/ai-proxy\n- *.netlify.app → 使用 /api/ai-proxy\n- *.pages.dev → 使用 /functions/ai-proxy\n- *.github.io → 使用配置的外部代理URL\n- localhost → 使用 http://localhost:5000/api/proxy\n- 自定义域名 → 使用配置的云端代理URL\n\n这个过程完全自动，开发者无需关心底层实现细节。'
+        content: '应用内置智能环境检测机制，根据当前访问的域名自动选择合适的代理配置：\n\n检测逻辑：\n- *.vercel.app → 使用 /api/ai-proxy\n- *.netlify.app → 使用 /api/ai-proxy\n- *.pages.dev → 使用 /api/ai-proxy\n- *.github.io → 使用配置的外部代理URL\n- localhost → 使用 /api/ai-proxy (通过 Vite 代理)\n- 自定义域名 → 使用 /api/ai-proxy\n\n这个过程完全自动，开发者无需关心底层实现细节。'
       }
     },
 

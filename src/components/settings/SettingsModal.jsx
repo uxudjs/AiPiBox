@@ -52,6 +52,7 @@ import { testConnection, fetchModels } from '../../services/aiService';
 import { encryptData, decryptData } from '../../utils/crypto';
 import { logger } from '../../services/logger';
 import { inferModelDisplayName } from '../../utils/modelNameInference';
+import { getProxyApiUrl, getSyncApiUrl } from '../../utils/envDetect';
 
 import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
 
@@ -1304,7 +1305,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                           type="text" 
                           value={proxy.cloudUrl || ''}
                           onChange={(e) => updateLocalConfig('proxy', { cloudUrl: e.target.value })}
-                          placeholder="https://your-app.vercel.app/api/ai-proxy"
+                          placeholder={`${window.location.origin}${getProxyApiUrl()}`}
                           className="w-full px-4 py-3 bg-accent rounded-xl border-none focus:ring-2 focus:ring-primary text-sm"
                         />
                         <p className="text-xs text-muted-foreground">
@@ -1412,7 +1413,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                           type="text"
                           value={cloudSync.apiUrl || ''}
                           onChange={(e) => updateLocalConfig('cloudSync', { apiUrl: e.target.value })}
-                          placeholder={t('settings.security.syncApiUrlPlaceholder')}
+                          placeholder={`${window.location.origin}${getSyncApiUrl()}`}
                           className="w-full px-4 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary text-sm"
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400">

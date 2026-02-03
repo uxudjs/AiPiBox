@@ -608,7 +608,7 @@ export const zhTW = {
       },
       cloudflare: {
         title: 'Cloudflare Pages部署',
-        content: '使用域名特徵 *.pages.dev 自動識別。\n代理路徑：/functions/ai-proxy（自動）\n同步路徑：/functions/sync（自動）\n支持Cloudflare Workers，無執行時間限制。\n\n部署方式：\n1. 使用Wrangler CLI：wrangler pages deploy dist\n2. 通過Cloudflare Dashboard連接Git\n\n雲端同步需要配置KV命名空間（變量名：SYNC_DATA）。\n無需配置雲端代理URL，系統自動檢測。'
+        content: '使用域名特徵 *.pages.dev 自動識別。\n代理路徑：/api/ai-proxy（自動）\n同步路徑：/api/sync（自動）\n支持Cloudflare Workers，無執行時間限制。\n\n部署方式：\n1. 使用Wrangler CLI：wrangler pages deploy dist\n2. 通過Cloudflare Dashboard連接Git\n\n雲端同步需要配置KV命名空間（變量名：SYNC_DATA）。\n無需配置雲端代理URL，系統自動檢測。'
       },
       github: {
         title: 'GitHub Pages部署',
@@ -636,7 +636,7 @@ export const zhTW = {
       },
       autoDetect: {
         title: '環境自動偵測',
-        content: '應用內置智能環境偵測機制，根據當前存取的域名自動選擇合適的代理配置：\n\n偵測逻輯：\n- *.vercel.app → 使用 /api/ai-proxy\n- *.netlify.app → 使用 /api/ai-proxy\n- *.pages.dev → 使用 /functions/ai-proxy\n- *.github.io → 使用配置的外部代理URL\n- localhost → 使用 http://localhost:5000/api/proxy\n- 自定義域名 → 使用配置的雲端代理URL\n\n這個過程完全自動，開發者無需關心底層實現細節。'
+        content: '应用内址智能环境侦测机制，根据当前存取的域名自动选择合适的代理配置：\n\n侦测逻輯：\n- *.vercel.app → 使用 /api/ai-proxy\n- *.netlify.app → 使用 /api/ai-proxy\n- *.pages.dev → 使用 /api/ai-proxy\n- *.github.io → 使用配置的外部代理URL\n- localhost → 使用 /api/ai-proxy (通过 Vite 代理)\n- 自定义域名 → 使用 /api/ai-proxy\n\n这个过程完全自动，开发者无需关心底层实现细节。'
       }
     },
 
