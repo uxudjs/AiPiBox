@@ -101,7 +101,7 @@ AiPiBox 支持多种部署方式，所有核心功能在各平台都能正常运
 | Vercel | ✅ | ✅ | ✅ | ✅ | 免费 | ⭐⭐⭐⭐⭐ |
 | Netlify | ✅ | ✅ | ✅ | ✅ | 免费 | ⭐⭐⭐⭐⭐ |
 | Cloudflare Pages | ✅ | ✅ | ✅ | ✅ | 免费 | ⭐⭐⭐⭐⭐ |
-| GitHub Pages | ⚠️* | ⚠️* | ✅ | ✅ | 免费 | ⭐⭐⭐ |
+| GitHub Pages | ⚠️* | ⚠️* | ✅ | ❌ | 免费 | ⭐⭐⭐ |
 | 本地开发 | ✅ | ✅ | ✅ | - | - | ⭐⭐⭐⭐ |
 
 *GitHub Pages 需要配置外部 API 服务
@@ -473,9 +473,9 @@ npm run deploy:cf
 - 无法运行后端 API 函数
 - 需要配置外部代理服务才能完整使用
 
-#### 自动部署（已配置）
+#### 自动部署（手动上传）
 
-**项目已包含 GitHub Actions 配置**，推送代码到 `main` 分支即可自动部署。
+GitHub Pages 需要手动构建和部署。
 
 **步骤：**
 
@@ -484,27 +484,43 @@ npm run deploy:cf
    - 点击右上角 **"Fork"** 按钮
    - 仓库被复制到你的账号下
 
-2. **启用 GitHub Pages**
+2. **构建项目**
+   ```bash
+   # 克隆你 Fork 的仓库
+   git clone https://github.com/<your-username>/AiPiBox.git
+   cd AiPiBox
+   
+   # 安装依赖
+   npm install
+   
+   # 构建
+   npm run build
+   ```
+
+3. **使用 gh-pages 工具部署**
+   ```bash
+   # 安装 gh-pages
+   npm install -g gh-pages
+   
+   # 部署到 GitHub Pages
+   gh-pages -d dist
+   ```
+
+4. **启用 GitHub Pages**
    - 进入你 Fork 的仓库
    - 点击 **Settings** → **Pages**
-   - **Source** 选择 `GitHub Actions`
+   - **Source** 选择 `Deploy from a branch`
+   - **Branch** 选择 `gh-pages` / `(root)`
    - 保存设置
 
-3. **等待自动部署**
-   - 进入 **Actions** 标签
-   - 查看 "Deploy to GitHub Pages" 工作流
-   - 等待 3-5 分钟完成构建
-   - 绿色勾号表示部署成功
-
-4. **访问应用**
+5. **访问应用**
    - 回到 **Settings** → **Pages**
    - 找到你的站点地址：`https://<username>.github.io/AiPiBox/`
    - 点击访问
 
-5. **后续更新**
-   - 每次推送代码到 `main` 分支
-   - GitHub Actions 自动重新构建和部署
-   - 无需手动操作
+6. **后续更新**
+   - 每次修改代码后，重复步骤2和3
+   - 重新构建并部署
 
 #### 配置外部 API 服务
 

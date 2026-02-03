@@ -23,7 +23,7 @@ AiPiBox 支持多种部署平台,所有核心功能在各平台都能正常运�
 | Vercel | ✅ | ✅ | ✅ | ✅ | ⭐⭐⭐⭐⭐ |
 | Netlify | ✅ | ✅ | ✅ | ✅ | ⭐⭐⭐⭐⭐ |
 | Cloudflare Pages | ✅ | ✅ | ✅ | ✅ | ⭐⭐⭐⭐⭐ |
-| GitHub Pages | ⚠️ | ⚠️ | ✅ | ✅ | ⭐⭐⭐ |
+| GitHub Pages | ⚠️ | ⚠️ | ✅ | ❌ | ⭐⭐⭐ |
 | 本地开发 | ✅ | ✅ | ✅ | N/A | ⭐⭐⭐⭐ |
 
 ⚠️ GitHub Pages 需要外部API服务支持
@@ -226,19 +226,34 @@ npm run deploy:cf
 
 ## GitHub Pages 部署
 
-### 自动部署(GitHub Actions)
+### 手动部署
 
-项目已包含 `.github/workflows/deploy-gh-pages.yml`,提交代码即自动部署。
+GitHub Pages 仅支持静态文件托管,需要手动上传构建文件。
 
-### 手动启用GitHub Pages
+#### 步骤:
 
-1. 进入 GitHub 仓库
-2. Settings → Pages
-3. Source: GitHub Actions
-4. 等待 Actions 运行完成
+1. **构建项目**
+```bash
+npm run build
+```
 
-### 访问地址
+2. **创建 gh-pages 分支**
+```bash
+# 安装 gh-pages 工具
+npm install -g gh-pages
 
+# 部署到 GitHub Pages
+gh-pages -d dist
+```
+
+3. **启用 GitHub Pages**
+   - 进入 GitHub 仓库
+   - Settings → Pages
+   - Source: Deploy from a branch
+   - Branch: 选择 `gh-pages` / `(root)`
+   - 点击 Save
+
+4. **访问地址**
 ```
 https://<username>.github.io/<repository>/
 ```

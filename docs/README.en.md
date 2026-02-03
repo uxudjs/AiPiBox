@@ -101,7 +101,7 @@ AiPiBox supports multiple deployment methods, with all core features working acr
 | Vercel | ✅ | ✅ | ✅ | ✅ | Free | ⭐⭐⭐⭐⭐ |
 | Netlify | ✅ | ✅ | ✅ | ✅ | Free | ⭐⭐⭐⭐⭐ |
 | Cloudflare Pages | ✅ | ✅ | ✅ | ✅ | Free | ⭐⭐⭐⭐⭐ |
-| GitHub Pages | ⚠️* | ⚠️* | ✅ | ✅ | Free | ⭐⭐⭐ |
+| GitHub Pages | ⚠️* | ⚠️* | ✅ | ❌ | Free | ⭐⭐⭐ |
 | Local Dev | ✅ | ✅ | ✅ | - | - | ⭐⭐⭐⭐ |
 
 *GitHub Pages requires external API service configuration
@@ -257,15 +257,54 @@ npm run deploy:cf
 
 **Note**: GitHub Pages can only host static files and cannot run backend APIs. Requires additional proxy service configuration.
 
-#### Automatic Deployment (Pre-configured)
+#### Automatic Deployment (Manual Upload)
 
-The project includes GitHub Actions configuration. Simply push code to the `main` branch for automatic deployment.
+GitHub Pages requires manual build and deployment.
+
+**Steps:**
 
 1. **Fork this repository**
-2. Go to repository **Settings** → **Pages**
-3. Set **Source** to `GitHub Actions`
-4. Wait for Actions to complete
-5. Visit `https://<username>.github.io/AiPiBox/`
+   - Visit [AiPiBox GitHub](https://github.com/uxudjs/AiPiBox)
+   - Click **"Fork"** button in top right
+   - Repository will be copied to your account
+
+2. **Build the project**
+   ```bash
+   # Clone your forked repository
+   git clone https://github.com/<your-username>/AiPiBox.git
+   cd AiPiBox
+   
+   # Install dependencies
+   npm install
+   
+   # Build
+   npm run build
+   ```
+
+3. **Deploy using gh-pages tool**
+   ```bash
+   # Install gh-pages
+   npm install -g gh-pages
+   
+   # Deploy to GitHub Pages
+   gh-pages -d dist
+   ```
+
+4. **Enable GitHub Pages**
+   - Go to your forked repository
+   - Click **Settings** → **Pages**
+   - **Source**: Select `Deploy from a branch`
+   - **Branch**: Select `gh-pages` / `(root)`
+   - Save settings
+
+5. **Access the application**
+   - Go back to **Settings** → **Pages**
+   - Find your site URL: `https://<username>.github.io/AiPiBox/`
+   - Click to visit
+
+6. **Subsequent updates**
+   - After each code modification, repeat steps 2 and 3
+   - Rebuild and redeploy
 
 #### Configure External API Service
 

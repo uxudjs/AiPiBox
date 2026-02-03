@@ -79,7 +79,7 @@ AiPiBoxは複数のデプロイ方法をサポートしており、すべての�
 | Vercel | ✅ | ✅ | ✅ | ✅ | 無料 | ⭐⭐⭐⭐⭐ |
 | Netlify | ✅ | ✅ | ✅ | ✅ | 無料 | ⭐⭐⭐⭐⭐ |
 | Cloudflare Pages | ✅ | ✅ | ✅ | ✅ | 無料 | ⭐⭐⭐⭐⭐ |
-| GitHub Pages | ⚠️* | ⚠️* | ✅ | ✅ | 無料 | ⭐⭐⭐ |
+| GitHub Pages | ⚠️* | ⚠️* | ✅ | ❌ | 無料 | ⭐⭐⭐ |
 | ローカル開発 | ✅ | ✅ | ✅ | - | - | ⭐⭐⭐⭐ |
 
 *GitHub Pagesは外部APIサービスの設定が必要
@@ -193,13 +193,54 @@ wrangler pages deploy dist --project-name=aipibox
 
 **注意**: GitHub Pagesは静的ファイルのみをホストでき、バックエンドAPIを実行できません。外部プロキシサービスの設定が必要です。
 
-#### 自動デプロイ（事前設定済み）
+#### 自動デプロイ（手動アップロード）
+
+GitHub Pagesは手動でビルドとデプロイが必要です。
+
+**手順:**
 
 1. **このリポジトリをフォーク**
-2. リポジトリ **Settings** → **Pages**
-3. **Source** を `GitHub Actions` に設定
-4. Actionsの完了を待つ
-5. `https://<username>.github.io/AiPiBox/` にアクセス
+   - [AiPiBox GitHub](https://github.com/uxudjs/AiPiBox)にアクセス
+   - 右上の **"Fork"** ボタンをクリック
+   - リポジトリがあなたのアカウントにコピーされます
+
+2. **プロジェクトをビルド**
+   ```bash
+   # フォークしたリポジトリをクローン
+   git clone https://github.com/<your-username>/AiPiBox.git
+   cd AiPiBox
+   
+   # 依存関係をインストール
+   npm install
+   
+   # ビルド
+   npm run build
+   ```
+
+3. **gh-pagesツールでデプロイ**
+   ```bash
+   # gh-pagesをインストール
+   npm install -g gh-pages
+   
+   # GitHub Pagesにデプロイ
+   gh-pages -d dist
+   ```
+
+4. **GitHub Pagesを有効化**
+   - フォークしたリポジトリに移動
+   - **Settings** → **Pages** をクリック
+   - **Source**: `Deploy from a branch`を選択
+   - **Branch**: `gh-pages` / `(root)`を選択
+   - 設定を保存
+
+5. **アプリケーションにアクセス**
+   - **Settings** → **Pages**に戻る
+   - サイトのURLを確認: `https://<username>.github.io/AiPiBox/`
+   - クリックしてアクセス
+
+6. **以後の更新**
+   - コードを変更した後、手順2と3を繰り返し
+   - 再ビルドと再デプロイ
 
 #### 外部APIサービスの設定
 

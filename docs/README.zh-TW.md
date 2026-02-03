@@ -101,7 +101,7 @@ AiPiBox 支援多種部署方式，所有核心功能在各平台都能正常運
 | Vercel | ✅ | ✅ | ✅ | ✅ | 免費 | ⭐⭐⭐⭐⭐ |
 | Netlify | ✅ | ✅ | ✅ | ✅ | 免費 | ⭐⭐⭐⭐⭐ |
 | Cloudflare Pages | ✅ | ✅ | ✅ | ✅ | 免費 | ⭐⭐⭐⭐⭐ |
-| GitHub Pages | ⚠️* | ⚠️* | ✅ | ✅ | 免費 | ⭐⭐⭐ |
+| GitHub Pages | ⚠️* | ⚠️* | ✅ | ❌ | 免費 | ⭐⭐⭐ |
 | 本地開發 | ✅ | ✅ | ✅ | - | - | ⭐⭐⭐⭐ |
 
 *GitHub Pages 需要配置外部 API 服務
@@ -257,15 +257,54 @@ npm run deploy:cf
 
 **注意**：GitHub Pages 只能託管靜態檔案，無法執行後端 API。需要額外配置代理服務。
 
-#### 自動部署（已配置）
+#### 自動部署（手動上傳）
 
-專案已包含 GitHub Actions 配置，推送程式碼到 `main` 分支即可自動部署。
+GitHub Pages 需要手動建置和部署。
+
+**步驟：**
 
 1. **Fork 本儲存庫**
-2. 進入儲存庫 **Settings** → **Pages**
-3. **Source** 選擇 `GitHub Actions`
-4. 等待 Actions 執行完成
-5. 訪問 `https://<username>.github.io/AiPiBox/`
+   - 訪問 [AiPiBox GitHub](https://github.com/uxudjs/AiPiBox)
+   - 點擊右上角 **"Fork"** 按鈕
+   - 儲存庫被複製到你的帳號下
+
+2. **建置專案**
+   ```bash
+   # 複製你 Fork 的儲存庫
+   git clone https://github.com/<your-username>/AiPiBox.git
+   cd AiPiBox
+   
+   # 安裝依賴
+   npm install
+   
+   # 建置
+   npm run build
+   ```
+
+3. **使用 gh-pages 工具部署**
+   ```bash
+   # 安裝 gh-pages
+   npm install -g gh-pages
+   
+   # 部署到 GitHub Pages
+   gh-pages -d dist
+   ```
+
+4. **啟用 GitHub Pages**
+   - 進入你 Fork 的儲存庫
+   - 點擊 **Settings** → **Pages**
+   - **Source** 選擇 `Deploy from a branch`
+   - **Branch** 選擇 `gh-pages` / `(root)`
+   - 儲存設定
+
+5. **訪問應用**
+   - 回到 **Settings** → **Pages**
+   - 找到你的站點地址：`https://<username>.github.io/AiPiBox/`
+   - 點擊訪問
+
+6. **後續更新**
+   - 每次修改程式碼後，重複步驟2和3
+   - 重新建置並部署
 
 #### 配置外部 API 服務
 

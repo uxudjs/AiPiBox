@@ -79,7 +79,7 @@ AiPiBox는 여러 배포 방법을 지원하며, 모든 핵심 기능이 모든 
 | Vercel | ✅ | ✅ | ✅ | ✅ | 무료 | ⭐⭐⭐⭐⭐ |
 | Netlify | ✅ | ✅ | ✅ | ✅ | 무료 | ⭐⭐⭐⭐⭐ |
 | Cloudflare Pages | ✅ | ✅ | ✅ | ✅ | 무료 | ⭐⭐⭐⭐⭐ |
-| GitHub Pages | ⚠️* | ⚠️* | ✅ | ✅ | 무료 | ⭐⭐⭐ |
+| GitHub Pages | ⚠️* | ⚠️* | ✅ | ❌ | 무료 | ⭐⭐⭐ |
 | 로컬 개발 | ✅ | ✅ | ✅ | - | - | ⭐⭐⭐⭐ |
 
 *GitHub Pages는 외부 API 서비스 설정이 필요합니다
@@ -193,13 +193,54 @@ wrangler pages deploy dist --project-name=aipibox
 
 **주의**: GitHub Pages는 정적 파일만 호스팅할 수 있으며 백엔드 API를 실행할 수 없습니다. 외부 프록시 서비스 설정이 필요합니다.
 
-#### 자동 배포（사전 구성됨）
+#### 자동 배포（수동 업로드）
+
+GitHub Pages는 수동 빌드 및 배포가 필요합니다.
+
+**단계:**
 
 1. **이 저장소를 포크**
-2. 저장소 **Settings** → **Pages**
-3. **Source**를 `GitHub Actions`로 설정
-4. Actions 완료 대기
-5. `https://<username>.github.io/AiPiBox/` 방문
+   - [AiPiBox GitHub](https://github.com/uxudjs/AiPiBox) 방문
+   - 오른쪽 상단의 **"Fork"** 버튼 클릭
+   - 저장소가 당신의 계정으로 복사됩니다
+
+2. **프로젝트 빌드**
+   ```bash
+   # 포크한 저장소 클론
+   git clone https://github.com/<your-username>/AiPiBox.git
+   cd AiPiBox
+   
+   # 종속성 설치
+   npm install
+   
+   # 빌드
+   npm run build
+   ```
+
+3. **gh-pages 도구로 배포**
+   ```bash
+   # gh-pages 설치
+   npm install -g gh-pages
+   
+   # GitHub Pages에 배포
+   gh-pages -d dist
+   ```
+
+4. **GitHub Pages 활성화**
+   - 포크한 저장소로 이동
+   - **Settings** → **Pages** 클릭
+   - **Source**: `Deploy from a branch` 선택
+   - **Branch**: `gh-pages` / `(root)` 선택
+   - 설정 저장
+
+5. **애플리케이션 접속**
+   - **Settings** → **Pages**로 돌아가기
+   - 사이트 URL 확인: `https://<username>.github.io/AiPiBox/`
+   - 클릭하여 방문
+
+6. **향후 업데이트**
+   - 코드 수정 후 단계2와 3을 반복
+   - 재빌드 및 재배포
 
 #### 외부 API 서비스 설정
 
