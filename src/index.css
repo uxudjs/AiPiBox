@@ -1,0 +1,217 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 7%;  /* 深灰色背景 #121212 */
+    --foreground: 0 0% 95%;  /* 浅灰色文字 */
+    --card: 0 0% 10%;  /* 卡片背景 #1a1a1a */
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 85%;  /* 主色改为浅灰 */
+    --primary-foreground: 0 0% 10%;  /* 主色文字为深灰 */
+    --secondary: 0 0% 15%;  /* 次色改为中灰 */
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;  /* 弱化文字 */
+    --accent: 0 0% 15%;  /* 强调色 */
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 62.8% 30.6%;  /* 红色保持不变 */
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 20%;  /* 边框灰色 */
+    --input: 0 0% 20%;
+    --ring: 0 0% 70%;  /* 聚焦环灰色 */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Custom scrollbar with primary theme */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.3);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--primary) / 0.7);
+}
+
+/* Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+}
+
+/* Dark theme optimization */
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.4);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.6);
+}
+
+/* Custom range slider with purple theme */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: hsl(var(--accent));
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+input[type="range"]::-webkit-slider-track {
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(to right, 
+    hsl(271 91% 65%) 0%, 
+    hsl(271 91% 65%) var(--value-percent, 50%), 
+    hsl(var(--accent)) var(--value-percent, 50%), 
+    hsl(var(--accent)) 100%);
+  border-radius: 3px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: hsl(271 91% 65%);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: hsl(271 91% 70%);
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(139, 92, 246, 0.4);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  background: hsl(271 91% 60%);
+  transform: scale(1.05);
+}
+
+/* Firefox */
+input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  background: hsl(var(--accent));
+  border-radius: 3px;
+}
+
+input[type="range"]::-moz-range-progress {
+  height: 6px;
+  background: hsl(271 91% 65%);
+  border-radius: 3px;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: hsl(271 91% 65%);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: hsl(271 91% 70%);
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(139, 92, 246, 0.4);
+}
+
+input[type="range"]::-moz-range-thumb:active {
+  background: hsl(271 91% 60%);
+  transform: scale(1.05);
+}
+
+/* Dark theme optimization for range */
+.dark input[type="range"]::-webkit-slider-track {
+  background: linear-gradient(to right, 
+    hsl(271 91% 65%) 0%, 
+    hsl(271 91% 65%) var(--value-percent, 50%), 
+    hsl(var(--accent)) var(--value-percent, 50%), 
+    hsl(var(--accent)) 100%);
+}
+
+.dark input[type="range"]::-webkit-slider-thumb {
+  background: hsl(271 91% 65%);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.4);
+}
+
+.dark input[type="range"]::-moz-range-progress {
+  background: hsl(271 91% 65%);
+}
+
+.dark input[type="range"]::-moz-range-thumb {
+  background: hsl(271 91% 65%);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.4);
+}

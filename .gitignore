@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE & Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# AI Tools
+.qoder/
+.cursor/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# System files
+Thumbs.db
+desktop.ini
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local development
+.vercel
+.netlify
+
+# Test coverage
+coverage/
+.nyc_output/
