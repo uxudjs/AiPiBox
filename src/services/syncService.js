@@ -290,6 +290,22 @@ class SyncService {
       const images = syncImages ? await db.images.toArray() : [];
       // 导出删除墓碑
       const deletedRecords = await db.deleted_records.toArray();
+
+      // [稳定性优化] 检查 Payload 大小，防止超大数据导致内存溢出 (OOM)
+      // 估算原始 JSON 大小 (1字符约为1-2字节)
+      const estimatedSize = JSON.stringify({ conversations, messages, images, deletedRecords }).length;
+      const MAX_SYNC_SIZE = 50 * 1024 * 1024; // 50MB 阈值
+      
+      if (estimatedSize > MAX_SYNC_SIZE) {
+        const errorMsg = `Sync data too large (${(estimatedSize / 1024 / 1024).toFixed(2)}MB). Maximum allowed is 50MB. Please clear some history or disable image sync.`;
+        logger.error('SyncService', errorMsg);
+        useConfigStore.getState().updateCloudSync({ 
+          syncStatus: 'error', 
+          lastError: errorMsg 
+        });
+        this.isSyncing = false;
+        return;
+      }
       
       // 处理消息中的图片数据
       if (!syncImages) {

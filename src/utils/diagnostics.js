@@ -41,11 +41,11 @@ export const checkDatabase = async () => {
 /**
  * 检查Store状态
  */
-export const checkStores = () => {
+export const checkStores = async () => {
   try {
-    const { useI18nStore } = require('../i18n');
-    const { useConfigStore } = require('../store/useConfigStore');
-    const { useAuthStore } = require('../store/useAuthStore');
+    const { useI18nStore } = await import('../i18n');
+    const { useConfigStore } = await import('../store/useConfigStore');
+    const { useAuthStore } = await import('../store/useAuthStore');
 
     const i18nState = useI18nStore.getState();
     const configState = useConfigStore.getState();
@@ -63,10 +63,10 @@ export const checkStores = () => {
 /**
  * 检查翻译系统
  */
-export const checkTranslations = () => {
+export const checkTranslations = async () => {
   try {
-    const { translations } = require('../i18n/translations');
-    const { SUPPORTED_LANGUAGES } = require('../i18n');
+    const { translations } = await import('../i18n/translations');
+    const { SUPPORTED_LANGUAGES } = await import('../i18n');
 
     const availableLanguages = Object.keys(translations);
     const configuredLanguages = SUPPORTED_LANGUAGES.map(l => l.value);
@@ -87,8 +87,8 @@ export const runDiagnostics = async () => {
   const results = {
     dependencies: checkDependencies(),
     database: await checkDatabase(),
-    stores: checkStores(),
-    translations: checkTranslations()
+    stores: await checkStores(),
+    translations: await checkTranslations()
   };
 
   return results;

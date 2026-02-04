@@ -380,12 +380,18 @@ export const useChatStore = create((set, get) => ({
       }
       if (!conversationId) return [];
 
-      // 获取当前对话的所有消息
+      // 获取当前对话的消息（添加安全上限，防止超大对话导致崩溃）
+      const MESSAGE_FETCH_LIMIT = 5000;
       const allMessages = await db.messages
         .where('conversationId')
         .equals(conversationId)
+        .limit(MESSAGE_FETCH_LIMIT)
         .sortBy('timestamp');
         
+      if (allMessages.length >= MESSAGE_FETCH_LIMIT) {
+        logger.warn('useChatStore', `Conversation ${conversationId} exceeds message fetch limit (${MESSAGE_FETCH_LIMIT}). Some history may be inaccessible.`);
+      }
+
       if (!allMessages || allMessages.length === 0) return [];
 
       // 构建消息树的索引结构

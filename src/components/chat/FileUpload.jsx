@@ -29,8 +29,14 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
   const handleFileSelect = async (files) => {
     if (!files || files.length === 0) return;
     
+    // [稳定性优化] 设置硬性文件大小限制 (20MB)
+    const MAX_FILE_SIZE = 20 * 1024 * 1024;
+    
     for (const file of Array.from(files)) {
       try {
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error(t('fileUpload.sizeLimitExceeded', { size: '20MB' }) || `File too large. Maximum size is 20MB.`);
+        }
         await addFile(file, conversationId);
         if (onFileUploaded) onFileUploaded(file);
       } catch (error) {

@@ -61,9 +61,28 @@ async function withRetry(fn, retries = 3, delay = 1000) {
       throw error;
     }
     
-    logger.info('aiService', `Request failed, will retry after ${delay}ms (${retries} retries remaining)... Error: ${error.message}`);
-    await new Promise(resolve => setTimeout(resolve, delay));
-    return withRetry(fn, retries - 1, delay * 2);
+    // 处理 429 (Too Many Requests) 的 Retry-After 标头
+    let nextDelay = delay;
+    if (status === 429) {
+      const retryAfter = error.response?.headers?.['retry-after'];
+      if (retryAfter) {
+        // Retry-After 可以是秒数，也可以是 HTTP 日期
+        const seconds = parseInt(retryAfter, 10);
+        if (!isNaN(seconds)) {
+          nextDelay = seconds * 1000;
+        } else {
+          const date = new Date(retryAfter).getTime();
+          if (!isNaN(date)) {
+            nextDelay = Math.max(0, date - Date.now());
+          }
+        }
+        logger.info('aiService', `Rate limited (429), following Retry-After: ${nextDelay}ms`);
+      }
+    }
+
+    logger.info('aiService', `Request failed, will retry after ${nextDelay}ms (${retries} retries remaining)... Error: ${error.message}`);
+    await new Promise(resolve => setTimeout(resolve, nextDelay));
+    return withRetry(fn, retries - 1, status === 429 ? delay : delay * 2);
   }
 }
 
