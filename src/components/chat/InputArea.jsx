@@ -13,6 +13,14 @@ import { isMobileDevice } from '../../utils/envDetect';
 import { CHAT_CONFIG } from '../../utils/constants';
 import { shallow } from 'zustand/shallow';
 import { db } from '../../db';
+import { 
+  Plus, 
+  Camera, 
+  Check, 
+  AlertCircle, 
+  RefreshCw, 
+  X 
+} from 'lucide-react';
 
 // Hooks
 import { useFileHandler } from './hooks/useFileHandler';
