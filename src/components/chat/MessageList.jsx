@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback, useLayoutEffect, useMemo } from 'react';
 import { useChatStore } from '../../store/useChatStore';
 import { useConfigStore } from '../../store/useConfigStore';
+import { useFileStore } from '../../store/useFileStore';
+import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { cn } from '../../utils/cn';
@@ -632,6 +634,29 @@ const MessageList = () => {
         const defaultPrompt = t('settings.conversation.promptPlaceholder');
         systemParts.push(defaultPrompt);
       }
+
+      // 1.1 添加已上传的文档内容
+      const documentsContent = useFileStore.getState().getCompletedFilesContent(currentConversationId);
+      if (documentsContent) {
+        systemParts.push('\n\n--- Uploaded Document Content ---\n' + documentsContent);
+        logger.info('MessageList.saveAndSend', 'Added document content to system message');
+      }
+      
+      // 1.2 添加知识库检索的相关文档
+      const { activeKnowledgeBase, retrieveDocuments } = useKnowledgeBaseStore.getState();
+      if (activeKnowledgeBase) {
+        logger.info('MessageList.saveAndSend', 'Knowledge base active, retrieving documents...');
+        const retrievedDocs = retrieveDocuments(editContent, activeKnowledgeBase);
+        
+        if (retrievedDocs.length > 0) {
+          const kbContext = retrievedDocs.map((doc, idx) => 
+            `[Document ${idx + 1}] ${doc.documentName}\n${doc.content}\nSimilarity: ${(doc.similarity * 100).toFixed(1)}%`
+          ).join('\n\n');
+          
+          systemParts.push('\n\n--- Knowledge Base Documents ---\n' + kbContext);
+          logger.info('MessageList.saveAndSend', `Retrieved ${retrievedDocs.length} documents from KB`);
+        }
+      }
       
       // 2. 语言要求指令
       const { general } = useConfigStore.getState();
@@ -825,6 +850,42 @@ const MessageList = () => {
         // 如果用户没有配置系统提示词，使用翻译的默认提示词
         const defaultPrompt = t('settings.conversation.promptPlaceholder');
         systemParts.push(defaultPrompt);
+      }
+
+      // 1.1 添加已上传的文档内容
+      const documentsContent = useFileStore.getState().getCompletedFilesContent(currentConversationId);
+      if (documentsContent) {
+        systemParts.push('\n\n--- Uploaded Document Content ---\n' + documentsContent);
+        logger.info('MessageList.regenerateMessage', 'Added document content to system message');
+      }
+      
+      // 1.2 添加知识库检索的相关文档
+      const { activeKnowledgeBase, retrieveDocuments } = useKnowledgeBaseStore.getState();
+      if (activeKnowledgeBase) {
+        // 重新生成时，使用上一条用户消息作为检索 query
+        const prevUserMsg = allMessages[index - 1];
+        let query = '';
+        if (prevUserMsg) {
+          if (Array.isArray(prevUserMsg.content)) {
+            query = prevUserMsg.content.filter(p => p.type === 'text').map(p => p.text).join('\n');
+          } else {
+            query = prevUserMsg.content;
+          }
+        }
+
+        if (query) {
+          logger.info('MessageList.regenerateMessage', 'Knowledge base active, retrieving documents...');
+          const retrievedDocs = retrieveDocuments(query, activeKnowledgeBase);
+          
+          if (retrievedDocs.length > 0) {
+            const kbContext = retrievedDocs.map((doc, idx) => 
+              `[Document ${idx + 1}] ${doc.documentName}\n${doc.content}\nSimilarity: ${(doc.similarity * 100).toFixed(1)}%`
+            ).join('\n\n');
+            
+            systemParts.push('\n\n--- Knowledge Base Documents ---\n' + kbContext);
+            logger.info('MessageList.regenerateMessage', `Retrieved ${retrievedDocs.length} documents from KB`);
+          }
+        }
       }
       
       // 2. 语言要求指令

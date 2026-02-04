@@ -48,6 +48,7 @@ const ModelSelector = () => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowSelector(false);
+        setSearchQuery(''); // 关闭时清空搜索
       }
     };
 
@@ -57,6 +58,9 @@ const ModelSelector = () => {
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 50);
+    } else {
+      // 关闭时清空搜索
+      setSearchQuery('');
     }
 
     return () => {

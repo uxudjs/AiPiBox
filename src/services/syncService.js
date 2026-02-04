@@ -918,6 +918,12 @@ class SyncService {
       logger.debug('SyncService', 'Downloaded data from cloud', { count: decryptedData.length });
       return decryptedData;
     } catch (error) {
+      // 核心优化：处理首次同步时云端无数据的情况 (404)
+      if (error.response && error.response.status === 404) {
+        logger.debug('SyncService', 'No cloud data found (404), treating as empty initial state.');
+        return []; // 返回空数据而不是抛出异常，允许同步流程(如上传)继续执行
+      }
+
       const errorMessage = this._extractErrorMessage(error);
       logger.error('SyncService', 'Failed to download from cloud', { error, message: errorMessage });
       throw new Error(errorMessage);

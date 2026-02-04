@@ -137,6 +137,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     } else {
       setLocalConfig(null);
       setEditingProvider(null);
+      setModelSearchQuery(''); // 关闭设置时清空搜索
     }
   }, [isOpen]);
 
@@ -676,7 +677,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-2 flex-1">
             {editingProvider && (
-              <button onClick={() => setEditingProvider(null)} className="p-1 hover:bg-accent rounded-md md:hidden">
+              <button onClick={() => {
+                setEditingProvider(null);
+                setModelSearchQuery(''); // 关闭编辑时清空搜索
+              }} className="p-1 hover:bg-accent rounded-md md:hidden">
                 <ChevronRight className="w-5 h-5 rotate-180" />
               </button>
             )}
@@ -718,6 +722,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                 onClick={() => {
                     setActiveTab(tab.id);
                     setEditingProvider(null);
+                    setModelSearchQuery(''); // 切换标签时清空搜索
                 }}
                 className={cn(
                   "flex items-center gap-3 px-4 md:px-6 py-3 text-sm transition-colors relative",
@@ -826,7 +831,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       </div>
                    </div>
                    <button 
-                    onClick={() => setEditingProvider(null)}
+                    onClick={() => {
+                      setEditingProvider(null);
+                      setModelSearchQuery(''); // 返回列表时清空搜索
+                    }}
                     className="text-sm text-primary hover:underline"
                    >
                     {t('settings.llm.backToList')}
@@ -922,7 +930,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       <div className="flex items-center justify-between">
                         <label className="text-sm font-medium">{t('settings.llm.modelManagement')} ({editingProvider.models.length})</label>
                         <div className="flex gap-2">
-                          {editingProvider.models.length > 20 && (
+                          {editingProvider.models.length > 5 && (
                             <input
                               type="text"
                               placeholder={t('settings.llm.searchModel')}

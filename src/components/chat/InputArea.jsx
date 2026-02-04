@@ -1597,7 +1597,10 @@ Question: ${userMsg}`;
         
         {showModelSelector && (
           <>
-            <div className="fixed inset-0 z-[10000]" onClick={() => setShowModelSelector(false)} />
+            <div className="fixed inset-0 z-[10000]" onClick={() => {
+              setShowModelSelector(false);
+              setModelSearchQuery('');
+            }} />
             <div className="absolute bottom-full right-0 mb-4 w-80 max-h-[70vh] bg-card border rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 z-[10001]" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-center p-2 border-b bg-accent/20">
                 <span className="text-xs font-black text-primary uppercase tracking-widest">{t('inputArea.selectModel')}</span>

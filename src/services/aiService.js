@@ -138,15 +138,10 @@ const buildTargetUrl = (baseUrl, endpoint, format, provider) => {
   }
 
   // 3. 特殊提供商处理
-  // Perplexity: 官方文档显示 API 地址为 https://api.perplexity.ai/chat/completions
-  // 对于 /chat/completions 端点，不需要 /v1，直接使用
-  // 对于 /models 端点，则使用完整路径
+  // Perplexity: 官方文档显示使用标准 OpenAI 兼容格式
+  // API 端点: https://api.perplexity.ai/chat/completions
+  // 不需要 /v1 前缀，直接使用完整路径
   if (url.includes('api.perplexity.ai')) {
-    // 如果是获取模型列表，添加完整路径
-    if (endpoint === '/models') {
-      return `${url}${endpoint}`;
-    }
-    // 对于 chat completions，直接使用
     return `${url}${endpoint}`;
   }
 
