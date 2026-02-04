@@ -189,7 +189,8 @@ export const useAuthStore = create((set, get) => ({
    * @returns {boolean}
    */
   validatePassword: (password) => {
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    // 允许任何标准特殊字符，不仅限于之前的有限集合
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     return regex.test(password);
   }
 }));
