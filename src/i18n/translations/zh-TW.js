@@ -253,7 +253,7 @@ export const zhTW = {
     proxy: {
       title: '網路與代理',
       proxyMode: '啟用全局 API 代理',
-      proxyHint: '透過服務端轉發 AI 請求，解決瀏覽器跨域限制，提升連線穩定性。',
+      proxyHint: '透過服務端轉發 AI 請求，解決瀏覽器跨域限制，提升連線穩定性。支持後台持續生成及斷線後自動恢復。',
       cloudProxyUrl: '代理服務位址',
       cloudProxyHint: '留空則使用當前域名的預設路徑。僅在使用自定義域名或 GitHub Pages 等靜態託管時需要手動配置。',
       cloudSyncDepends: '雲端同步功能依賴代理服務，停用代理將導致同步失效'

@@ -653,7 +653,8 @@ export async function chatCompletion({
   onThinking = null,
   onThinkingEnd = null,
   format = 'openai',
-  signal = null
+  signal = null,
+  taskId = null
 }) {
   let thinkingBuffer = '';
   let isThinkingState = false;
@@ -797,7 +798,8 @@ export async function chatCompletion({
           method: 'POST',
           headers: headers,
           data: payload,
-          stream: true
+          stream: true,
+          taskId
         } : payload;
 
         const fetchOptions = {
@@ -975,6 +977,33 @@ export async function chatCompletion({
   };
 
   return withRetry(executeRequest);
+}
+
+/**
+ * 恢复中断的异步任务
+ */
+export async function resumeTask(taskId, proxyConfig = {}) {
+  const isProxy = proxyConfig.enabled === true;
+  if (!isProxy) {
+    throw new Error('Task resumption requires proxy mode to be enabled');
+  }
+
+  const proxyUrl = getProxyUrl(proxyConfig);
+  // 提取基础 URL
+  const baseUrl = proxyUrl.substring(0, proxyUrl.lastIndexOf('/api/proxy'));
+  const taskUrl = `${baseUrl}/api/proxy/task/${taskId}`;
+
+  logger.debug('aiService', 'Resuming task:', taskId, 'via', taskUrl);
+
+  try {
+    const response = await axios.get(taskUrl, {
+      timeout: 10000
+    });
+    return response.data;
+  } catch (error) {
+    logger.error('aiService', 'Failed to resume task:', error);
+    throw error;
+  }
 }
 
 /**

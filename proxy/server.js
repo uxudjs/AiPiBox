@@ -145,6 +145,7 @@ app.post('/api/proxy', async (req, res) => {
 
       let fullContent = '';
       let isCompleted = false;
+      let streamBuffer = '';
       const taskFilePath = taskId ? path.join(TASKS_DIR, `${taskId}.json`) : null;
 
       // 如果有 taskId，预初始化任务文件
@@ -163,27 +164,34 @@ app.post('/api/proxy', async (req, res) => {
         }
         
         if (taskId) {
-          const chunkStr = chunk.toString();
-          // 尝试解析并累加内容（简单实现，仅针对 OpenAI 格式）
-          const lines = chunkStr.split('\n');
-          for (const line of lines) {
+          streamBuffer += chunk.toString();
+          let lineIndex;
+          let hasNewContent = false;
+          
+          while ((lineIndex = streamBuffer.indexOf('\n')) !== -1) {
+            const line = streamBuffer.slice(0, lineIndex).trim();
+            streamBuffer = streamBuffer.slice(lineIndex + 1);
+            
             if (line.startsWith('data: ') && line !== 'data: [DONE]') {
               try {
                 const json = JSON.parse(line.substring(6));
-                const content = json.choices?.[0]?.delta?.content || '';
-                fullContent += content;
-              } catch (e) {
-                // 忽略非 JSON 行
-              }
+                const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || '';
+                if (content) {
+                  fullContent += content;
+                  hasNewContent = true;
+                }
+              } catch (e) { }
             }
           }
           
-          // 节流写入文件以优化性能（这里简单处理，实际可加 debounce）
-          await fs.writeFile(taskFilePath, JSON.stringify({
-            status: 'generating',
-            content: fullContent,
-            timestamp: Date.now()
-          }));
+          if (hasNewContent) {
+            // 异步写入文件
+            fs.writeFile(taskFilePath, JSON.stringify({
+              status: 'generating',
+              content: fullContent,
+              timestamp: Date.now()
+            })).catch(err => console.error('[Task Write Error]', err));
+          }
         }
       });
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db } from '../db';
-import { chatCompletion } from '../services/aiService';
+import { chatCompletion, resumeTask } from '../services/aiService';
 import { useConfigStore } from './useConfigStore';
 import { logger } from '../services/logger';
 import { syncService } from '../services/syncService';
@@ -442,7 +442,9 @@ export const useChatStore = create((set, get) => ({
       ...msg,
       timestamp: Date.now(),
       conversationId: targetId,
-      parentId: finalParentId
+      parentId: finalParentId,
+      status: msg.status || 'completed',
+      taskId: msg.taskId || null
     };
 
     if (isIncognito || targetId === 'incognito') {
@@ -458,6 +460,63 @@ export const useChatStore = create((set, get) => ({
       await db.conversations.update(targetId, { lastUpdatedAt: Date.now() });
       syncService.debouncedSync();
       return id;
+    }
+  },
+
+  /**
+   * 恢复中断的任务
+   * 扫描数据库中状态为 generating 的消息，并尝试从代理恢复
+   */
+  resumePendingTasks: async () => {
+    const generatingMessages = await db.messages
+      .where('status')
+      .equals('generating')
+      .toArray();
+
+    if (generatingMessages.length === 0) return;
+
+    logger.info('useChatStore', `Found ${generatingMessages.length} pending tasks to resume`);
+
+    const { proxy } = useConfigStore.getState();
+
+    for (const msg of generatingMessages) {
+      if (!msg.taskId) {
+        // 如果没有 taskId，标记为失败（无法恢复）
+        await get().updateMessageById(msg.id, { status: 'failed' });
+        continue;
+      }
+
+      try {
+        const taskData = await resumeTask(msg.taskId, proxy);
+        
+        if (taskData.status === 'completed' || taskData.status === 'failed') {
+          await get().updateMessageById(msg.id, {
+            content: taskData.content,
+            status: taskData.status,
+            error: taskData.error
+          });
+          
+          // 更新对话的生成状态
+          await get().setConversationGenerating(msg.conversationId, false);
+
+          // 如果生成结束且不在当前会话，标记未读（橙点）
+          if (msg.conversationId !== get().currentConversationId) {
+            await get().markAsUnread(msg.conversationId);
+          }
+        } else if (taskData.status === 'generating') {
+          // 如果还在生成，确保对话处于正在生成状态（显示蓝点）
+          await get().setConversationGenerating(msg.conversationId, true);
+
+          // 更新内容并保持 generating 状态
+          await get().updateMessageById(msg.id, {
+            content: taskData.content
+          });
+          // 开启轮询（简单处理）
+          setTimeout(() => get().resumePendingTasks(), 3000);
+        }
+      } catch (e) {
+        logger.error('useChatStore', `Failed to resume task ${msg.taskId}:`, e);
+      }
     }
   },
 

@@ -206,6 +206,8 @@ export const useMessageSender = (params) => {
       }
       if (provider) modelConfig = provider.models?.find(m => m.id === modelId);
 
+      const taskId = crypto.randomUUID();
+
       if (!provider || !provider.apiKey) {
         await addMessage({ role: 'assistant', content: t('inputArea.configureModels') }, convId);
         setIsLoading(false);
@@ -215,10 +217,18 @@ export const useMessageSender = (params) => {
         return;
       }
 
-      const assistantMsgId = await addMessage({ role: 'assistant', content: '', model: modelId, thinkingTime: null }, convId, parentId);
+      const assistantMsgId = await addMessage({ 
+        role: 'assistant', 
+        content: '', 
+        model: modelId, 
+        thinkingTime: null,
+        status: 'generating',
+        taskId: taskId
+      }, convId, parentId);
+      
       setConversationState(convId, {
         isAIGenerating: true,
-        streamingMessage: { id: assistantMsgId, parentId, role: 'assistant', content: '', conversationId: convId, model: modelId },
+        streamingMessage: { id: assistantMsgId, parentId, role: 'assistant', content: '', conversationId: convId, model: modelId, taskId: taskId },
         isReasoning: false,
         reasoningContent: '',
         reasoningStartTime: null,
@@ -329,6 +339,7 @@ export const useMessageSender = (params) => {
         baseUrl: provider.baseUrl,
         proxyConfig: proxy,
         format: provider.format || 'openai',
+        taskId: taskId,
         options: {
           max_tokens: effectivePresets.maxTokens || modelConfig?.maxTokens || 4096,
           temperature: effectivePresets.temperature,
@@ -382,7 +393,8 @@ export const useMessageSender = (params) => {
       await useChatStore.getState().updateMessageById(assistantMsgId, {
         content: finalContent,
         reasoning: reasoningText || undefined,
-        thinkingTime: thinkingTime ? thinkingTime.toFixed(1) : undefined
+        thinkingTime: thinkingTime ? thinkingTime.toFixed(1) : undefined,
+        status: 'completed'
       });
       
       await setConversationGenerating(convId, false);

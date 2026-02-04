@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useConfigStore } from '../store/useConfigStore';
+import { useChatStore } from '../store/useChatStore';
 import { syncService } from '../services/syncService';
 import { useTranslation } from '../i18n';
 import { logger } from '../services/logger';
@@ -54,6 +55,12 @@ export const useAppInit = () => {
       if (isAuthenticated && sessionPassword) {
         try {
           await loadConfig(sessionPassword);
+          
+          // 异步恢复未完成的任务
+          useChatStore.getState().resumePendingTasks().catch(err => 
+            logger.error('useAppInit', 'Task resumption error', err)
+          );
+
           if (syncService?.init) {
             await syncService.init();
           }

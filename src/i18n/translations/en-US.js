@@ -291,7 +291,7 @@ export const enUS = {
     proxy: {
       title: 'Network & Proxy',
       proxyMode: 'Enable Global API Proxy',
-      proxyHint: 'Forward AI requests through the server to bypass browser cross-origin restrictions and improve connection stability.',
+      proxyHint: 'Forward AI requests through the server to resolve browser CORS restrictions and improve connection stability. Supports background generation and automatic recovery after disconnection.',
       cloudProxyUrl: 'Proxy Service URL',
       cloudProxyHint: 'Leave blank to use the default path of current domain. Manual configuration is only needed for custom domains or static hosting like GitHub Pages.',
       cloudSyncDepends: 'Cloud sync functionality depends on the proxy service; disabling the proxy will cause sync to fail'
