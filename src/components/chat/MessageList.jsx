@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useLayoutEffect, useMemo } from 'react';
 import { useChatStore } from '../../store/useChatStore';
-import { useConfigStore } from '../../store/useConfigStore';
+import { useConfigStore, getAliyunRegionUrl } from '../../store/useConfigStore';
 import { useFileStore } from '../../store/useFileStore';
 import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -765,12 +765,15 @@ const MessageList = () => {
       let mReasoningStartTime = null;
       let mReasoningEndTime = null;
       
+      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
+      const actualBaseUrl = getAliyunRegionUrl(provider);
+      
       await chatCompletion({
         provider: provider.id,
         model: modelId,
         messages: messagesList,
         apiKey: provider.apiKey,
-        baseUrl: provider.baseUrl,
+        baseUrl: actualBaseUrl,
         proxyConfig: proxy,
         format: provider.format || 'openai',
         options: requestOptions,
@@ -975,12 +978,15 @@ const MessageList = () => {
       let mReasoningStartTime = null;
       let mReasoningEndTime = null;
       
+      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
+      const branchActualBaseUrl = getAliyunRegionUrl(provider);
+      
       await chatCompletion({
         provider: provider.id,
         model: modelId,
         messages: messagesList,
         apiKey: provider.apiKey,
-        baseUrl: provider.baseUrl,
+        baseUrl: branchActualBaseUrl,
         proxyConfig: proxy,
         format: provider.format || 'openai',
         options: { temperature: effectivePresets.temperature, max_tokens: effectivePresets.maxTokens },

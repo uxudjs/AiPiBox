@@ -115,6 +115,9 @@ export const zhCN = {
       apiKeyPlaceholder: 'sk-...',
       apiFormat: 'API 格式',
       apiEndpoint: 'API 端点 (Base URL)',
+      serverRegion: '服务器区域',
+      customEndpoint: '自定义 API 端点',
+      customEndpointHint: '留空使用所选区域的默认地址',
       fetchModels: '自动获取模型列表',
       testConnection: '测试连接',
       connectionSuccess: '连接成功！',
@@ -132,6 +135,12 @@ export const zhCN = {
       backToList: '返回列表',
       configuration: '配置',
       customConfigHint: '自定义 API 地址和安全密钥'
+    },
+
+    region: {
+      china: '中国（北京）',
+      singapore: '新加坡',
+      us: '美国（西部）'
     },
 
     presets: {

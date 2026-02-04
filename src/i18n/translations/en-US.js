@@ -115,6 +115,9 @@ export const enUS = {
       apiKeyPlaceholder: 'sk-...',
       apiFormat: 'API Format',
       apiEndpoint: 'API Endpoint (Base URL)',
+      serverRegion: 'Server Region',
+      customEndpoint: 'Custom API Endpoint',
+      customEndpointHint: 'Leave blank to use default address for selected region',
       fetchModels: 'Auto-fetch Model List',
       testConnection: 'Test Connection',
       connectionSuccess: 'Connection successful!',
@@ -132,6 +135,12 @@ export const enUS = {
       backToList: 'Back to List',
       configuration: 'Configuration',
       customConfigHint: 'Custom API URL and Security Key'
+    },
+
+    region: {
+      china: 'China (Beijing)',
+      singapore: 'Singapore',
+      us: 'US (West)'
     },
 
     presets: {

@@ -45,6 +45,7 @@ const getProviderColors = (providerId) => {
 };
 
 import { useConfigStore } from '../../store/useConfigStore';
+import { ALIYUN_REGIONS, getAliyunRegionUrl } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useChatStore } from '../../store/useChatStore';
 import { clearAllData } from '../../db';
@@ -280,7 +281,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     setIsTesting(true);
     setTestResult(null);
     try {
-      const ok = await testConnection(editingProvider.id, editingProvider.apiKey, editingProvider.baseUrl, proxy, editingProvider.format || 'openai');
+      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
+      const actualBaseUrl = getAliyunRegionUrl(editingProvider);
+      const ok = await testConnection(editingProvider.id, editingProvider.apiKey, actualBaseUrl, proxy, editingProvider.format || 'openai');
       setTestResult({ success: ok, message: ok ? t('settings.llm.connectionSuccess') : t('settings.llm.connectionFailed') });
     } catch (e) {
       setTestResult({ success: false, message: `${t('error.apiError')}: ${e.message}` });
@@ -296,10 +299,12 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     setTestResult(null);
     
     try {
+      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
+      const actualBaseUrl = getAliyunRegionUrl(editingProvider);
       const models = await fetchModels(
         editingProvider.id, 
         editingProvider.apiKey, 
-        editingProvider.baseUrl, 
+        actualBaseUrl, 
         proxy, 
         editingProvider.format || 'openai'
       );
@@ -882,8 +887,41 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     </div>
                   )}
 
+                    {/* 阿里云区域选择器 */}
+                    {editingProvider.id === 'aliyun' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t('settings.llm.serverRegion')}</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {Object.entries(ALIYUN_REGIONS).map(([key, regionData]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => {
+                                const region = key;
+                                const updatedProviders = providers.map(p => 
+                                  p.id === editingProvider.id ? { ...p, region, baseUrl: regionData.url } : p
+                                );
+                                updateLocalConfig('providers', updatedProviders);
+                                setEditingProvider(prev => ({ ...prev, region, baseUrl: regionData.url }));
+                              }}
+                              className={cn(
+                                "px-4 py-3 rounded-xl text-sm font-medium transition-all border",
+                                (editingProvider.region || 'china') === key
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-accent hover:bg-accent/80 border-border"
+                              )}
+                            >
+                              {t(`settings.region.${key}`)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">{t('settings.llm.apiEndpoint')}</label>
+                      <label className="text-sm font-medium">
+                        {editingProvider.id === 'aliyun' ? t('settings.llm.customEndpoint') : t('settings.llm.apiEndpoint')}
+                      </label>
                     <input 
                       type="text" 
                       value={editingProvider.baseUrl}
@@ -894,8 +932,13 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         setEditingProvider(prev => ({ ...prev, baseUrl }));
                       }}
                       className="w-full px-4 py-3 bg-accent rounded-xl border-none focus:ring-2 focus:ring-primary text-sm"
-                      placeholder="https://..."
+                      placeholder={editingProvider.id === 'aliyun' ? t('settings.llm.customEndpointHint') : 'https://...'}
                     />
+                    {editingProvider.id === 'aliyun' && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('settings.llm.customEndpointHint')}
+                      </p>
+                    )}
                   </div>
 
                   <div className="pt-4 flex flex-col gap-3">

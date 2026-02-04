@@ -300,11 +300,13 @@ export const useChatStore = create((set, get) => ({
       if (!effectiveModel) return;
 
       // 发起非流式请求生成标题
+      const { getAliyunRegionUrl } = await import('./useConfigStore');
+      const actualBaseUrl = getAliyunRegionUrl(effectiveModel.provider);
       const titleResponse = await chatCompletion({
         provider: effectiveModel.providerId,
         model: effectiveModel.modelId,
         apiKey: effectiveModel.provider.apiKey,
-        baseUrl: effectiveModel.provider.baseUrl,
+        baseUrl: actualBaseUrl,
         messages: [
           { 
             role: 'system', 

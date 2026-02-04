@@ -21,6 +21,8 @@ const ALLOWED_HOSTS = [
   'api.perplexity.ai',
   'api.x.ai',
   'dashscope.aliyuncs.com',
+  'dashscope-intl.aliyuncs.com',
+  'dashscope.us-west-1.aliyuncs.com',
   'open.bigmodel.cn',
   'ark.cn-beijing.volces.com',
   'api.tavily.com',

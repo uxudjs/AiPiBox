@@ -48,3 +48,9 @@ pnpm-debug.log*
 # Test coverage
 coverage/
 .nyc_output/
+
+# Bug fix
+BUGFIX.md
+
+# Other
+.gitignore

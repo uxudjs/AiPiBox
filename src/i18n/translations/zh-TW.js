@@ -79,6 +79,9 @@ export const zhTW = {
       apiKeyPlaceholder: 'sk-...',
       apiFormat: 'API 格式',
       apiEndpoint: 'API 端點 (Base URL)',
+      serverRegion: '伺服器區域',
+      customEndpoint: '自訂 API 端點',
+      customEndpointHint: '留空使用所選區域的預設位址',
       fetchModels: '自動取得模型清單',
       testConnection: '測試連線',
       connectionSuccess: '連線成功！',
@@ -96,6 +99,12 @@ export const zhTW = {
       backToList: '返回清單',
       configuration: '設定',
       customConfigHint: '自訂 API 地址和安全金鑰'
+    },
+
+    region: {
+      china: '中國（北京）',
+      singapore: '新加坡',
+      us: '美國（西部）'
     },
 
     presets: {

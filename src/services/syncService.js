@@ -1022,6 +1022,10 @@ class SyncService {
         const totalConflicts = convConflicts.length + msgConflicts.length;
         logger.debug('SyncService', `Detected ${totalConflicts} conflicts during merge`);
 
+        // 提取冲突 ID 集合，用于后续过滤掉云端的旧数据，防止 bulkPut 覆盖解决后的结果
+        const conflictConvIds = new Set(convConflicts.map(c => c.local.id));
+        const conflictMsgIds = new Set(msgConflicts.map(c => c.local.id));
+
         if (totalConflicts > 0) {
           // 自动解决冲突
           const resolvedConversations = resolveConflicts(convConflicts, strategy);
@@ -1043,10 +1047,18 @@ class SyncService {
         const { syncImages } = useConfigStore.getState().cloudSync;
         await db.transaction('rw', [db.conversations, db.messages, db.images], async () => {
           if (cloudPayload.conversations) {
-            await db.conversations.bulkPut(cloudPayload.conversations);
+            // 关键修复：过滤掉已发生冲突的对话，避免 bulkPut 使用云端旧数据覆盖本地新数据
+            const conversationsToApply = cloudPayload.conversations.filter(c => !conflictConvIds.has(c.id));
+            if (conversationsToApply.length > 0) {
+              await db.conversations.bulkPut(conversationsToApply);
+            }
           }
           if (cloudPayload.messages) {
-            let messagesToApply = cloudPayload.messages;
+            // 关键修复：过滤掉已发生冲突的消息
+            let messagesToApply = cloudPayload.messages.filter(m => !conflictMsgIds.has(m.id));
+            
+            if (messagesToApply.length === 0) return;
+
             if (!syncImages) {
               messagesToApply = messagesToApply.map(msg => ({
                 ...msg,
@@ -1073,7 +1085,10 @@ class SyncService {
                 return msg;
               });
             }
-            await db.messages.bulkPut(messagesToApply);
+            
+            if (messagesToApply.length > 0) {
+              await db.messages.bulkPut(messagesToApply);
+            }
           }
           if (cloudPayload.images && syncImages) {
             await db.images.bulkPut(cloudPayload.images);

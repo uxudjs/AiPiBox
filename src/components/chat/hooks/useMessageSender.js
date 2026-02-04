@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useChatStore } from '../../../store/useChatStore';
-import { useConfigStore } from '../../../store/useConfigStore';
+import { useConfigStore, getAliyunRegionUrl } from '../../../store/useConfigStore';
 import { useKnowledgeBaseStore } from '../../../store/useKnowledgeBaseStore';
 import { useFileStore } from '../../../store/useFileStore';
 import { chatCompletion, search, compressMessages } from '../../../services/aiService';
@@ -77,111 +77,107 @@ export const useMessageSender = (params) => {
     setIsLoading(true);
     
     let convId = currentConversationId;
-    const isNew = !convId;
-    
-    let shouldRename = isNew;
-    if (!shouldRename && convId) {
-      const existingMessages = await getMessages(convId);
-      if (existingMessages.length === 0) shouldRename = true;
-    }
-
-    if (isNew) {
-      convId = await createNewConversation(input.slice(0, 20));
-      updateFileConversationId('temp', convId);
-    }
-    
     const conversationIdWhenStarted = currentConversationId;
-    setConversationState(convId, { isAIGenerating: true });
-    await setConversationGenerating(convId, true);
-
-    let userMsg = input;
-    let messageContent = input;
-    let ocrContentForMsg = null;
-    
-    // 图片/OCR 逻辑
-    if (pendingImages.length > 0) {
-      const activeProviderId = currentModel?.providerId || providers.find(p => p.apiKey)?.id;
-      const activeModelId = currentModel?.modelId || defaultModels.chat;
-      const providerConfig = providers.find(p => p.id === activeProviderId);
-      const modelConfig = providerConfig?.models?.find(m => m.id === activeModelId);
-      const isMultimodal = modelConfig?.capabilities?.multimodal;
-
-      if (isMultimodal) {
-        messageContent = [
-          { type: 'text', text: input },
-          ...pendingImages.map(img => ({ type: 'image_url', image_url: { url: img.data } }))
-        ];
-        clearPendingImages();
-      } else {
-        const effectiveOCR = getEffectiveModel('ocr');
-        const ocrModelConfig = effectiveOCR?.provider?.models?.find(m => m.id === effectiveOCR.modelId);
-        const isOCRConfigured = effectiveOCR?.source === 'configured';
-        const isOCRSupported = ocrModelConfig?.capabilities?.multimodal;
-
-        if (!effectiveOCR || !isOCRConfigured || !isOCRSupported) {
-          await addMessage({ role: 'assistant', content: t('inputArea.ocrNotConfigured') }, convId);
-          setIsLoading(false);
-          setIsSending(false);
-          setConversationState(convId, { isAIGenerating: false });
-          await setConversationGenerating(convId, false);
-          return;
-        }
-
-        try {
-          const ocrResults = [];
-          for (const img of pendingImages) {
-            const ocrResponse = await chatCompletion({
-              provider: effectiveOCR.provider.id,
-              model: effectiveOCR.modelId,
-              messages: [{ role: 'user', content: [{ type: 'text', text: 'Extract text.' }, { type: 'image_url', image_url: { url: img.data } }] }],
-              apiKey: effectiveOCR.provider.apiKey,
-              baseUrl: effectiveOCR.provider.baseUrl,
-              proxyConfig: proxy,
-              format: effectiveOCR.provider.format || 'openai',
-              stream: false
-            });
-            ocrResults.push(ocrResponse);
-          }
-          ocrContentForMsg = `${t('ocr.contextHeader')}\n${t('ocr.contextIntro')}\n\n${ocrResults.join('\n\n')}\n\n${t('ocr.contextFooter')}`;
-          messageContent = [
-            { type: 'text', text: input },
-            ...pendingImages.map(img => ({ type: 'image_url', image_url: { url: img.data } })),
-            { type: 'ocr_notice', chatModel: modelConfig?.name || activeModelId }
-          ];
-          clearPendingImages();
-        } catch (ocrError) {
-          logger.error('useMessageSender', 'OCR failed', ocrError);
-          await addMessage({ role: 'assistant', content: `OCR failed: ${ocrError.message}` }, convId);
-          setIsLoading(false);
-          setIsSending(false);
-          setConversationState(convId, { isAIGenerating: false });
-          await setConversationGenerating(convId, false);
-          return;
-        }
-      }
-    }
-
-    const userMessagePayload = { role: 'user', content: messageContent };
-    if (ocrContentForMsg) userMessagePayload.ocrContent = ocrContentForMsg;
-    
-    if (uploadedFiles.length > 0) {
-      userMessagePayload.files = uploadedFiles.map(f => ({ id: f.id, name: f.name, size: f.size, type: f.type }));
-    }
-
-    const msgId = await addMessage(userMessagePayload, convId);
-    if (uploadedFiles.length > 0 && msgId) {
-      attachFilesToMessage(uploadedFiles.map(f => f.id), msgId);
-    }
-
-    setInput('');
-    if (shouldRename) {
-      setTimeout(() => {
-        autoRenameConversation(convId, userMsg, { providers, defaultModels, proxy })
-          .catch(err => logger.error('useMessageSender', 'Auto-rename error', err));
-      }, CHAT_CONFIG.AUTO_RENAME_DELAY);
-    }
 
     try {
+      const isNew = !convId;
+      
+      let shouldRename = isNew;
+      if (!shouldRename && convId) {
+        const existingMessages = await getMessages(convId);
+        if (existingMessages.length === 0) shouldRename = true;
+      }
+
+      if (isNew) {
+        convId = await createNewConversation(input.slice(0, 20));
+        updateFileConversationId('temp', convId);
+      }
+      
+      setConversationState(convId, { isAIGenerating: true });
+      await setConversationGenerating(convId, true);
+
+      let userMsg = input;
+      let messageContent = input;
+      let ocrContentForMsg = null;
+      
+      // 图片/OCR 逻辑
+      if (pendingImages.length > 0) {
+        const activeProviderId = currentModel?.providerId || providers.find(p => p.apiKey)?.id;
+        const activeModelId = currentModel?.modelId || defaultModels.chat;
+        const providerConfig = providers.find(p => p.id === activeProviderId);
+        const modelConfig = providerConfig?.models?.find(m => m.id === activeModelId);
+        const isMultimodal = modelConfig?.capabilities?.multimodal;
+
+        if (isMultimodal) {
+          messageContent = [
+            { type: 'text', text: input },
+            ...pendingImages.map(img => ({ type: 'image_url', image_url: { url: img.data } }))
+          ];
+          clearPendingImages();
+        } else {
+          const effectiveOCR = getEffectiveModel('ocr');
+          const ocrModelConfig = effectiveOCR?.provider?.models?.find(m => m.id === effectiveOCR.modelId);
+          const isOCRConfigured = effectiveOCR?.source === 'configured';
+          const isOCRSupported = ocrModelConfig?.capabilities?.multimodal;
+
+          if (!effectiveOCR || !isOCRConfigured || !isOCRSupported) {
+            await addMessage({ role: 'assistant', content: t('inputArea.ocrNotConfigured') }, convId);
+            // 这里不再需要手动设置 setIsLoading(false) 等，因为外层有 finally
+            return;
+          }
+
+          try {
+            const ocrResults = [];
+            for (const img of pendingImages) {
+              // 获取 OCR 提供商的实际 baseUrl
+              const ocrBaseUrl = getAliyunRegionUrl(effectiveOCR.provider);
+              const ocrResponse = await chatCompletion({
+                provider: effectiveOCR.provider.id,
+                model: effectiveOCR.modelId,
+                messages: [{ role: 'user', content: [{ type: 'text', text: 'Extract text.' }, { type: 'image_url', image_url: { url: img.data } }] }],
+                apiKey: effectiveOCR.provider.apiKey,
+                baseUrl: ocrBaseUrl,
+                proxyConfig: proxy,
+                format: effectiveOCR.provider.format || 'openai',
+                stream: false
+              });
+              ocrResults.push(ocrResponse);
+            }
+            ocrContentForMsg = `${t('ocr.contextHeader')}\n${t('ocr.contextIntro')}\n\n${ocrResults.join('\n\n')}\n\n${t('ocr.contextFooter')}`;
+            messageContent = [
+              { type: 'text', text: input },
+              ...pendingImages.map(img => ({ type: 'image_url', image_url: { url: img.data } })),
+              { type: 'ocr_notice', chatModel: modelConfig?.name || activeModelId }
+            ];
+            clearPendingImages();
+          } catch (ocrError) {
+            logger.error('useMessageSender', 'OCR failed', ocrError);
+            await addMessage({ role: 'assistant', content: `OCR failed: ${ocrError.message}` }, convId);
+            return;
+          }
+        }
+      }
+
+      const userMessagePayload = { role: 'user', content: messageContent };
+      if (ocrContentForMsg) userMessagePayload.ocrContent = ocrContentForMsg;
+      
+      if (uploadedFiles.length > 0) {
+        userMessagePayload.files = uploadedFiles.map(f => ({ id: f.id, name: f.name, size: f.size, type: f.type }));
+      }
+
+      const msgId = await addMessage(userMessagePayload, convId);
+      if (uploadedFiles.length > 0 && msgId) {
+        attachFilesToMessage(uploadedFiles.map(f => f.id), msgId);
+      }
+
+      setInput('');
+      if (shouldRename) {
+        setTimeout(() => {
+          autoRenameConversation(convId, userMsg, { providers, defaultModels, proxy })
+            .catch(err => logger.error('useMessageSender', 'Auto-rename error', err));
+        }, CHAT_CONFIG.AUTO_RENAME_DELAY);
+      }
+
       const localSettingsData = await getConversationSettings(convId);
       const effectivePresets = { ...conversationPresets };
       if (localSettingsData) {
@@ -210,10 +206,6 @@ export const useMessageSender = (params) => {
 
       if (!provider || !provider.apiKey) {
         await addMessage({ role: 'assistant', content: t('inputArea.configureModels') }, convId);
-        setIsLoading(false);
-        setIsSending(false);
-        setConversationState(convId, { isAIGenerating: false });
-        await setConversationGenerating(convId, false);
         return;
       }
 
@@ -255,12 +247,14 @@ export const useMessageSender = (params) => {
             try {
               const messagesToCompress = userAssistantMessages.slice(0, excessCount);
               const remainingMessages = userAssistantMessages.slice(excessCount);
+              // 获取压缩提供商的实际 baseUrl
+              const compressionBaseUrl = getAliyunRegionUrl(compressionProvider);
               const compressedContent = await compressMessages({
                 messages: messagesToCompress,
                 provider: compressionProvider.id,
                 model: compressionModelId,
                 apiKey: compressionProvider.apiKey,
-                baseUrl: compressionProvider.baseUrl,
+                baseUrl: compressionBaseUrl,
                 proxyConfig: proxy,
                 format: compressionProvider.format || 'openai'
               });
@@ -331,12 +325,15 @@ export const useMessageSender = (params) => {
       let reasoningText = '';
       let thinkingStartTime = Date.now();
 
+      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
+      const actualBaseUrl = getAliyunRegionUrl(provider);
+
       await chatCompletion({
         provider: provider.id,
         model: modelId,
         messages: finalMessages,
         apiKey: provider.apiKey,
-        baseUrl: provider.baseUrl,
+        baseUrl: actualBaseUrl,
         proxyConfig: proxy,
         format: provider.format || 'openai',
         taskId: taskId,

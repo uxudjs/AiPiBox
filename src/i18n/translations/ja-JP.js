@@ -79,6 +79,9 @@ export const jaJP = {
       apiKeyPlaceholder: 'sk-...',
       apiFormat: 'APIフォーマット',
       apiEndpoint: 'APIエンドポイント (ベースURL)',
+      serverRegion: 'サーバーリージョン',
+      customEndpoint: 'カスタムAPIエンドポイント',
+      customEndpointHint: '選択したリージョンのデフォルトアドレスを使用するには空白のままにします',
       fetchModels: 'モデルリストを自動取得',
       testConnection: '接続テスト',
       connectionSuccess: '接続成功！',
@@ -96,6 +99,12 @@ export const jaJP = {
       backToList: 'リストに戻る',
       configuration: '設定',
       customConfigHint: 'カスタムAPIアドレスとセキュリティキー'
+    },
+
+    region: {
+      china: '中国（北京）',
+      singapore: 'シンガポール',
+      us: 'アメリカ（西部）'
     },
 
     presets: {

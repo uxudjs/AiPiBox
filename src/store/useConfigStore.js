@@ -16,12 +16,51 @@ export const DEFAULT_PROVIDERS = [
   { id: 'groq', name: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', apiKey: '', enabled: false, models: [], format: 'openai' },
   { id: 'perplexity', name: 'Perplexity', baseUrl: 'https://api.perplexity.ai', apiKey: '', enabled: false, models: [], format: 'openai' },
   { id: 'xai', name: 'XAI (Grok)', baseUrl: 'https://api.x.ai/v1', apiKey: '', enabled: false, models: [], format: 'openai' },
-  { id: 'aliyun', name: 'Aliyun (Qwen)', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', apiKey: '', enabled: false, models: [], format: 'openai' },
+  { id: 'aliyun', name: 'Aliyun (Qwen)', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', apiKey: '', enabled: false, models: [], format: 'openai', region: 'china' },
   { id: 'chatglm', name: 'ChatGLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', apiKey: '', enabled: false, models: [], format: 'openai' },
   { id: 'volcengine', name: 'VolcEngine', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', apiKey: '', enabled: false, models: [], format: 'openai' },
   { id: 'azure', name: 'Azure OpenAI', baseUrl: '', apiKey: '', enabled: false, models: [], format: 'openai' },
   { id: 'lmstudio', name: 'LM Studio', baseUrl: 'http://localhost:1234/v1', apiKey: '', enabled: false, models: [], format: 'openai' },
 ];
+
+/**
+ * 阿里云服务器区域配置
+ */
+export const ALIYUN_REGIONS = {
+  china: {
+    name: 'region.china',
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+  },
+  singapore: {
+    name: 'region.singapore',
+    url: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
+  },
+  us: {
+    name: 'region.us',
+    url: 'https://dashscope.us-west-1.aliyuncs.com/compatible-mode/v1'
+  }
+};
+
+/**
+ * 根据阿里云提供商的区域设置获取实际的 baseUrl
+ * @param {object} provider - 提供商配置对象
+ * @returns {string} 实际的 baseUrl
+ */
+export const getAliyunRegionUrl = (provider) => {
+  if (provider.id !== 'aliyun') {
+    return provider.baseUrl;
+  }
+  
+  // 如果设置了自定义URL且非预设区域URL，则使用自定义URL
+  const presetUrls = Object.values(ALIYUN_REGIONS).map(r => r.url);
+  if (provider.baseUrl && !presetUrls.includes(provider.baseUrl)) {
+    return provider.baseUrl;
+  }
+  
+  // 根据region字段返回对应的URL
+  const region = provider.region || 'china';
+  return ALIYUN_REGIONS[region]?.url || ALIYUN_REGIONS.china.url;
+};
 
 /**
  * 配置项 Store

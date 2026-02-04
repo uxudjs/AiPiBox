@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../../i18n';
 import { useImageGenStore } from '../../store/useImageGenStore';
-import { useConfigStore } from '../../store/useConfigStore';
+import { useConfigStore, getAliyunRegionUrl } from '../../store/useConfigStore';
 import { useViewStore } from '../../store/useViewStore';
 import { generateImage } from '../../services/aiService';
 import { logger } from '../../services/logger';
@@ -73,7 +73,7 @@ const ImageFactory = () => {
         prompt: params.prompt,
         negativePrompt: params.negativePrompt,
         apiKey: provider.apiKey,
-        baseUrl: provider.baseUrl,
+        baseUrl: getAliyunRegionUrl(provider),
         options: params,
         proxyConfig: proxy,
         format: provider.format

@@ -160,7 +160,9 @@ const InputArea = () => {
       const prov = providers.find(p => p.apiKey && p.models?.some(m => m.id === mid));
       if (!prov) throw new Error(t('compression.providerNotFound'));
       const { compressMessages } = await import('../../services/aiService');
-      const content = await compressMessages({ messages: uncompressed.map(m => ({ role: m.role, content: Array.isArray(m.content) ? m.content.filter(p => p.type === 'text').map(p => p.text).join('\n') : m.content })), provider: prov.id, model: mid, apiKey: prov.apiKey, baseUrl: prov.baseUrl, proxyConfig: proxy, format: prov.format || 'openai' });
+      const { getAliyunRegionUrl } = await import('../../store/useConfigStore');
+      const actualBaseUrl = getAliyunRegionUrl(prov);
+      const content = await compressMessages({ messages: uncompressed.map(m => ({ role: m.role, content: Array.isArray(m.content) ? m.content.filter(p => p.type === 'text').map(p => p.text).join('\n') : m.content })), provider: prov.id, model: mid, apiKey: prov.apiKey, baseUrl: actualBaseUrl, proxyConfig: proxy, format: prov.format || 'openai' });
       await applyCompression(currentConversationId, `**${t('compression.historySummary')}**\n\n${content}`, uncompressed.map(m => m.id));
     } catch (err) { logger.error('Compress fail', err); alert(err.message); } finally { setIsCompressing(false); }
   };

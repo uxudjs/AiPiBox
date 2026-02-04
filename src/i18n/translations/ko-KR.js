@@ -79,6 +79,9 @@ export const koKR = {
       apiKeyPlaceholder: 'sk-...',
       apiFormat: 'API 형식',
       apiEndpoint: 'API 엔드포인트 (기본 URL)',
+      serverRegion: '서버 지역',
+      customEndpoint: '사용자 정의 API 엔드포인트',
+      customEndpointHint: '선택한 지역의 기본 주소를 사용하려면 비워 두세요',
       fetchModels: '모델 목록 자동 가져오기',
       testConnection: '연결 테스트',
       connectionSuccess: '연결 성공!',
@@ -96,6 +99,12 @@ export const koKR = {
       backToList: '목록으로 돌아가기',
       configuration: '구성',
       customConfigHint: '사용자 정의 API 주소 및 보안 키'
+    },
+
+    region: {
+      china: '중국 (베이징)',
+      singapore: '싱가포르',
+      us: '미국 (서부)'
     },
 
     presets: {

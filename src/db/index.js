@@ -1,5 +1,12 @@
 import Dexie from 'dexie';
-import 'dexie-observable';
+try {
+  // 注意：dexie-observable 会修改 Dexie 原型，必须在数据库实例创建前加载
+  import('dexie-observable').catch(err => {
+    console.warn('Failed to load dexie-observable, auto-sync might not work correctly', err);
+  });
+} catch (e) {
+  console.warn('Dexie observable plugin loading error', e);
+}
 import { logger } from '../services/logger';
 
 /**

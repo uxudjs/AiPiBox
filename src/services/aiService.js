@@ -4,6 +4,7 @@ import { inferModelDisplayName, inferModelCapabilities } from '../utils/modelNam
 import { withCache } from '../utils/requestCache';
 import { getProxyApiUrl, detectPlatform } from '../utils/envDetect';
 import { useTranslation } from '../i18n';
+import { getAliyunRegionUrl } from '../store/useConfigStore';
 
 /**
  * AI 服务提供商标识符常量
