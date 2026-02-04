@@ -17,7 +17,7 @@ const MainLayout = ({ children }) => {
   const currentView = useViewStore(state => state.currentView);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+    <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
       {/* Sidebar for desktop and mobile */}
       <Sidebar 
         isOpen={sidebarOpen} 

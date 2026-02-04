@@ -1012,7 +1012,7 @@ const MessageList = () => {
   }, [messages, currentConversationId, conversationPresets, providers, currentModel, proxy, setAIGenerating, setReasoning, setStreamingMessage, updateMessageById, addMessage, setConversationGenerating, setConversationState, getConversationSettings, defaultModels]);
 
   return (
-    <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar pb-24">
+    <div ref={scrollRef} onScroll={handleScroll} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-6 custom-scrollbar pb-24">
       {messages.length === 0 && (
         <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4">
           <Bot className="w-12 h-12 opacity-20" />

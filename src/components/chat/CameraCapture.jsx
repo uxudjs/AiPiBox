@@ -47,6 +47,8 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
       setStream(newStream);
       if (videoRef.current) {
         videoRef.current.srcObject = newStream;
+        // 显式调用 play() 确保在所有浏览器中都能正常播放
+        videoRef.current.play().catch(e => logger.error('CameraCapture', 'Video play error', e));
       }
       setError(null);
       
@@ -115,88 +117,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     setContrast(100);
     setAspectRatio('original');
   };
-
-  // Draw edited image to canvas for preview and final output
-  useEffect(() => {
-    if (mode === 'edit' && capturedImage && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      img.onload = () => {
-        // 1. Calculate dimensions based on crop/rotation
-        // For simplicity, we implement rotation and simple center crop based on aspect ratio
-        
-        // Handling Rotation logic to determine canvas size
-        let drawWidth = img.width;
-        let drawHeight = img.height;
-        
-        // Swap dimensions if rotated 90 or 270 degrees
-        if (rotation % 180 !== 0) {
-          drawWidth = img.height;
-          drawHeight = img.width;
-        }
-
-        // Apply Aspect Ratio Crop logic
-        let cropX = 0, cropY = 0, cropW = drawWidth, cropH = drawHeight;
-        
-        if (aspectRatio !== 'original') {
-          const [rw, rh] = aspectRatio.split(':').map(Number);
-          const ratio = rw / rh;
-          const currentRatio = drawWidth / drawHeight;
-          
-          if (currentRatio > ratio) {
-            // Image is wider than target ratio - crop width
-            cropW = drawHeight * ratio;
-            cropX = (drawWidth - cropW) / 2;
-          } else {
-            // Image is taller than target ratio - crop height
-            cropH = drawWidth / ratio;
-            cropY = (drawHeight - cropH) / 2;
-          }
-        }
-        
-        // Set Canvas Size to the final Cropped Size
-        canvas.width = cropW;
-        canvas.height = cropH;
-
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Apply filters
-        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
-        
-        // Save context state before transformations
-        ctx.save();
-        
-        // Translate to center of canvas for rotation handling
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        
-        // Apply rotation
-        ctx.rotate((rotation * Math.PI) / 180);
-        
-        // If rotated 90/270, the drawing dimensions are swapped relative to the image
-        if (rotation % 180 !== 0) {
-            // When drawing, we center the image. 
-            // The image is w x h.
-            // We are rotated.
-            // We need to account for crop offset.
-            // This coordinate math gets tricky. Let's simplify:
-            // Draw image on a temp canvas first with rotation, then crop from that?
-            // Or just draw image centered and let crop logic handle view window.
-        }
-        
-        // Simplified approach: Draw rotated image, then crop via canvas viewport?
-        // Actually, easiest way is: 
-        // 1. Rotate context
-        // 2. Draw image centered
-        // But cropping needs to happen after rotation.
-        
-        // Re-thinking for robustness:
-        // Use an intermediate canvas for rotation
-      };
-      img.src = capturedImage;
-    }
-  }, [mode, capturedImage, rotation, brightness, contrast, aspectRatio]);
 
   // Robust rendering function
   const renderEditedImage = useCallback(() => {
@@ -268,14 +188,15 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     }
   }, [renderEditedImage, mode]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (canvasRef.current && isImageLoaded) {
       try {
         const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.9);
         if (!dataUrl || dataUrl === 'data:,') {
           throw new Error('Generated empty image');
         }
-        onCapture(dataUrl);
+        // 使用 await 确保父组件完成状态更新后再关闭弹窗，防止状态丢失
+        await onCapture(dataUrl);
         handleClose();
       } catch (err) {
         logger.error('CameraCapture', 'Confirm failed', err);
@@ -365,6 +286,7 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
             ref={videoRef} 
             autoPlay 
             playsInline 
+            muted
             className="w-full h-full object-contain"
             style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
           />

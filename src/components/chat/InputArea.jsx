@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Plus, Camera, Search, ChevronUp, Cpu, Loader2, Globe, Brain, Sparkles, X, ChevronDown, Check, Settings, Paperclip, Square, BookOpen, Sliders, ArrowUp, FileText, Minimize2, RefreshCw, Image as ImageIcon } from 'lucide-react';
+import { Send, Plus, Camera, Search, ChevronUp, Cpu, Loader2, Globe, Brain, Sparkles, X, ChevronDown, Check, Settings, Paperclip, Square, BookOpen, Sliders, ArrowUp, FileText, Minimize2, RefreshCw, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { useChatStore } from '../../store/useChatStore';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -77,6 +77,7 @@ const InputArea = () => {
   const [isCompressing, setIsCompressing] = useState(false);
   const [isManualSyncing, setIsManualSyncing] = useState(false);
   const [isSyncSuccess, setIsSyncSuccess] = useState(false);
+  const [isSyncError, setIsSyncError] = useState(false);
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const fileInputRef = useRef(null);
   const modelSearchInputRef = useRef(null);
@@ -1294,6 +1295,7 @@ Question: ${userMsg}`;
 
     setIsManualSyncing(true);
     setIsSyncSuccess(false);
+    setIsSyncError(false);
     try {
       // 真实调用同步服务，执行拉取、合并、推送全流程
       await syncService.syncWithConflictResolution(sessionPassword);
@@ -1303,6 +1305,8 @@ Question: ${userMsg}`;
       setTimeout(() => setIsSyncSuccess(false), 3000); // 3秒后恢复
     } catch (error) {
       logger.error('InputArea', 'Manual sync failed:', error);
+      setIsSyncError(true);
+      setTimeout(() => setIsSyncError(false), 5000); // 5秒后恢复
       alert(t('settings.security.syncFailed', { error: error.message }));
     } finally {
       setIsManualSyncing(false);
@@ -1568,7 +1572,7 @@ Question: ${userMsg}`;
   return (
     <div 
       className={cn(
-        "p-4 bg-background/80 backdrop-blur-md border-t sticky bottom-0 transition-all duration-200",
+        "p-4 bg-background/80 backdrop-blur-md border-t flex-shrink-0 transition-all duration-200",
         // 当不在聊天页面时，隐藏 InputArea 及其所有弹窗
         currentView !== 'chat' ? "hidden" : "",
         hasOpenPopup ? "z-[9999]" : "z-20",
@@ -1748,47 +1752,52 @@ Question: ${userMsg}`;
           </>
         )}
 
-        {/* 顶部按钮组：拍照、同步、新对话 */}
-        <div className="flex items-center justify-center mb-3 gap-8 text-[10px] font-medium text-muted-foreground/60">
-          <button 
-            onClick={handleCamera} 
-            className="flex items-center gap-1.5 hover:text-primary transition-colors py-1 px-2 rounded-lg hover:bg-primary/5"
-          >
-            <Camera className="w-3.5 h-3.5" /> 
-            {t('inputArea.takePhoto')}
-          </button>
-          
-          <button 
-            onClick={handleManualSync} 
-            disabled={isManualSyncing}
-            className={cn(
-              "flex items-center gap-1.5 transition-all py-1 px-2 rounded-lg",
-              isSyncSuccess ? "text-green-500 bg-green-500/5" : "hover:text-primary hover:bg-primary/5",
-              isManualSyncing && "text-primary opacity-70 cursor-wait"
-            )}
-          >
-            {isSyncSuccess ? (
-              <Check className="w-3.5 h-3.5 animate-in zoom-in duration-300" />
-            ) : (
-              <RefreshCw className={cn("w-3.5 h-3.5", isManualSyncing && "animate-spin")} />
-            )}
-            <span>
-              {isManualSyncing ? (t('common.syncing') || '正在同步...') : 
-               isSyncSuccess ? (t('common.syncSuccess') || '同步成功') : 
-               t('inputArea.manualSync')}
-            </span>
-          </button>
-          
-          <button 
-            onClick={() => createNewConversation()} 
-            className="flex items-center gap-1.5 hover:text-primary transition-colors py-1 px-2 rounded-lg hover:bg-primary/5"
-          >
-            <Plus className="w-3.5 h-3.5" /> 
-            {t('inputArea.newConversation')}
-          </button>
-        </div>
-
         <div className="flex flex-col gap-2 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-[24px] p-3 border border-border/30 transition-all shadow-lg">
+          {/* 顶部功能按钮组：拍照、同步、新对话 */}
+          <div className="flex items-center justify-start px-2 py-1 gap-4 text-[10px] font-medium border-b border-border/10 mb-1">
+            <button 
+              onClick={handleCamera} 
+              className="flex items-center gap-1.5 text-muted-foreground/60 hover:text-primary transition-colors py-1 px-2 rounded-lg hover:bg-primary/5"
+            >
+              <Camera className="w-3.5 h-3.5" /> 
+              {t('inputArea.takePhoto')}
+            </button>
+            
+            <button 
+              onClick={handleManualSync} 
+              disabled={isManualSyncing}
+              className={cn(
+                "flex items-center gap-1.5 transition-all py-1 px-2 rounded-lg",
+                isSyncSuccess ? "text-green-500 bg-green-500/10" : 
+                isSyncError ? "text-destructive bg-destructive/10" : 
+                "text-muted-foreground/60 hover:text-primary hover:bg-primary/5",
+                isManualSyncing && "text-primary opacity-70 cursor-wait"
+              )}
+            >
+              {isSyncSuccess ? (
+                <Check className="w-3.5 h-3.5 animate-in zoom-in duration-300" />
+              ) : isSyncError ? (
+                <AlertCircle className="w-3.5 h-3.5 animate-in shake duration-300" />
+              ) : (
+                <RefreshCw className={cn("w-3.5 h-3.5", isManualSyncing && "animate-spin")} />
+              )}
+              <span>
+                {isManualSyncing ? (t('common.syncing') || '正在同步...') : 
+                 isSyncSuccess ? (t('common.syncSuccess') || '同步成功') : 
+                 isSyncError ? (t('common.syncFailed') || '同步失败') :
+                 t('inputArea.manualSync')}
+              </span>
+            </button>
+            
+            <button 
+              onClick={() => createNewConversation()} 
+              className="flex items-center gap-1.5 text-muted-foreground/60 hover:text-primary transition-colors py-1 px-2 rounded-lg hover:bg-primary/5"
+            >
+              <Plus className="w-3.5 h-3.5" /> 
+              {t('inputArea.newConversation')}
+            </button>
+          </div>
+
           <textarea
             ref={textareaRef}
             rows={1}

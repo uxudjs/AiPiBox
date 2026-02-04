@@ -5,6 +5,7 @@ import KnowledgeBaseSettings from './KnowledgeBaseSettings';
 import SystemLogs from './SystemLogs';
 import VirtualList from '../ui/VirtualList';
 import ModelSelector from './ModelSelector';
+import Switch from '../ui/Switch';
 import SyncStatusIndicator from '../sync/SyncStatusIndicator';
 import HelpGuide from './HelpGuide';
 import { useTranslation } from '../../i18n';
@@ -1190,15 +1191,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       <p className="font-medium text-sm">{t('settings.search.enableSearch')}</p>
                       <p className="text-xs text-muted-foreground">{t('settings.search.enableSearchHint')}</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={searchSettings.enabled}
-                        onChange={(e) => updateLocalConfig('searchSettings', { enabled: e.target.checked })}
-                        className="sr-only peer" 
-                      />
-                      <div className="w-11 h-6 bg-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
+                    <Switch 
+                      checked={searchSettings.enabled}
+                      onChange={(e) => updateLocalConfig('searchSettings', { enabled: e.target.checked })}
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -1294,17 +1290,11 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       <p className="text-xs text-muted-foreground">{t('settings.proxy.proxyHint')}</p>
                       
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer ml-4">
-                      <input 
-                        type="checkbox" 
-                        checked={proxy.enabled}
-                        onChange={(e) => updateLocalConfig('proxy', { enabled: e.target.checked })}
-                        className="sr-only peer" 
-                      />
-                      <div className={cn(
-                        "w-11 h-6 bg-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
-                      )}></div>
-                    </label>
+                    <Switch 
+                      checked={proxy.enabled}
+                      onChange={(e) => updateLocalConfig('proxy', { enabled: e.target.checked })}
+                      className="ml-4"
+                    />
                   </div>
 
                   {proxy.enabled && (
@@ -1381,29 +1371,25 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         </div>
                       )}
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer ml-4">
-                      <input 
-                        type="checkbox" 
-                        checked={cloudSync?.enabled ?? false}
-                        onChange={async (e) => {
-                          const enabled = e.target.checked;
-                          setCloudSyncError(null);
-                          updateLocalConfig('cloudSync', { enabled });
-                          
-                          if (enabled) {
-                            // 异步检查但不阻塞
-                            syncService.checkProxyHealth().then(isHealthy => {
-                              setProxyStatus(syncService.getProxyStatus());
-                              if (!isHealthy) {
-                                setCloudSyncError(t('settings.security.syncServerNotAvailable'));
-                              }
-                            });
-                          }
-                        }}
-                        className="sr-only peer" 
-                      />
-                      <div className="w-11 h-6 bg-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
+                    <Switch 
+                      checked={cloudSync?.enabled ?? false}
+                      onChange={async (e) => {
+                        const enabled = e.target.checked;
+                        setCloudSyncError(null);
+                        updateLocalConfig('cloudSync', { enabled });
+                        
+                        if (enabled) {
+                          // 异步检查但不阻塞
+                          syncService.checkProxyHealth().then(isHealthy => {
+                            setProxyStatus(syncService.getProxyStatus());
+                            if (!isHealthy) {
+                              setCloudSyncError(t('settings.security.syncServerNotAvailable'));
+                            }
+                          });
+                        }
+                      }}
+                      className="ml-4"
+                    />
                   </div>
                   
                   {/* 云端同步配置详情 */}
@@ -1468,15 +1454,11 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             {t('settings.security.autoSyncHint')}
                           </p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer ml-4">
-                          <input
-                            type="checkbox"
-                            checked={cloudSync.autoSync ?? true}
-                            onChange={(e) => updateLocalConfig('cloudSync', { autoSync: e.target.checked })}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
+                        <Switch
+                          checked={cloudSync.autoSync ?? true}
+                          onChange={(e) => updateLocalConfig('cloudSync', { autoSync: e.target.checked })}
+                          className="ml-4"
+                        />
                       </div>
 
                       {/* 同步状态显示 */}
@@ -1785,18 +1767,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                   {/* 流式输出 */}
                   <div className="flex items-center justify-between py-3">
                     <label className="text-sm font-medium">{t('settings.conversation.streaming')}</label>
-                    <button
-                      onClick={() => updateLocalConfig('conversationPresets', { stream: !conversationPresets.stream })}
-                      className={cn(
-                        "relative w-11 h-6 rounded-full transition-colors",
-                        conversationPresets.stream ? "bg-primary" : "bg-accent"
-                      )}
-                    >
-                      <div className={cn(
-                        "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                        conversationPresets.stream && "translate-x-5"
-                      )} />
-                    </button>
+                    <Switch
+                      checked={conversationPresets.stream}
+                      onChange={(e) => updateLocalConfig('conversationPresets', { stream: e.target.checked })}
+                    />
                   </div>
                 </div>
 
@@ -1810,50 +1784,26 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     
                     <div className="flex items-center justify-between py-3">
                       <label className="text-sm">{t('settings.conversation.showWordCount')}</label>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { display: { ...conversationSettings.display, showWordCount: !conversationSettings.display.showWordCount } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.display.showWordCount ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.display.showWordCount && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.display.showWordCount}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { display: { ...conversationSettings.display, showWordCount: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
                       <label className="text-sm">{t('settings.conversation.showTokenCount')}</label>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { display: { ...conversationSettings.display, showTokenCount: !conversationSettings.display.showTokenCount } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.display.showTokenCount ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.display.showTokenCount && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.display.showTokenCount}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { display: { ...conversationSettings.display, showTokenCount: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
                       <label className="text-sm">{t('settings.conversation.showModelName')}</label>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { display: { ...conversationSettings.display, showModelName: !conversationSettings.display.showModelName } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.display.showModelName ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.display.showModelName && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.display.showModelName}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { display: { ...conversationSettings.display, showModelName: e.target.checked } })}
+                      />
                     </div>
                   </div>
 
@@ -1863,100 +1813,52 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     
                     <div className="flex items-center justify-between py-3">
                       <label className="text-sm">{t('settings.conversation.autoCollapseCode')}</label>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, autoCollapseCode: !conversationSettings.features.autoCollapseCode } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.features.autoCollapseCode ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.features.autoCollapseCode && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.features.autoCollapseCode}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, autoCollapseCode: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
                       <label className="text-sm">{t('settings.conversation.autoGenerateTitle')}</label>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, autoGenerateTitle: !conversationSettings.features.autoGenerateTitle } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.features.autoGenerateTitle ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.features.autoGenerateTitle && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.features.autoGenerateTitle}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, autoGenerateTitle: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
                       <label className="text-sm">{t('settings.conversation.spellCheck')}</label>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, spellCheck: !conversationSettings.features.spellCheck } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.features.spellCheck ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.features.spellCheck && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.features.spellCheck}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, spellCheck: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
                       <label className="text-sm">{t('settings.conversation.markdownRender')}</label>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, markdownRender: !conversationSettings.features.markdownRender } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.features.markdownRender ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.features.markdownRender && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.features.markdownRender}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, markdownRender: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
                       <div className="space-y-0.5">
                         <label className="text-sm">{t('settings.conversation.latexRender')}</label>
                       </div>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, latexRender: !conversationSettings.features.latexRender } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.features.latexRender ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.features.latexRender && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.features.latexRender}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, latexRender: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
                       <label className="text-sm">{t('settings.conversation.mermaidRender')}</label>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, mermaidRender: !conversationSettings.features.mermaidRender } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.features.mermaidRender ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.features.mermaidRender && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.features.mermaidRender}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, mermaidRender: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
@@ -1964,18 +1866,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         <label className="text-sm">{t('settings.conversation.autoPreviewArtifacts')}</label>
                         <p className="text-xs text-muted-foreground">{t('settings.conversation.autoPreviewHint')}</p>
                       </div>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, autoPreviewArtifacts: !conversationSettings.features.autoPreviewArtifacts } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.features.autoPreviewArtifacts ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.features.autoPreviewArtifacts && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.features.autoPreviewArtifacts}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, autoPreviewArtifacts: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between py-3">
@@ -1983,18 +1877,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         <label className="text-sm">{t('settings.conversation.pasteAsFile')}</label>
                         <p className="text-xs text-muted-foreground">{t('settings.conversation.pasteAsFileHint')}</p>
                       </div>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, pasteAsFile: !conversationSettings.features.pasteAsFile } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.features.pasteAsFile ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.features.pasteAsFile && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.features.pasteAsFile}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { features: { ...conversationSettings.features, pasteAsFile: e.target.checked } })}
+                      />
                     </div>
                   </div>
                 </div>
@@ -2008,18 +1894,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         <p className="text-sm font-medium">{t('compression.autoCompression')}</p>
                         <p className="text-xs text-muted-foreground">{t('compression.autoCompressionHint')}</p>
                       </div>
-                      <button
-                        onClick={() => updateLocalConfig('conversationSettings', { compression: { ...conversationSettings.compression, autoCompress: !conversationSettings.compression.autoCompress } })}
-                        className={cn(
-                          "relative w-11 h-6 rounded-full transition-colors",
-                          conversationSettings.compression.autoCompress ? "bg-primary" : "bg-accent"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
-                          conversationSettings.compression.autoCompress && "translate-x-5"
-                        )} />
-                      </button>
+                      <Switch
+                        checked={conversationSettings.compression.autoCompress}
+                        onChange={(e) => updateLocalConfig('conversationSettings', { compression: { ...conversationSettings.compression, autoCompress: e.target.checked } })}
+                      />
                     </div>
 
                     <div className="space-y-2">

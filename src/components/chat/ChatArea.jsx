@@ -8,7 +8,7 @@ import InputArea from './InputArea';
  */
 const ChatArea = () => {
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full overflow-hidden">
       <MessageList />
       <InputArea />
     </div>
