@@ -210,6 +210,9 @@ export const jaJP = {
       
       // クラウド同期
       enableCloudSync: 'クラウド同期を有効にする',
+      syncImages: '画像データの同期',
+      syncImagesHint: '会話内の画像データを同期します。画像はサイズが大きいため、この項目をオフにすると、クラウド容量と同期トラフィックを大幅に節約できます。',
+      syncImagesOffConfirm: '画像同期をオフにしてもよろしいですか？オフにすると、スペースを節約するためにクラウド上の画像データがクリーンアップされます。',
       autoSync: '自動リアルタイム同期',
       autoSyncHint: 'ローカルデータの変更を検出したときに自動的にクラウド同期を開始します',
       syncApiUrl: '同期サービスインターフェースアドレス',
@@ -566,7 +569,8 @@ export const jaJP = {
     copied: 'コピー済み',
     publish: '公開',
     published: '公開済み',
-    generatingChart: 'チャート生成中...'
+    generatingChart: 'チャート生成中...',
+    imageSyncDisabled: '画像同期が未有効'
   },
 
   mermaid: {

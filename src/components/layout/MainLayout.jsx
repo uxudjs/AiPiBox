@@ -13,17 +13,23 @@ import LoadingFallback from '../ui/LoadingFallback';
  */
 const MainLayout = () => {
   const location = useLocation();
-  const { 
-    sidebarCollapsed, 
-    mobileSidebarOpen, 
-    setMobileSidebarOpen,
-    setView
-  } = useUIStore();
+  
+  // 精确订阅 UI 状态，避免不必要的重渲染
+  const sidebarCollapsed = useUIStore(state => state.sidebarCollapsed);
+  const mobileSidebarOpen = useUIStore(state => state.mobileSidebarOpen);
+  const setMobileSidebarOpen = useUIStore(state => state.setMobileSidebarOpen);
+  const setView = useUIStore(state => state.setView);
 
-  // 同步路由状态到 currentView 以驱动旧有的副作用逻辑
+  // 同步路由状态到 currentView 以驱动旧有的副作用逻辑判断
   React.useEffect(() => {
-    const view = location.pathname.startsWith('/image') ? 'image-factory' : 'chat';
-    setView(view);
+    const path = location.pathname;
+    const view = path.startsWith('/image') ? 'image-factory' : 
+                 path.startsWith('/published') ? 'published' : 'chat';
+    
+    // 仅在不同时更新，减少不必要的 store 操作
+    if (useUIStore.getState().currentView !== view) {
+      setView(view);
+    }
   }, [location.pathname, setView]);
 
   return (

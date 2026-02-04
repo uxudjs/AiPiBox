@@ -60,6 +60,7 @@ export const useConfigStore = create((set, get) => ({
   // 云端同步设置
   cloudSync: {
     enabled: false,
+    syncImages: false,
     lastSyncTime: 0,
     autoSync: true,
     apiUrl: '',               // 同步后端入口（留空时自动检测环境，使用相对路径）

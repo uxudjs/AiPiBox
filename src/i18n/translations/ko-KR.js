@@ -210,6 +210,9 @@ export const koKR = {
       
       // 클라우드 동기화
       enableCloudSync: '클라우드 동기화 활성화',
+      syncImages: '이미지 데이터 동기화',
+      syncImagesHint: '대화의 이미지 데이터를 동기화합니다. 이미지는 용량이 크므로 이 항목을 끄면 클라우드 공간과 동기화 트래픽을 크게 절약할 수 있습니다.',
+      syncImagesOffConfirm: '이미지 동기화를 끄시겠습니까? 끄면 공간 절약을 위해 클라우드의 이미지 데이터가 정리됩니다.',
       autoSync: '자동 실시간 동기화',
       autoSyncHint: '로컬 데이터 변경 감지 시 자동으로 클라우드 동기화 시작',
       syncApiUrl: '동기화 서비스 인터페이스 주소',
@@ -566,7 +569,8 @@ export const koKR = {
     copied: '복사됨',
     publish: '게시',
     published: '게시됨',
-    generatingChart: '차트 생성 중...'
+    generatingChart: '차트 생성 중...',
+    imageSyncDisabled: '이미지 동기화 비활성화됨'
   },
 
   mermaid: {

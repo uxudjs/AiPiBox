@@ -220,6 +220,10 @@ export const enUS = {
       
       // Cloud Sync
       enableCloudSync: 'Enable Cloud Sync',
+      syncImages: 'Sync Image Data',
+      syncImagesHint: 'Synchronize images in conversations. Disabling this can save significant cloud storage and bandwidth.',
+      syncImagesOffConfirm: 'Are you sure you want to turn off image sync? Image data in the cloud will be cleaned up to save space.',
+      syncImagesOffConfirm: 'Are you sure you want to turn off image sync? Image data in the cloud will be cleaned up to save space.',
       autoSync: 'Automatic Real-time Sync',
       autoSyncHint: 'Automatically initiate cloud sync when local data changes are detected',
       syncApiUrl: 'Sync Service API URL',
@@ -565,9 +569,10 @@ export const enUS = {
     hidePreview: 'Hide Preview',
     copy: 'Copy',
     copied: 'Copied',
-    publish: 'Publish',
+    publish: 'One-click Publish',
     published: 'Published',
-    generatingChart: 'Generating Chart...'
+    generatingChart: 'Generating chart...',
+    imageSyncDisabled: 'Image sync not enabled'
   },
 
   mermaid: {

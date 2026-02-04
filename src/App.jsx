@@ -1,96 +1,28 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import AppRouter from './router/AppRouter';
-import { useAuthStore } from './store/useAuthStore';
-import { useConfigStore } from './store/useConfigStore';
-import { syncService } from './services/syncService';
-import { useTranslation } from './i18n';
-import { logger } from './services/logger';
-import { APP_INIT_TIMEOUT } from './utils/constants';
+import { useAppInit } from './hooks/useAppInit';
 import { X, CloudOff } from 'lucide-react';
 
-// 动态导入拆分出的组件以优化首屏性能
+// 基础组件
 import LoginScreen from './components/auth/LoginScreen';
 import ErrorScreen from './components/auth/ErrorScreen';
 import LoadingFallback from './components/ui/LoadingFallback';
 
 /**
- * 应用根组件
- * 负责核心生命周期管理：初始化检查、身份验证及基础服务挂载
+ * App - 应用根组件
+ * 核心职责：管理全局初始化状态，协调认证流与路由分发
  */
 function App() {
-  const { t } = useTranslation();
-  const { 
-    isAuthenticated, 
-    isInitialized, 
-    checkInit, 
-    sessionPassword 
-  } = useAuthStore();
-  const { loadConfig, loadTheme } = useConfigStore();
-  
-  const [loading, setLoading] = useState(true);
-  const [initError, setInitError] = useState(null);
-  const [syncWarning, setSyncWarning] = useState(null);
+  const {
+    loading,
+    initError,
+    syncWarning,
+    setSyncWarning,
+    isInitialized,
+    isAuthenticated
+  } = useAppInit();
 
-  /**
-   * 初始化核心状态，包含超时控制
-   */
-  useEffect(() => {
-    const initApp = async () => {
-      // 创建一个超时的 Promise
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(t('app.initTimeout') || '初始化超时，请刷新重试')), APP_INIT_TIMEOUT)
-      );
-
-      // 并行加载主题和检查状态
-      const loadPromise = Promise.all([
-        loadTheme().catch(err => logger.error('App', 'Theme load error:', err)),
-        checkInit().catch(err => {
-          logger.error('App', 'Init check error:', err);
-          throw err;
-        })
-      ]);
-
-      try {
-        await Promise.race([loadPromise, timeoutPromise]);
-      } catch (err) {
-        setInitError(err.message || t('app.initFailed'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initApp();
-  }, [checkInit, loadTheme, t]);
-
-  /**
-   * 解锁后加载配置与云同步服务
-   */
-  useEffect(() => {
-    let isMounted = true;
-    
-    const initConfigAndSync = async () => {
-      if (isAuthenticated && sessionPassword) {
-        try {
-          await loadConfig(sessionPassword);
-          if (syncService?.init) {
-            await syncService.init();
-          }
-        } catch (err) {
-          logger.error('App', 'Config/Sync init error:', err);
-          if (isMounted) {
-            setSyncWarning(t('app.syncInitFailed') || '同步服务启动失败，部分功能可能受限');
-          }
-        }
-      }
-    };
-    
-    initConfigAndSync();
-    return () => { isMounted = false; };
-  }, [isAuthenticated, sessionPassword, loadConfig, t]);
-
-  /**
-   * 条件渲染逻辑映射
-   */
+  // 条件渲染逻辑映射
   const content = useMemo(() => {
     if (loading) return <LoadingFallback />;
     if (initError) return <ErrorScreen error={initError} />;
@@ -98,6 +30,7 @@ function App() {
     
     return (
       <>
+        {/* 同步服务异常提醒（非阻塞） */}
         {syncWarning && (
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-in slide-in-from-top duration-300">
             <div className="bg-destructive text-destructive-foreground px-4 py-3 rounded-xl shadow-2xl flex items-center justify-between gap-3 border border-white/10">
@@ -117,7 +50,7 @@ function App() {
         <AppRouter />
       </>
     );
-  }, [loading, initError, isAuthenticated, isInitialized, syncWarning]);
+  }, [loading, initError, isAuthenticated, isInitialized, syncWarning, setSyncWarning]);
 
   return content;
 }

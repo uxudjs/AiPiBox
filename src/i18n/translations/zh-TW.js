@@ -210,6 +210,9 @@ export const zhTW = {
       
       // 雲端同步
       enableCloudSync: '開啟雲端同步',
+      syncImages: '同步圖片數據',
+      syncImagesHint: '開啟後將同步對話中的圖片數據。由於圖片較大，關閉此項可顯著節省雲端空間和同步流量。',
+      syncImagesOffConfirm: '確定要關閉圖片同步嗎？關閉後雲端的圖片數據將被清理以節省空間。',
       autoSync: '自動實時同步',
       autoSyncHint: '偵測到本地數據變更後自動發起雲端同步',
       syncApiUrl: '同步服務介面位址',
@@ -566,7 +569,8 @@ export const zhTW = {
     copied: '已複製',
     publish: '一鍵發佈',
     published: '已發佈',
-    generatingChart: '圖表生成中...'
+    generatingChart: '圖表生成中...',
+    imageSyncDisabled: '未開啟圖片同步'
   },
 
   mermaid: {

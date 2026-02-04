@@ -167,6 +167,19 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
       <div className="space-y-4">
         {content.map((part, index) => {
           if (part.type === 'image_url') {
+            const isPlaceholder = !part.image_url?.url || part._sync_placeholder;
+            
+            if (isPlaceholder) {
+              return (
+                <div key={index} className="w-32 h-32 flex flex-col items-center justify-center gap-2 bg-muted rounded-lg border border-border/50 text-muted-foreground">
+                  <ImageIcon className="w-6 h-6 opacity-20" />
+                  <span className="text-[10px] px-2 text-center opacity-60">
+                    {t('markdown.imageSyncDisabled')}
+                  </span>
+                </div>
+              );
+            }
+
             return (
               <React.Fragment key={index}>
                 <img 

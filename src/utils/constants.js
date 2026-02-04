@@ -22,3 +22,13 @@ export const DB_TABLES = {
   IMAGES: 'images',
   KNOWLEDGE_BASES: 'knowledgeBases'
 };
+
+// 聊天交互配置
+export const CHAT_CONFIG = {
+  IMAGE_MAX_SIZE: 1920,
+  IMAGE_QUALITY: 0.8,
+  AUTO_RENAME_DELAY: 2000,
+  CONTEXT_POLLING_INTERVAL: 2000, // 增加到 2 秒或根据需要调整，后面我们会尝试完全移除轮询
+  SYNC_FEEDBACK_DURATION: 3000,
+  SYNC_ERROR_DURATION: 5000
+};

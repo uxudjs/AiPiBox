@@ -118,6 +118,17 @@ class SyncService {
           return;
         }
 
+        // 当同步图片开关被关闭时，触发同步以清理云端图片数据
+        if (state.cloudSync?.enabled && prevState.cloudSync?.syncImages === true && state.cloudSync?.syncImages === false) {
+          logger.info('SyncService', 'Image sync disabled, triggering cleanup sync...');
+          if (AuthStore) {
+            const { sessionPassword } = AuthStore.getState();
+            if (sessionPassword) {
+              this.syncToCloud(true);
+            }
+          }
+        }
+
         // 当关闭同步时，停止相关计时器
         if (!state.cloudSync?.enabled && prevState.cloudSync?.enabled) {
           this.stopProxyHealthMonitoring();
@@ -126,10 +137,14 @@ class SyncService {
 
         if (state.cloudSync?.enabled && state.cloudSync?.autoSync) {
           // 优化：仅在核心配置（非同步状态本身）发生变化时触发同步
-          const importantKeys = ['providers', 'defaultModels', 'general', 'proxy', 'conversationPresets'];
-          const hasChanged = importantKeys.some(key => 
-            JSON.stringify(state[key]) !== JSON.stringify(prevState[key])
-          );
+          const importantKeys = ['providers', 'defaultModels', 'general', 'proxy', 'conversationPresets', 'cloudSync'];
+          const hasChanged = importantKeys.some(key => {
+            // 对 cloudSync 仅关注 syncImages 的变化
+            if (key === 'cloudSync') {
+              return state.cloudSync?.syncImages !== prevState.cloudSync?.syncImages;
+            }
+            return JSON.stringify(state[key]) !== JSON.stringify(prevState[key]);
+          });
           
           if (hasChanged) {
             this.debouncedSync();
@@ -266,11 +281,23 @@ class SyncService {
       
       // Gather data
       const configState = useConfigStore.getState();
+      const { syncImages } = configState.cloudSync;
       
       // Export DB and Store data
       const conversations = await db.conversations.toArray();
-      const messages = await db.messages.toArray();
-      const images = await db.images.toArray();
+      let messages = await db.messages.toArray();
+      // db.images 存储的是图片工厂生成的图片，也根据开关决定是否同步
+      const images = syncImages ? await db.images.toArray() : [];
+      
+      // 处理消息中的图片数据
+      if (!syncImages) {
+        messages = messages.map(msg => ({
+          ...msg,
+          content: Array.isArray(msg.content) 
+            ? msg.content.map(part => part.type === 'image_url' ? { ...part, image_url: { ...part.image_url, url: '' }, _sync_placeholder: true } : part)
+            : msg.content
+        }));
+      }
       
       // 动态获取知识库数据
       let knowledgeBases = [];
@@ -412,6 +439,8 @@ class SyncService {
   async applyCloudData(cloudData) {
     if (!cloudData) return;
 
+    const { syncImages } = useConfigStore.getState().cloudSync;
+
     // 1. Apply Config
     if (cloudData.config) {
        // 更新通用配置
@@ -444,9 +473,44 @@ class SyncService {
             await db.conversations.bulkPut(cloudData.conversations);
         }
         if (cloudData.messages && cloudData.messages.length > 0) {
-            await db.messages.bulkPut(cloudData.messages);
+            let messagesToApply = cloudData.messages;
+            
+            // 如果本地未开启图片同步，则过滤掉云端消息中的图片数据，保留占位符
+            if (!syncImages) {
+                messagesToApply = messagesToApply.map(msg => {
+                    // 如果本地已存在该消息且含有图片数据，且云端是占位符，则保留本地图片数据以防丢失
+                    // 但由于 bulkPut 是全量覆盖，这里需要更精细的合并逻辑
+                    return {
+                        ...msg,
+                        content: Array.isArray(msg.content)
+                            ? msg.content.map(part => part.type === 'image_url' ? { ...part, image_url: { ...part.image_url, url: '' }, _sync_placeholder: true } : part)
+                            : msg.content
+                    };
+                });
+            } else {
+                // 即使开启了同步，也要处理云端可能存在的占位符（防止覆盖本地已有图片）
+                const localMessages = await db.messages.where('id').anyOf(messagesToApply.map(m => m.id)).toArray();
+                const localMsgMap = new Map(localMessages.map(m => [m.id, m]));
+                
+                messagesToApply = messagesToApply.map(msg => {
+                    const localMsg = localMsgMap.get(msg.id);
+                    if (localMsg && Array.isArray(localMsg.content) && Array.isArray(msg.content)) {
+                        const newContent = msg.content.map((part, idx) => {
+                            const localPart = localMsg.content[idx];
+                            if (part.type === 'image_url' && (!part.image_url?.url || part._sync_placeholder) && localPart?.type === 'image_url' && localPart.image_url?.url) {
+                                return localPart; // 保留本地有数据的图片
+                            }
+                            return part;
+                        });
+                        return { ...msg, content: newContent };
+                    }
+                    return msg;
+                });
+            }
+            
+            await db.messages.bulkPut(messagesToApply);
         }
-        if (cloudData.images && cloudData.images.length > 0) {
+        if (cloudData.images && cloudData.images.length > 0 && syncImages) {
             await db.images.bulkPut(cloudData.images);
         }
     });
@@ -976,14 +1040,42 @@ class SyncService {
         }
 
         // 基础合并策略：对于图片和知识库，执行全量 Upsert 合并
+        const { syncImages } = useConfigStore.getState().cloudSync;
         await db.transaction('rw', [db.conversations, db.messages, db.images], async () => {
           if (cloudPayload.conversations) {
             await db.conversations.bulkPut(cloudPayload.conversations);
           }
           if (cloudPayload.messages) {
-            await db.messages.bulkPut(cloudPayload.messages);
+            let messagesToApply = cloudPayload.messages;
+            if (!syncImages) {
+              messagesToApply = messagesToApply.map(msg => ({
+                ...msg,
+                content: Array.isArray(msg.content) 
+                  ? msg.content.map(part => part.type === 'image_url' ? { ...part, image_url: { ...part.image_url, url: '' }, _sync_placeholder: true } : part)
+                  : msg.content
+              }));
+            } else {
+              // 保留本地图片数据的合并逻辑
+              const localMessages = await db.messages.where('id').anyOf(messagesToApply.map(m => m.id)).toArray();
+              const localMsgMap = new Map(localMessages.map(m => [m.id, m]));
+              messagesToApply = messagesToApply.map(msg => {
+                const localMsg = localMsgMap.get(msg.id);
+                if (localMsg && Array.isArray(localMsg.content) && Array.isArray(msg.content)) {
+                    const newContent = msg.content.map((part, idx) => {
+                        const localPart = localMsg.content[idx];
+                        if (part.type === 'image_url' && (!part.image_url?.url || part._sync_placeholder) && localPart?.type === 'image_url' && localPart.image_url?.url) {
+                            return localPart;
+                        }
+                        return part;
+                    });
+                    return { ...msg, content: newContent };
+                }
+                return msg;
+              });
+            }
+            await db.messages.bulkPut(messagesToApply);
           }
-          if (cloudPayload.images) {
+          if (cloudPayload.images && syncImages) {
             await db.images.bulkPut(cloudPayload.images);
           }
         });

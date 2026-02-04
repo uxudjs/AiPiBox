@@ -220,6 +220,9 @@ export const zhCN = {
       
       // 云端同步新增
       enableCloudSync: '开启云端同步',
+      syncImages: '同步图片数据',
+      syncImagesHint: '开启后将同步对话中的图片数据。由于图片较大，关闭此项可显著节省云端空间和同步流量。',
+      syncImagesOffConfirm: '确定要关闭图片同步吗？关闭后云端的图片数据将被清理以节省空间。',
       autoSync: '自动实时同步',
       autoSyncHint: '检测到本地数据变更后自动发起云端同步',
       syncApiUrl: '同步服务接口地址',
@@ -567,7 +570,8 @@ export const zhCN = {
     copied: '已复制',
     publish: '一键发布',
     published: '已发布',
-    generatingChart: '图表生成中...'
+    generatingChart: '图表生成中...',
+    imageSyncDisabled: '未开启图片同步'
   },
 
   mermaid: {

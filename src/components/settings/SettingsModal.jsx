@@ -1443,6 +1443,29 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         </p>
                       </div>
 
+                      {/* 同步图片 */}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <label className="text-sm font-medium">{t('settings.security.syncImages')}</label>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {t('settings.security.syncImagesHint')}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={cloudSync.syncImages ?? false}
+                          onChange={(e) => {
+                            if (!e.target.checked) {
+                              if (confirm(t('settings.security.syncImagesOffConfirm') || '确定要关闭图片同步吗？关闭后云端的图片数据将被清理以节省空间。')) {
+                                updateLocalConfig('cloudSync', { syncImages: false });
+                              }
+                            } else {
+                              updateLocalConfig('cloudSync', { syncImages: true });
+                            }
+                          }}
+                          className="ml-4"
+                        />
+                      </div>
+
                       {/* 自动同步 */}
                       <div className="flex items-start justify-between">
                         <div>
