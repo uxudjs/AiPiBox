@@ -353,84 +353,98 @@ export const useChatStore = create((set, get) => ({
    * 遍历多分支消息树，仅返回当前被选中（selectedChildId 链接）的分支路径
    */
   getMessages: async (conversationId) => {
-    const { isIncognito, incognitoMessages } = get();
-    if (isIncognito || conversationId === 'incognito') {
-      return incognitoMessages;
-    }
-    if (!conversationId) return [];
+    try {
+      const { isIncognito, incognitoMessages } = get();
+      if (isIncognito || conversationId === 'incognito') {
+        return incognitoMessages;
+      }
+      if (!conversationId) return [];
 
-    // Get all messages for this conversation
-    const allMessages = await db.messages
-      .where('conversationId')
-      .equals(conversationId)
-      .sortBy('timestamp');
+      // 获取当前对话的所有消息
+      const allMessages = await db.messages
+        .where('conversationId')
+        .equals(conversationId)
+        .sortBy('timestamp');
+        
+      if (!allMessages || allMessages.length === 0) return [];
+
+      // 构建消息树的索引结构
+      const msgMap = new Map();
+      const childrenMap = new Map();
+
+      allMessages.forEach(m => {
+        if (m && m.id) {
+          msgMap.set(m.id, m);
+          const pid = m.parentId || 'root';
+          if (!childrenMap.has(pid)) childrenMap.set(pid, []);
+          childrenMap.get(pid).push(m);
+        }
+      });
       
-    if (allMessages.length === 0) return [];
+      // 按时间戳排序子消息
+      childrenMap.forEach(children => children.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)));
 
-    // 构建消息树的索引结构
-    const msgMap = new Map();
-    const childrenMap = new Map();
+      const path = [];
+      
+      // 从根节点开始遍历
+      let roots = childrenMap.get('root') || [];
+      if (roots.length === 0) return [];
+      
+      // 处理多根节点情况：选择第一个根节点
+      let currentMsg = roots[0];
+      const visited = new Set();
+      const MAX_ITERATIONS = 5000; // 安全上限
+      let iterations = 0;
+      
+      while (currentMsg && iterations < MAX_ITERATIONS) {
+         // 循环检测
+         if (visited.has(currentMsg.id)) {
+           logger.error('useChatStore', 'Circular reference detected in message tree at ID:', currentMsg.id);
+           break;
+         }
+         visited.add(currentMsg.id);
+         iterations++;
 
-    allMessages.forEach(m => {
-      msgMap.set(m.id, m);
-      const pid = m.parentId || 'root';
-      if (!childrenMap.has(pid)) childrenMap.set(pid, []);
-      childrenMap.get(pid).push(m);
-    });
-    
-    // 按时间戳排序子消息
-    childrenMap.forEach(children => children.sort((a, b) => a.timestamp - b.timestamp));
+         // 为消息添加兄弟节点信息
+         const pid = currentMsg.parentId || 'root';
+         const siblings = childrenMap.get(pid) || [];
+         
+         path.push({
+           ...currentMsg,
+           siblingCount: siblings.length,
+           siblingIndex: siblings.findIndex(m => m.id === currentMsg.id) + 1,
+           siblings: siblings.map(s => s.id)
+         });
+         
+         const children = childrenMap.get(currentMsg.id);
+         if (!children || children.length === 0) break;
+         
+         let nextId = currentMsg.selectedChildId;
+         let nextMsg = nextId ? msgMap.get(nextId) : null;
+         
+         // 如果没有选中子节点或选中节点无效，默认选择最后一个子节点（最新分支）
+         if (!nextMsg || nextMsg.parentId !== currentMsg.id) {
+           nextMsg = children[children.length - 1];
+         }
+         currentMsg = nextMsg;
+      }
 
-    const path = [];
-    
-    // 从根节点开始遍历
-    let roots = childrenMap.get('root') || [];
-    if (roots.length === 0) return [];
-    
-    // 处理多根节点情况：选择第一个根节点
-    let currentMsg = roots[0];
-    const visited = new Set();
-    const MAX_ITERATIONS = 5000; // 安全上限
-    let iterations = 0;
-    
-    while (currentMsg && iterations < MAX_ITERATIONS) {
-       // 循环检测
-       if (visited.has(currentMsg.id)) {
-         logger.error('useChatStore', 'Circular reference detected in message tree at ID:', currentMsg.id);
-         break;
-       }
-       visited.add(currentMsg.id);
-       iterations++;
-
-       // 为消息添加兄弟节点信息
-       const pid = currentMsg.parentId || 'root';
-       const siblings = childrenMap.get(pid) || [];
-       
-       path.push({
-         ...currentMsg,
-         siblingCount: siblings.length,
-         siblingIndex: siblings.findIndex(m => m.id === currentMsg.id) + 1,
-         siblings: siblings.map(s => s.id)
-       });
-       
-       const children = childrenMap.get(currentMsg.id);
-       if (!children || children.length === 0) break;
-       
-       let nextId = currentMsg.selectedChildId;
-       let nextMsg = nextId ? msgMap.get(nextId) : null;
-       
-       // 如果没有选中子节点或选中节点无效，默认选择最后一个子节点（最新分支）
-       if (!nextMsg || nextMsg.parentId !== currentMsg.id) {
-         nextMsg = children[children.length - 1];
-       }
-       currentMsg = nextMsg;
+      if (iterations >= MAX_ITERATIONS) {
+        logger.error('useChatStore', 'Maximum message depth reached, possible infinite loop or extremely long conversation');
+      }
+      
+      // 性能防御：如果消息过多，仅返回最近的 100 条。
+      // 注意：由于是链表结构，这会从展示上切断历史，但能防止渲染挂掉。
+      if (path.length > 100) {
+        logger.warn('useChatStore', `Conversation ${conversationId} has ${path.length} messages, limiting UI to last 100`);
+        return path.slice(-100);
+      }
+      
+      return path;
+    } catch (error) {
+      logger.error('useChatStore', 'Failed to get messages:', error);
+      return []; // 发生错误时返回空，防止 UI 崩溃
     }
-
-    if (iterations >= MAX_ITERATIONS) {
-      logger.error('useChatStore', 'Maximum message depth reached, possible infinite loop or extremely long conversation');
-    }
-    
-    return path;
   },
 
   /**

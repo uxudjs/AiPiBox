@@ -420,8 +420,14 @@ const MessageList = () => {
   // 使用useLiveQuery监听数据库变化，自动更新消息列表
   const messages = useLiveQuery(
     async () => {
+      try {
         if (!currentConversationId) return [];
-        return await getMessages(currentConversationId);
+        const result = await getMessages(currentConversationId);
+        return Array.isArray(result) ? result : [];
+      } catch (err) {
+        logger.error('MessageList', 'Failed to fetch messages in useLiveQuery', err);
+        return [];
+      }
     },
     [currentConversationId, getMessages]
   ) || (isIncognito ? incognitoMessages : []);
@@ -1020,13 +1026,16 @@ const MessageList = () => {
         </div>
       )}
       {messages.map((msg, i) => {
+        // 防御性检查：跳过损坏的消息对象
+        if (!msg) return null;
+        
         const isMsgGenerating = isAIGenerating && streamingMessage && (streamingMessage.id === msg.id);
         const showWordCount = localSettings?.showWordCount === true;
         const showTokenUsage = localSettings?.showTokenUsage === true;
         const showModelName = localSettings?.showModelName === true;
 
         return (
-          <React.Fragment key={`${msg.id || i}-${msg.timestamp}`}>
+          <React.Fragment key={`${msg.id || i}-${msg.timestamp || Date.now()}`}>
             {/* 在压缩摘要消息前显示分隔线 */}
             {msg.isCompressionSummary && (
               <div className="flex items-center gap-3 my-6 max-w-5xl mx-auto">

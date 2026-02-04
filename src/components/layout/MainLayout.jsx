@@ -22,13 +22,18 @@ const MainLayout = () => {
 
   // 同步路由状态到 currentView 以驱动旧有的副作用逻辑判断
   React.useEffect(() => {
-    const path = location.pathname;
-    const view = path.startsWith('/image') ? 'image-factory' : 
-                 path.startsWith('/published') ? 'published' : 'chat';
-    
-    // 仅在不同时更新，减少不必要的 store 操作
-    if (useUIStore.getState().currentView !== view) {
-      setView(view);
+    try {
+      const path = location.pathname;
+      const view = path.startsWith('/image') ? 'image-factory' : 
+                   path.startsWith('/published') ? 'published' : 'chat';
+      
+      // 使用更稳定的方式获取当前状态，避免依赖不一致
+      const currentViewInStore = useUIStore.getState().currentView;
+      if (currentViewInStore !== view) {
+        setView(view);
+      }
+    } catch (err) {
+      logger.error('MainLayout', 'Error syncing view state', err);
     }
   }, [location.pathname, setView]);
 
