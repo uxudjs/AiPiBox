@@ -408,12 +408,7 @@ export function formatDocumentForAI(parsedDoc, maxLength = 32000) {
   let content = parsedDoc.text || '';
   
   // 文本预清洗：统一换行符并折叠连续空白
-  content = content.replace(/\r
-/g, '
-').replace(/
-{3,}/g, '
-
-');
+  content = content.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n');
   
   if (content.length > maxLength) {
     const truncated = content.substring(0, maxLength);
