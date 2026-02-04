@@ -11,9 +11,11 @@ dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
+const TASKS_DIR = path.join(DATA_DIR, 'tasks');
 
 // 确保本地存储目录存在
 fs.mkdir(DATA_DIR, { recursive: true }).catch(console.error);
+fs.mkdir(TASKS_DIR, { recursive: true }).catch(console.error);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -80,7 +82,7 @@ const maskSensitiveInfo = (info, type = 'header') => {
  * 代理 AI 请求以解决网络连接或跨域问题
  */
 app.post('/api/proxy', async (req, res) => {
-  const { url, method, headers, data, stream } = req.body;
+  const { url, method, headers, data, stream, taskId } = req.body;
 
   // 1. 基础参数校验
   if (!url) return res.status(400).json({ error: 'Target URL is required' });
@@ -141,18 +143,82 @@ app.post('/api/proxy', async (req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
+      let fullContent = '';
+      let isCompleted = false;
+      const taskFilePath = taskId ? path.join(TASKS_DIR, `${taskId}.json`) : null;
+
+      // 如果有 taskId，预初始化任务文件
+      if (taskFilePath) {
+        await fs.writeFile(taskFilePath, JSON.stringify({
+          status: 'generating',
+          content: '',
+          timestamp: Date.now()
+        }));
+      }
+
       // 实时写入数据块
-      response.data.on('data', (chunk) => {
-        res.write(chunk);
+      response.data.on('data', async (chunk) => {
+        if (!res.writableEnded) {
+          res.write(chunk);
+        }
+        
+        if (taskId) {
+          const chunkStr = chunk.toString();
+          // 尝试解析并累加内容（简单实现，仅针对 OpenAI 格式）
+          const lines = chunkStr.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const json = JSON.parse(line.substring(6));
+                const content = json.choices?.[0]?.delta?.content || '';
+                fullContent += content;
+              } catch (e) {
+                // 忽略非 JSON 行
+              }
+            }
+          }
+          
+          // 节流写入文件以优化性能（这里简单处理，实际可加 debounce）
+          await fs.writeFile(taskFilePath, JSON.stringify({
+            status: 'generating',
+            content: fullContent,
+            timestamp: Date.now()
+          }));
+        }
       });
 
-      response.data.on('end', () => {
-        res.end();
+      response.data.on('end', async () => {
+        isCompleted = true;
+        if (!res.writableEnded) res.end();
+        
+        if (taskId) {
+          await fs.writeFile(taskFilePath, JSON.stringify({
+            status: 'completed',
+            content: fullContent,
+            timestamp: Date.now()
+          }));
+        }
       });
 
-      response.data.on('error', (err) => {
+      response.data.on('error', async (err) => {
         console.error('[Stream Error]', err.message);
-        res.end();
+        if (!res.writableEnded) res.end();
+        
+        if (taskId) {
+          await fs.writeFile(taskFilePath, JSON.stringify({
+            status: 'failed',
+            error: err.message,
+            content: fullContent,
+            timestamp: Date.now()
+          }));
+        }
+      });
+
+      // 处理客户端提前断开的情况：代理仍继续处理直到结束
+      req.on('close', () => {
+        if (!isCompleted) {
+          console.log(`[Proxy] Client disconnected for task ${taskId}, continuing in background...`);
+        }
       });
     } else {
       // 场景 B: 处理常规 JSON 请求
@@ -266,6 +332,32 @@ app.post('/api/sync', async (req, res) => {
     res.json({ success: true, timestamp });
   } catch (error) {
     console.error('[Sync Post Error]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * 获取异步任务状态
+ */
+app.get('/api/proxy/task/:taskId', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    if (!/^[a-zA-Z0-9_-]+$/.test(taskId)) {
+      return res.status(400).json({ error: 'Invalid Task ID format' });
+    }
+
+    const filePath = path.join(TASKS_DIR, `${taskId}.json`);
+    try {
+      const data = await fs.readFile(filePath, 'utf8');
+      res.json(JSON.parse(data));
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('[Task Get Error]', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

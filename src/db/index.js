@@ -156,6 +156,31 @@ db.version(9).stores({
   system_logs: '++id, level, module, content, timestamp'
 });
 
+/**
+ * 版本 10：异步任务支持
+ * 为消息添加 taskId 和 status 字段，支持断线重连和后台生成
+ */
+db.version(10).stores({
+  conversations: '++id, title, lastUpdatedAt, isIncognito, isGenerating, hasUnread, compressionData, manualTitle',
+  messages: '++id, conversationId, role, timestamp, model, parentId, isCompressed, taskId, status',
+  images: '++id, providerId, modelId, prompt, negativePrompt, imageUrl, timestamp, width, height, seed, steps, cfgScale, mode',
+  settings: 'key, value',
+  backups: '++id, timestamp',
+  published: 'id, content, language, timestamp',
+  system_logs: '++id, level, module, content, timestamp'
+}).upgrade(async trans => {
+  const messages = await trans.table('messages').toArray();
+  for (const msg of messages) {
+    if (msg.status === undefined) {
+      // 历史消息默认为已完成状态
+      await trans.table('messages').update(msg.id, { 
+        status: 'completed',
+        taskId: null
+      });
+    }
+  }
+});
+
 } catch (error) {
   logger.error('db', 'Failed to initialize database schema', error);
   // 如果数据库初始化失败，尝试删除并重新创建
