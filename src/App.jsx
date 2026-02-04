@@ -1,52 +1,47 @@
 import React, { useEffect, useState } from 'react';
-import MainLayout from './components/layout/MainLayout';
-import ChatArea from './components/chat/ChatArea';
-import PublishedPage from './components/chat/PublishedPage';
+import AppRouter from './router/AppRouter';
 import { useAuthStore } from './store/useAuthStore';
-import { useChatStore } from './store/useChatStore';
 import { useConfigStore } from './store/useConfigStore';
 import { ShieldAlert, Lock, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 import { syncService } from './services/syncService';
 import { useTranslation } from './i18n';
 import { logger } from './services/logger';
 
+/**
+ * 应用根组件
+ * 负责核心生命周期管理：初始化检查、身份验证（主密码解锁）及基础服务挂载
+ */
 function App() {
   const { t } = useTranslation();
-  const { isAuthenticated, isInitialized, checkInit, setupPassword, login, validatePassword, sessionPassword } = useAuthStore();
-  const { loadConfig, applyTheme, loadTheme } = useConfigStore();
-  const chatStore = useChatStore();
+  const { 
+    isAuthenticated, 
+    isInitialized, 
+    checkInit, 
+    setupPassword, 
+    login, 
+    validatePassword, 
+    sessionPassword 
+  } = useAuthStore();
+  const { loadConfig, loadTheme } = useConfigStore();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [publishId, setPublishId] = useState(null);
   const [initError, setInitError] = useState(null);
 
   /**
-   * 应用生命周期：冷启动初始化
-   * 负责探测路由（是否为公开分享页）、加载 UI 主题、验证 IndexedDB 连通性及主密码设置状态
+   * 初始化核心状态
    */
   useEffect(() => {
     const initApp = async () => {
-      const path = window.location.pathname;
-      const isPublishPath = path.startsWith('/publish/');
-
       try {
-        // 并行执行非阻塞的主题加载与核心状态检查
         await Promise.all([
-          loadTheme().catch(err => {
-            logger.error('App', 'Failed to load theme:', err);
-          }),
-          isPublishPath ? Promise.resolve() : checkInit().catch(err => {
-            logger.error('App', 'Failed to check init:', err);
+          loadTheme().catch(err => logger.error('App', 'Theme load error:', err)),
+          checkInit().catch(err => {
+            logger.error('App', 'Init check error:', err);
             throw err;
           })
         ]);
-
-        if (isPublishPath) {
-          setPublishId(path.split('/')[2]);
-        }
       } catch (err) {
-        logger.error('App', 'Application initialization failed:', err);
         setInitError(err.message || t('app.initFailed'));
       } finally {
         setLoading(false);
@@ -57,26 +52,18 @@ function App() {
   }, []);
 
   /**
-   * 业务初始化：解锁后加载配置
-   * 当用户成功登录且密码进入内存会话后，触发加密配置读取与同步服务挂载
+   * 解锁后加载配置与服务
    */
   useEffect(() => {
     const initConfigAndSync = async () => {
       if (isAuthenticated && sessionPassword) {
         try {
-          // 依赖会话密码解密持久化配置
           await loadConfig(sessionPassword);
-        } catch (err) {
-          logger.error('App', 'Failed to load config:', err);
-        }
-        
-        try {
-          // 启动云同步后台监听
-          if (syncService && typeof syncService.init === 'function') {
+          if (syncService?.init) {
             await syncService.init();
           }
-        } catch (e) {
-          logger.error('App', 'Failed to init sync service:', e);
+        } catch (err) {
+          logger.error('App', 'Config/Sync init error:', err);
         }
       }
     };
@@ -102,7 +89,7 @@ function App() {
 
   if (loading) return null;
 
-  // 显示初始化错误
+  // 渲染错误状态
   if (initError) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background p-4">
@@ -125,11 +112,10 @@ function App() {
     );
   }
 
-  if (publishId) {
-    return <PublishedPage id={publishId} />;
-  }
-
+  // 身份验证拦截
   if (!isAuthenticated) {
+    // 如果是公开分享路径，可能需要特殊处理，但目前 AppRouter 会处理跳转
+    // 这里的逻辑保持不变，确保未解锁前无法进入主界面
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background p-4">
         <div className="max-w-md w-full space-y-8 bg-card p-8 rounded-2xl shadow-xl border">
@@ -178,13 +164,8 @@ function App() {
     );
   }
 
-  return (
-    MainLayout ? (
-      <MainLayout>
-        <ChatArea />
-      </MainLayout>
-    ) : null
-  );
+  // 认证通过后渲染路由
+  return <AppRouter />;
 }
 
 export default App;

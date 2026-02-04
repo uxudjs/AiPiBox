@@ -1782,9 +1782,9 @@ Question: ${userMsg}`;
                 <RefreshCw className={cn("w-3.5 h-3.5", isManualSyncing && "animate-spin")} />
               )}
               <span>
-                {isManualSyncing ? (t('common.syncing') || '正在同步...') : 
-                 isSyncSuccess ? (t('common.syncSuccess') || '同步成功') : 
-                 isSyncError ? (t('common.syncFailed') || '同步失败') :
+                {isManualSyncing ? t('settings.security.syncStatusSyncing') : 
+                 isSyncSuccess ? t('settings.security.syncStatusSuccess') : 
+                 isSyncError ? t('settings.security.syncStatusError') :
                  t('inputArea.manualSync')}
               </span>
             </button>

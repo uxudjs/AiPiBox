@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { db } from '../../db';
 import { Loader2, AlertCircle } from 'lucide-react';
 
@@ -6,14 +7,17 @@ import { Loader2, AlertCircle } from 'lucide-react';
  * 发布页面组件
  * 用于展示已发布的代码内容（HTML/CSS/JavaScript）
  * @param {Object} props
- * @param {string} props.id - 发布页面的ID
+ * @param {string} props.id - 发布页面的ID（可选，兼容路由参数）
  */
-const PublishedPage = ({ id }) => {
+const PublishedPage = ({ id: propId }) => {
+  const params = useParams();
+  const id = propId || params.id;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // 加载发布的内容
   useEffect(() => {
+    if (!id) return;
     db.published.get(id).then(res => {
       setData(res);
       setLoading(false);

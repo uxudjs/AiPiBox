@@ -1,41 +1,60 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import { cn } from '../../utils/cn';
-import { useViewStore } from '../../store/useViewStore';
-import { Loader2 } from 'lucide-react';
-
-// 懒加载图片工厂组件
-const ImageFactory = lazy(() => import('../image/ImageFactory'));
+import { useUIStore } from '../../store/useViewStore';
+import LoadingFallback from '../ui/LoadingFallback';
 
 /**
  * 应用主容器组件
- * 构建响应式框架，管理侧边栏显隐逻辑并根据路由（ViewStore）动态调度主视图与图片工厂视图
+ * 负责整体布局结构、路由出口管理及视图切换动画
  */
-const MainLayout = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const currentView = useViewStore(state => state.currentView);
+const MainLayout = () => {
+  const location = useLocation();
+  const { 
+    sidebarCollapsed, 
+    mobileSidebarOpen, 
+    setMobileSidebarOpen,
+    setView
+  } = useUIStore();
+
+  // 同步路由状态到 currentView 以驱动旧有的副作用逻辑
+  React.useEffect(() => {
+    const view = location.pathname.startsWith('/image') ? 'image-factory' : 'chat';
+    setView(view);
+  }, [location.pathname, setView]);
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
-      {/* Sidebar for desktop and mobile */}
+      {/* 侧边栏：集成移动端与桌面端状态控制 */}
       <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+        isOpen={mobileSidebarOpen} 
+        onClose={() => setMobileSidebarOpen(false)} 
       />
       
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar onMenuClick={() => setSidebarOpen(true)} />
+      <div className={cn(
+        "flex flex-1 flex-col overflow-hidden transition-all duration-300",
+        sidebarCollapsed ? "lg:ml-0" : "" // 如果 Sidebar 是 static 的，这里需要对应调整
+      )}>
+        <TopBar onMenuClick={() => setMobileSidebarOpen(true)} />
+        
         <main className="flex-1 overflow-hidden relative">
-          {currentView === 'image-factory' ? (
-            <Suspense fallback={
-              <div className="h-full flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            }>
-              <ImageFactory />
-            </Suspense>
-          ) : children}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full w-full"
+            >
+              <Suspense fallback={<LoadingFallback />}>
+                <Outlet />
+              </Suspense>
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
