@@ -322,7 +322,7 @@ export const zhTW = {
       retake: '重拍',
       usePhoto: '使用照片'
     },
-    newConversation: '建立新對話',
+    newConversation: '新對話',
     cameraAccessError: '無法存取攝影機：',
     interrupted: 'AI 回應已被中斷',
     error: '出錯了: ',

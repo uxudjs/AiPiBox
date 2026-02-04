@@ -21,6 +21,7 @@ import {
 } from '../utils/conflictResolver';
 import { getSyncApiUrl } from '../utils/envDetect';
 import axios from 'axios';
+import { SYNC_CONFIG } from '../utils/constants';
 
 /**
  * 数据同步服务
@@ -33,7 +34,7 @@ class SyncService {
     this.hasSyncedOnce = false; // 防覆盖标记：本会话是否已完成过一次拉取合并
     this.syncInterval = null;
     // 限制同步频率，避免频繁请求后端
-    this.debouncedSync = this.debounce(this.syncToCloud.bind(this), 5000);
+    this.debouncedSync = this.debounce(this.syncToCloud.bind(this), SYNC_CONFIG.DEBOUNCE_WAIT);
     this.proxyHealthCheckInterval = null;
     this.proxyStatus = {
       isAvailable: false,
@@ -44,9 +45,9 @@ class SyncService {
     // 云端同步专用配置
     this.cloudSyncConfig = {
       apiBaseUrl: '', 
-      retryCount: 3,
-      retryDelay: 1000,
-      timeout: 10000
+      retryCount: SYNC_CONFIG.RETRY_COUNT,
+      retryDelay: SYNC_CONFIG.RETRY_DELAY,
+      timeout: SYNC_CONFIG.TIMEOUT
     };
     // 本地版本缓存，用于增量同步判断
     this.lastSyncVersions = this._loadLastSyncVersions();
@@ -601,7 +602,7 @@ class SyncService {
       }
       
       await this.checkProxyHealth();
-    }, 30000); // 30秒轮询
+    }, SYNC_CONFIG.HEALTH_CHECK_INTERVAL);
     
     logger.info('SyncService', 'Proxy health monitoring started');
   }
@@ -622,7 +623,6 @@ class SyncService {
   startCloudPolling() {
     if (this.pollingInterval) return;
     
-    // 5 分钟轮询一次
     this.pollingInterval = setInterval(async () => {
       const { cloudSync } = useConfigStore.getState();
       if (!cloudSync?.enabled || !cloudSync?.autoSync) {
@@ -639,7 +639,7 @@ class SyncService {
       } catch (e) {
         // 静默处理轮询错误
       }
-    }, 1000 * 60 * 5);
+    }, SYNC_CONFIG.POLLING_INTERVAL);
     
     logger.info('SyncService', 'Cloud polling started (5min interval)');
   }

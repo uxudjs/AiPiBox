@@ -101,12 +101,11 @@ const LogDetailsModal = ({ log, onClose }) => {
   );
 };
 
-const SystemLogs = ({ searchQuery = '' }) => {
+const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
   const { t } = useTranslation();
   const [filterLevel, setFilterLevel] = useState('ALL');
   const [selectedLog, setSelectedLog] = useState(null);
   const containerRef = useRef(null);
-  const [listHeight, setListHeight] = useState(500); // 默认高度，会被 ResizeObserver 更新
   
   // Use Dexie's live query to watch logs
   const logs = useLiveQuery(
@@ -136,20 +135,6 @@ const SystemLogs = ({ searchQuery = '' }) => {
       return true;
     });
   }, [logs, filterLevel, searchQuery]);
-
-  // 监听容器大小变化，动态调整列表高度
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const observer = new ResizeObserver(entries => {
-      for (let entry of entries) {
-        setListHeight(entry.contentRect.height);
-      }
-    });
-
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   const handleClearLogs = async () => {
     if (confirm(t('settings.logs.clearConfirm'))) {
@@ -188,7 +173,7 @@ const SystemLogs = ({ searchQuery = '' }) => {
   );
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col relative">
       {/* Log Details Modal Overlay */}
       {selectedLog && <LogDetailsModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
 
@@ -232,15 +217,16 @@ const SystemLogs = ({ searchQuery = '' }) => {
       </div>
 
       {/* Log List */}
-      <div ref={containerRef} className="flex-1 overflow-hidden relative">
+      <div ref={containerRef} className="relative">
         <VirtualList
           items={filteredLogs}
           renderItem={renderLogItem}
           itemHeight={60} // Fixed height matching the renderItem container
-          containerHeight={listHeight} // Dynamically observed height
-          className="h-full custom-scrollbar"
+          scrollParent={scrollParent}
+          containerHeight={600} // 后备高度
+          className="custom-scrollbar"
           emptyMessage={
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
               <p className="text-sm font-medium">{t('settings.logs.noLogs')}</p>
             </div>
           }

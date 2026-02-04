@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 
 /**
  * 高性能虚拟列表组件 (Virtual Windowing)
@@ -12,22 +13,63 @@ const VirtualList = ({
   overscan = 5,
   className = '',
   emptyMessage = null,
-  preserveScrollPosition = false
+  preserveScrollPosition = false,
+  scrollParent = null // 外部滚动容器引用
 }) => {
   const containerRef = useRef(null);
   const [scrollTop, setScrollTop] = useState(0);
+  const [parentHeight, setParentHeight] = useState(containerHeight);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef(null);
   const isMounted = useRef(false);
+
+  // 监听外部滚动容器
+  useEffect(() => {
+    if (!scrollParent || !containerRef.current) return;
+
+    const updateFromParent = () => {
+      if (!containerRef.current || !scrollParent) return;
+      
+      // 获取列表相对于滚动容器顶部的距离
+      const listOffsetTop = containerRef.current.offsetTop;
+      const parentScrollTop = scrollParent.scrollTop;
+      
+      // 计算相对于列表顶部的滚动位置
+      requestAnimationFrame(() => {
+        setScrollTop(Math.max(0, parentScrollTop - listOffsetTop));
+        setParentHeight(scrollParent.clientHeight);
+      });
+      
+      if (!isScrolling) setIsScrolling(true);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => setIsScrolling(false), 150);
+    };
+
+    scrollParent.addEventListener('scroll', updateFromParent);
+    
+    // 同时也监听父容器的大小变化
+    const resizeObserver = new ResizeObserver(updateFromParent);
+    resizeObserver.observe(scrollParent);
+
+    updateFromParent(); // 初始对齐
+    
+    return () => {
+      scrollParent.removeEventListener('scroll', updateFromParent);
+      resizeObserver.disconnect();
+    };
+  }, [scrollParent, isScrolling]);
 
   // 计算可视区域内应该渲染的项
   const { visibleItems, offsetY, start } = useMemo(() => {
     const totalItems = items.length;
     if (totalItems === 0) return { visibleItems: [], offsetY: 0, start: 0 };
 
+    // 使用外部父容器高度或指定的固定高度
+    const currentContainerHeight = scrollParent ? parentHeight : containerHeight;
+
     // 计算可视区域的起始和结束索引
     const startIndex = Math.floor(scrollTop / itemHeight);
-    const endIndex = Math.ceil((scrollTop + containerHeight) / itemHeight);
+    const endIndex = Math.ceil((scrollTop + currentContainerHeight) / itemHeight);
 
     // 添加 overscan（上下多渲染几项，避免滚动时出现空白）
     const start = Math.max(0, startIndex - overscan);
@@ -90,11 +132,14 @@ const VirtualList = ({
     return (
       <div 
         ref={containerRef}
-        className={`overflow-y-auto ${className}`}
-        style={{ height: containerHeight }}
+        className={cn(
+          !scrollParent && "overflow-y-auto",
+          className
+        )}
+        style={!scrollParent ? { height: containerHeight } : {}}
       >
         {emptyMessage || (
-          <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+          <div className="flex items-center justify-center h-full min-h-[100px] text-sm text-muted-foreground">
             暂无数据
           </div>
         )}
@@ -105,9 +150,12 @@ const VirtualList = ({
   return (
     <div 
       ref={containerRef}
-      className={`overflow-y-auto ${className}`}
-      style={{ height: containerHeight }}
-      onScroll={handleScroll}
+      className={cn(
+        !scrollParent && "overflow-y-auto",
+        className
+      )}
+      style={!scrollParent ? { height: containerHeight } : {}}
+      onScroll={!scrollParent ? handleScroll : undefined}
     >
       {/* 外部容器：撑开总高度 */}
       <div style={{ height: totalHeight, position: 'relative' }}>

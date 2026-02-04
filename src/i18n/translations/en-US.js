@@ -360,7 +360,7 @@ export const enUS = {
       retake: 'Retake',
       usePhoto: 'Use Photo'
     },
-    newConversation: 'New Conversation',
+    newConversation: 'New',
     cameraAccessError: 'Cannot access camera: ',
     interrupted: 'AI response interrupted',
     error: 'Error: ',

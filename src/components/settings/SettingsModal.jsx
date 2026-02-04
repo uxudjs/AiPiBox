@@ -149,9 +149,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   const [openGeneralDropdown, setOpenGeneralDropdown] = useState(null);
   const [openSearchDropdown, setOpenSearchDropdown] = useState(false);
   
-  // 下拉列表滚动容器的 ref
+  // 滚动容器的 ref
   const searchDropdownScrollRef = useRef(null);
   const generalDropdownScrollRef = useRef(null);
+  const contentScrollRef = useRef(null); // 设置窗口主内容区域的滚动容器
 
   const [tempApiKey, setTempApiKey] = useState('');
 
@@ -320,13 +321,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       }
       
       // Ensure all models have required fields
-      // Note: The 'name' field already contains the display name with this priority:
-      // 1. API-provided displayName (if available from fetchModels)
-      // 2. Local inference from model ID (fallback from fetchModels)
       const validatedModels = models.map(m => ({
         id: String(m.id || 'unknown'),
-        name: String(m.name || m.id || 'Unknown Model'), // name already prioritized by fetchModels
-        selected: m.selected === true,  // Default to false if not explicitly true
+        name: String(m.name || m.id || 'Unknown Model'), 
+        selected: m.selected === true,
         capabilities: {
           thinking: m.capabilities?.thinking || false,
           multimodal: m.capabilities?.multimodal || false,
@@ -580,8 +578,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     try {
       // 使用syncService的完整备份功能
       const blob = await syncService.exportFullBackup(password, {
-        includeSystemLogs: false, // 默认不包含系统日志(减小文件大小)
-        includePublished: true     // 包含已发布的代码
+        includeSystemLogs: false, 
+        includePublished: true     
       });
       
       const url = URL.createObjectURL(blob);
@@ -741,10 +739,13 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
           </div>
 
           {/* Content Area */}
-          <div className={cn(
-            "flex-1 overflow-y-auto custom-scrollbar bg-card/30",
-            activeTab === 'logs' ? "p-0 overflow-hidden" : "p-6 md:p-8 space-y-8"
-          )}>
+          <div 
+            ref={contentScrollRef}
+            className={cn(
+              "flex-1 overflow-y-auto custom-scrollbar bg-card/30",
+              activeTab === 'logs' ? "p-0" : "p-6 md:p-8 space-y-8"
+            )}
+          >
             {activeTab === 'llm' && !editingProvider && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                 <div className="flex items-center justify-between">
@@ -835,7 +836,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                    <button 
                     onClick={() => {
                       setEditingProvider(null);
-                      setModelSearchQuery(''); // 返回列表时清空搜索
+                      setModelSearchQuery(''); 
                     }}
                     className="text-sm text-primary hover:underline"
                    >
@@ -982,7 +983,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             <VirtualList
                               items={filteredModels}
                               itemHeight={50}
-                              containerHeight={256}
+                              scrollParent={contentScrollRef.current}
+                              containerHeight={400}
                               overscan={3}
                               className="p-1 custom-scrollbar"
                               renderItem={(m) => (
@@ -1403,13 +1405,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             onClick={async () => {
                               setIsTestingSync(true);
                               setCloudSyncError(null);
-                              // 临时将当前填写的URL同步到syncService供检查（通过更新Store实现）
-                              // 注意：这里需要先把本地URL同步到Store才能让syncService读到
-                              // 但为了简单，我们可以暂时直接调用checkProxyHealth，它会读store
-                              // 所以我们必须先应用一次本地配置
                               const success = await applyAllChanges();
                               if (success) {
-                                const isHealthy = await syncService.checkProxyHealth(true); // 强制检查
+                                const isHealthy = await syncService.checkProxyHealth(true); 
                                 setProxyStatus(syncService.getProxyStatus());
                                 if (!isHealthy) {
                                   setCloudSyncError(t('settings.security.syncServerNotAvailable'));
@@ -1434,7 +1432,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             if (cloudSyncError) setCloudSyncError(null);
                           }}
                           onBlur={(e) => {
-                            // 失去焦点时自动清理末尾斜杠和空格，实现无脑适配
                             const cleanedUrl = e.target.value.trim().replace(/\/+$/, '');
                             updateLocalConfig('cloudSync', { apiUrl: cleanedUrl });
                           }}
@@ -1464,7 +1461,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       {/* 同步状态显示 */}
                       <SyncStatusIndicator />
 
-                      {/* 手动同步按钮 (注意：这会立即触发同步，但前提是配置已保存) */}
+                      {/* 手动同步按钮 */}
                       <button
                         onClick={handleManualSync}
                         disabled={storeCloudSync?.syncStatus === 'syncing' || !cloudSync?.enabled}
@@ -1579,10 +1576,11 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
             )}
 
             {activeTab === 'logs' && (
-              <div className="h-full flex flex-col animate-in fade-in">
-                <div className="flex-1 min-h-0">
-                  <SystemLogs searchQuery={logSearchQuery} />
-                </div>
+              <div className="animate-in fade-in">
+                <SystemLogs 
+                  searchQuery={logSearchQuery} 
+                  scrollParent={contentScrollRef.current}
+                />
               </div>
             )}
 
@@ -1969,8 +1967,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                   onChange={(e) => {
                     const newId = e.target.value;
                     setEditingModel(prev => {
-                      // Auto-infer display name when model ID changes
-                      // Only update if: 1) it's a new model, 2) name is empty or 3) name matches previous inference
                       const shouldInferName = prev.isNew && (!prev.name || prev.name === inferModelDisplayName(prev.id, prev.providerId));
                       const inferredName = shouldInferName ? inferModelDisplayName(newId, prev.providerId) : prev.name;
                       
@@ -2143,7 +2139,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                   }
 
                   if (editingModel.isNew) {
-                    // Check for duplicate ID
                     const provider = providers.find(p => p.id === editingModel.providerId);
                     if (provider?.models?.some(m => m.id === editingModel.id)) {
                       alert(t('model.idExists'));

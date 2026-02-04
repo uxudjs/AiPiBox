@@ -323,7 +323,7 @@ export const koKR = {
       retake: '다시 찍기',
       usePhoto: '사진 사용'
     },
-    newConversation: '새 대화 생성',
+    newConversation: '새 대화',
     cameraAccessError: '카메라에 접근할 수 없습니다: ',
     interrupted: 'AI 응답이 중단되었습니다',
     error: '오류: ',

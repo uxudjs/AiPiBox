@@ -360,7 +360,7 @@ export const zhCN = {
       retake: '重拍',
       usePhoto: '使用照片'
     },
-    newConversation: '创建新对话',
+    newConversation: '新对话',
     cameraAccessError: '无法访问摄像头：',
     interrupted: 'AI响应已被中断',
     error: '出错了: ',

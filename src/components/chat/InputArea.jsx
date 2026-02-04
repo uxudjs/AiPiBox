@@ -1754,7 +1754,7 @@ Question: ${userMsg}`;
 
         <div className="flex flex-col gap-2 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-[24px] p-3 border border-border/30 transition-all shadow-lg">
           {/* 顶部功能按钮组：拍照、同步、新对话 */}
-          <div className="flex items-center justify-start px-2 py-1 gap-4 text-[10px] font-medium border-b border-border/10 mb-1">
+          <div className="flex items-center justify-end px-2 py-1 gap-3 text-[10px] font-medium border-b border-border/10 mb-1">
             <button 
               onClick={handleCamera} 
               className="flex items-center gap-1.5 text-muted-foreground/60 hover:text-primary transition-colors py-1 px-2 rounded-lg hover:bg-primary/5"

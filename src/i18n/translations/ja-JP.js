@@ -323,7 +323,7 @@ export const jaJP = {
       retake: '撮り直し',
       usePhoto: '写真を使用'
     },
-    newConversation: '新しい会話を作成',
+    newConversation: '新規',
     cameraAccessError: 'カメラにアクセスできません: ',
     interrupted: 'AIレスポンスが中断されました',
     error: 'エラー: ',
