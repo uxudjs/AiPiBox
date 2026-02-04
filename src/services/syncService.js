@@ -1,6 +1,5 @@
 import { db } from '../db';
 import { useConfigStore } from '../store/useConfigStore';
-import { useAuthStore } from '../store/useAuthStore';
 import { encryptData, decryptData, hashPassword } from '../utils/crypto';
 import { logger } from './logger';
 import { 
@@ -81,12 +80,21 @@ class SyncService {
       return;
     }
 
+    // 动态获取 AuthStore
+    let AuthStore;
+    try {
+      const authModule = await import('../store/useAuthStore');
+      AuthStore = authModule.useAuthStore;
+    } catch (e) {
+      logger.error('SyncService', 'Failed to dynamic import useAuthStore', e);
+    }
+
     this.initialized = true;
     logger.info('SyncService', 'Initializing...');
     
     // Subscribe to stores to trigger sync
     if (ConfigStore && typeof ConfigStore.subscribe === 'function') {
-      ConfigStore.subscribe((state, prevState) => {
+      ConfigStore.subscribe(async (state, prevState) => {
         // 核心机制：当云同步开关被手动开启时，立即触发一次全量同步(包含拉取)
         // 这样新设备在开启同步后能立即获取云端数据，无需等待本地变动
         if (state.cloudSync?.enabled && !prevState.cloudSync?.enabled) {
@@ -96,11 +104,13 @@ class SyncService {
           this.startProxyHealthMonitoring();
           this.startCloudPolling();
 
-          const { sessionPassword } = useAuthStore.getState();
-          if (sessionPassword) {
-            this.syncWithConflictResolution(sessionPassword).catch(err => {
-              logger.error('SyncService', 'Initial sync failed:', err);
-            });
+          if (AuthStore) {
+            const { sessionPassword } = AuthStore.getState();
+            if (sessionPassword) {
+              this.syncWithConflictResolution(sessionPassword).catch(err => {
+                logger.error('SyncService', 'Initial sync failed:', err);
+              });
+            }
           }
           return;
         }
@@ -161,6 +171,7 @@ class SyncService {
    * 基于主密码派生出确定的唯一标识，用于在多端识别同一用户
    */
   async getSyncId(password) {
+    if (!password) return null;
     // Generate a consistent ID from the password
     // In production, we should probably use a salt, but here we use a fixed salt for the "ID" derivation
     // to ensure the same password generates the same ID across devices.
@@ -197,7 +208,16 @@ class SyncService {
   async syncToCloud() {
     if (this.isSyncing) return;
     
-    const { sessionPassword, isAuthenticated } = useAuthStore.getState();
+    // 动态获取 AuthStore 以避免循环依赖
+    let AuthStore;
+    try {
+      const authModule = await import('../store/useAuthStore');
+      AuthStore = authModule.useAuthStore;
+    } catch (e) {
+      return;
+    }
+
+    const { sessionPassword, isAuthenticated } = AuthStore.getState();
     const { cloudSync } = useConfigStore.getState();
 
     if (!isAuthenticated || !sessionPassword || !cloudSync?.enabled) {
@@ -292,7 +312,16 @@ class SyncService {
    * 执行全量拉取同步
    */
   async syncFromCloud() {
-    const { sessionPassword, isAuthenticated } = useAuthStore.getState();
+    // 动态获取 AuthStore
+    let AuthStore;
+    try {
+      const authModule = await import('../store/useAuthStore');
+      AuthStore = authModule.useAuthStore;
+    } catch (e) {
+      return;
+    }
+
+    const { sessionPassword, isAuthenticated } = AuthStore.getState();
     const { cloudSync } = useConfigStore.getState();
 
     if (!isAuthenticated || !sessionPassword || !cloudSync?.enabled) {
@@ -386,7 +415,16 @@ class SyncService {
   }
 
   async deleteCloudData() {
-    const { sessionPassword, isAuthenticated } = useAuthStore.getState();
+    // 动态获取 AuthStore
+    let AuthStore;
+    try {
+      const authModule = await import('../store/useAuthStore');
+      AuthStore = authModule.useAuthStore;
+    } catch (e) {
+      return;
+    }
+
+    const { sessionPassword, isAuthenticated } = AuthStore.getState();
 
     if (!isAuthenticated || !sessionPassword) {
       return;
@@ -667,7 +705,7 @@ class SyncService {
     });
   }
 
-  // ==================== 云端同步方法 ====================
+  // ==================== 云端同步辅助方法 ====================
 
   /**
    * 加载上次同步的版本号
@@ -720,40 +758,6 @@ class SyncService {
     
     // 处理普通错误信息
     return error.message || String(error);
-  }
-
-  /**
-   * 生成用户ID(基于密码派生)
-   * @param {string} password - 用户密码
-   * @returns {Promise<string>} 用户ID
-   */
-  async generateUserId(password) {
-    const encoder = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(password),
-      'PBKDF2',
-      false,
-      ['deriveBits']
-    );
-    
-    // 使用固定盐值确保相同密码生成相同ID
-    const fixedSalt = encoder.encode('AiPiBox_Cloud_Sync_UserID_v1');
-    
-    const derivedBits = await crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt: fixedSalt,
-        iterations: 100000,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      256
-    );
-    
-    return Array.from(new Uint8Array(derivedBits))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
   }
 
   /**
@@ -818,419 +822,101 @@ class SyncService {
   }
 
   /**
-   * 上传数据到云端
-   * @param {string} userId - 用户ID
-   * @param {string} dataType - 数据类型
-   * @param {any} data - 原始数据
-   * @param {string} password - 加密密码
-   */
-  async uploadToCloud(userId, dataType, data, password) {
-    try {
-      const apiBaseUrl = this._getApiBaseUrl();
-
-      // 加密数据
-      const encryptedData = await encryptData(data, password);
-      
-      // 计算校验和
-      const checksum = await calculateChecksum(encryptedData);
-      
-      // 生成版本号(时间戳)
-      const version = Date.now();
-
-      // 上传
-      const result = await this._requestWithRetry(
-        'POST',
-        `${apiBaseUrl}/api/sync/upload`,
-        {
-          userId,
-          dataType,
-          encryptedData,
-          version,
-          checksum
-        }
-      );
-
-      // 保存版本号
-      this.lastSyncVersions[dataType] = result.version;
-      this._saveLastSyncVersions();
-
-      logger.debug('SyncService', `Uploaded ${dataType} to cloud`, { version: result.version });
-      return result;
-    } catch (error) {
-      const errorMessage = this._extractErrorMessage(error);
-      logger.error('SyncService', `Failed to upload ${dataType}`, { error, message: errorMessage });
-      throw new Error(errorMessage);
-    }
-  }
-
-  /**
-   * 从云端下载数据
-   * @param {string} userId - 用户ID
-   * @param {string} dataType - 数据类型(可选)
-   * @param {string} password - 解密密码
-   * @param {number} sinceVersion - 只下载此版本之后的数据(可选)
-   */
-  async downloadFromCloud(userId, password, dataType = null, sinceVersion = null) {
-    try {
-      const apiBaseUrl = this._getApiBaseUrl();
-
-      // 构建查询参数
-      const params = new URLSearchParams({ userId });
-      if (dataType) params.append('dataType', dataType);
-      if (sinceVersion) params.append('sinceVersion', sinceVersion.toString());
-
-      // 下载
-      const result = await this._requestWithRetry(
-        'GET',
-        `${apiBaseUrl}/api/sync/download?${params.toString()}`
-      );
-
-      // 解密数据
-      const decryptedData = [];
-      for (const item of result.data) {
-        try {
-          const decrypted = await decryptData(item.encryptedData, password);
-          
-          // 验证校验和
-          if (item.checksum) {
-            const calculatedChecksum = await calculateChecksum(item.encryptedData);
-            if (calculatedChecksum !== item.checksum) {
-              logger.warn('SyncService', `Checksum mismatch for ${item.dataType}`);
-              continue;
-            }
-          }
-
-          decryptedData.push({
-            dataType: item.dataType,
-            data: decrypted,
-            version: item.version,
-            timestamp: item.timestamp
-          });
-
-          // 更新本地版本号
-          this.lastSyncVersions[item.dataType] = item.version;
-        } catch (error) {
-          logger.error('SyncService', `Failed to decrypt ${item.dataType}`, error);
-        }
-      }
-
-      this._saveLastSyncVersions();
-      logger.debug('SyncService', 'Downloaded data from cloud', { count: decryptedData.length });
-      return decryptedData;
-    } catch (error) {
-      // 核心优化：处理首次同步时云端无数据的情况 (404)
-      if (error.response && error.response.status === 404) {
-        logger.debug('SyncService', 'No cloud data found (404), treating as empty initial state.');
-        return []; // 返回空数据而不是抛出异常，允许同步流程(如上传)继续执行
-      }
-
-      const errorMessage = this._extractErrorMessage(error);
-      logger.error('SyncService', 'Failed to download from cloud', { error, message: errorMessage });
-      throw new Error(errorMessage);
-    }
-  }
-
-  /**
-   * 删除云端数据
-   * @param {string} userId - 用户ID
-   * @param {string} dataType - 数据类型(可选,不指定则删除所有)
-   */
-  async deleteFromCloud(userId, dataType = null) {
-    try {
-      const apiBaseUrl = this._getApiBaseUrl();
-
-      const result = await this._requestWithRetry(
-        'DELETE',
-        `${apiBaseUrl}/api/sync/delete`,
-        { userId, dataType }
-      );
-
-      // 清除本地版本号
-      if (dataType) {
-        delete this.lastSyncVersions[dataType];
-      } else {
-        this.lastSyncVersions = {};
-      }
-      this._saveLastSyncVersions();
-
-      logger.info('SyncService', 'Deleted data from cloud', { dataType: dataType || 'all' });
-      return result;
-    } catch (error) {
-      const errorMessage = this._extractErrorMessage(error);
-      logger.error('SyncService', 'Failed to delete from cloud', { error, message: errorMessage });
-      throw new Error(errorMessage);
-    }
-  }
-
-  /**
-   * 全量同步所有数据到云端
-   * @param {string} password - 用户密码
-   */
-  async syncAllDataToCloud(password) {
-    try {
-      logger.debug('SyncService', 'Starting full sync to cloud');
-      
-      const userId = await this.generateUserId(password);
-      const allData = await collectAllSyncData({
-        includeSystemLogs: false,
-        includePublished: true
-      });
-
-      const dataTypes = [
-        { type: 'config', data: allData.config },
-        { type: 'conversations', data: allData.conversations },
-        { type: 'messages', data: allData.messages },
-        { type: 'images', data: allData.images },
-        { type: 'published', data: allData.published },
-        { type: 'knowledgeBases', data: allData.knowledgeBases }
-      ];
-
-      const results = [];
-      for (const { type, data } of dataTypes) {
-        if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
-          try {
-            const result = await this.uploadToCloud(userId, type, data, password);
-            results.push({ type, success: true, version: result.version });
-          } catch (error) {
-            results.push({ type, success: false, error: error.message });
-          }
-        }
-      }
-
-      logger.debug('SyncService', 'Full sync to cloud completed', { results });
-      return results;
-    } catch (error) {
-      logger.error('SyncService', 'Full sync to cloud failed', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 增量同步到云端
-   * @param {string} password - 用户密码
-   * @param {Array<string>} dataTypes - 要同步的数据类型列表
-   */
-  async syncIncrementalToCloud(password, dataTypes = ['conversations', 'messages']) {
-    try {
-      logger.debug('SyncService', 'Starting incremental sync to cloud', { dataTypes });
-      
-      const userId = await this.generateUserId(password);
-      const results = [];
-
-      for (const dataType of dataTypes) {
-        try {
-          let data;
-          const lastVersion = this.lastSyncVersions[dataType] || 0;
-
-          // 根据数据类型获取数据
-          switch (dataType) {
-            case 'config':
-              data = {
-                providers: useConfigStore.getState().providers,
-                defaultModels: useConfigStore.getState().defaultModels,
-                general: useConfigStore.getState().general,
-                proxy: useConfigStore.getState().proxy,
-                searchSettings: useConfigStore.getState().searchSettings,
-                conversationPresets: useConfigStore.getState().conversationPresets,
-                conversationSettings: useConfigStore.getState().conversationSettings
-              };
-              break;
-            case 'conversations':
-              data = await db.conversations.toArray();
-              break;
-            case 'messages':
-              data = await db.messages.toArray();
-              break;
-            case 'images':
-              data = await db.images.toArray();
-              break;
-            case 'published':
-              data = await db.published.toArray();
-              break;
-            case 'knowledgeBases':
-              const { useKnowledgeBaseStore } = await import('../store/useKnowledgeBaseStore');
-              data = useKnowledgeBaseStore.getState().knowledgeBases || [];
-              break;
-            default:
-              logger.warn('SyncService', `Unknown data type: ${dataType}`);
-              continue;
-          }
-
-          // 如果数据非空,上传
-          if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
-            const result = await this.uploadToCloud(userId, dataType, data, password);
-            results.push({ type: dataType, success: true, version: result.version });
-          }
-        } catch (error) {
-          results.push({ type: dataType, success: false, error: error.message });
-        }
-      }
-
-      logger.debug('SyncService', 'Incremental sync to cloud completed', { results });
-      return results;
-    } catch (error) {
-      logger.error('SyncService', 'Incremental sync to cloud failed', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 从云端同步所有数据
-   * @param {string} password - 用户密码
-   */
-  async syncAllDataFromCloud(password) {
-    try {
-      logger.info('SyncService', 'Starting full sync from cloud');
-      
-      const userId = await this.generateUserId(password);
-      const cloudData = await this.downloadFromCloud(userId, password);
-
-      for (const item of cloudData) {
-        await this._applyCloudDataByType(item.dataType, item.data);
-      }
-
-      logger.info('SyncService', 'Full sync from cloud completed');
-      return cloudData;
-    } catch (error) {
-      logger.error('SyncService', 'Full sync from cloud failed', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 应用云端数据(按类型)
-   * @private
-   */
-  async _applyCloudDataByType(dataType, data) {
-    try {
-      switch (dataType) {
-        case 'config':
-          useConfigStore.setState(state => ({
-            ...state,
-            ...data,
-            cloudSync: state.cloudSync // 保留本地同步设置
-          }));
-          break;
-        case 'conversations':
-          if (Array.isArray(data)) {
-            await db.conversations.bulkPut(data);
-          }
-          break;
-        case 'messages':
-          if (Array.isArray(data)) {
-            await db.messages.bulkPut(data);
-          }
-          break;
-        case 'images':
-          if (Array.isArray(data)) {
-            await db.images.bulkPut(data);
-          }
-          break;
-        case 'published':
-          if (Array.isArray(data)) {
-            await db.published.bulkPut(data);
-          }
-          break;
-        case 'knowledgeBases':
-          const { useKnowledgeBaseStore } = await import('../store/useKnowledgeBaseStore');
-          useKnowledgeBaseStore.setState({ knowledgeBases: data || [] });
-          break;
-        default:
-          logger.warn('SyncService', `Unknown data type for apply: ${dataType}`);
-      }
-      logger.debug('SyncService', `Applied cloud data for ${dataType}`);
-    } catch (error) {
-      logger.error('SyncService', `Failed to apply cloud data for ${dataType}`, error);
-      throw error;
-    }
-  }
-
-  /**
    * 智能同步：带有冲突检测与合并策略
+   * 适配全量同步接口，执行：拉取 -> 合并 -> 推送
    */
   async syncWithConflictResolution(password, strategy = ResolutionStrategy.TIMESTAMP) {
     try {
       logger.info('SyncService', 'Starting sync with conflict resolution');
       
-      const userId = await this.generateUserId(password);
-      
+      const syncId = await this.getSyncId(password);
+      if (!syncId) throw new Error('Failed to generate sync ID');
+
       // 更新同步状态
-      useConfigStore.setState(state => ({
-        cloudSync: {
-          ...state.cloudSync,
-          syncStatus: 'syncing',
-          lastError: null
+      useConfigStore.getState().updateCloudSync({
+        syncStatus: 'syncing',
+        lastError: null
+      });
+
+      // 1. 获取 API 基础 URL
+      const apiBaseUrl = this._getApiBaseUrl();
+
+      // 2. 尝试从云端下载全量数据
+      let cloudPayload = null;
+      try {
+        const response = await axios.get(`${apiBaseUrl}/api/sync/${syncId}`, {
+          timeout: 10000
+        });
+        
+        if (response.data && response.data.data) {
+          const decrypted = await decryptData(response.data.data, password);
+          if (decrypted) {
+            cloudPayload = decrypted;
+            logger.debug('SyncService', 'Successfully downloaded and decrypted cloud data for merging');
+          }
         }
-      }));
-
-      // 1. 获取本地数据
-      const localConversations = await db.conversations.toArray();
-      const localMessages = await db.messages.toArray();
-
-      // 2. 下载云端数据
-      const cloudData = await this.downloadFromCloud(userId, password);
-
-      // 3. 检测冲突
-      const conflicts = {
-        conversations: [],
-        messages: []
-      };
-
-      for (const item of cloudData) {
-        if (item.dataType === 'conversations' && Array.isArray(item.data)) {
-          const itemConflicts = detectConflicts(localConversations, item.data);
-          conflicts.conversations.push(...itemConflicts);
-        } else if (item.dataType === 'messages' && Array.isArray(item.data)) {
-          const itemConflicts = detectConflicts(localMessages, item.data);
-          conflicts.messages.push(...itemConflicts);
+      } catch (error) {
+        if (error.response && error.response.status === 404) {
+          logger.info('SyncService', 'No existing cloud data found, will perform initial upload');
+        } else {
+          throw error; // 其他错误（如网络问题）向上抛出
         }
       }
 
-      const totalConflicts = conflicts.conversations.length + conflicts.messages.length;
-      logger.debug('SyncService', `Detected ${totalConflicts} conflicts`);
+      // 3. 执行冲突检测与合并
+      if (cloudPayload) {
+        const localConversations = await db.conversations.toArray();
+        const localMessages = await db.messages.toArray();
 
-      // 4. 解决冲突
-      if (totalConflicts > 0) {
-        if (strategy === ResolutionStrategy.MANUAL) {
-          // 手动解决需要返回冲突信息给UI
-          useConfigStore.setState(state => ({
-            cloudSync: {
-              ...state.cloudSync,
-              syncStatus: 'error',
-              lastError: 'Conflicts detected, manual resolution required'
+        // 检测冲突
+        const convConflicts = detectConflicts(localConversations, cloudPayload.conversations || []);
+        const msgConflicts = detectConflicts(localMessages, cloudPayload.messages || []);
+        
+        const totalConflicts = convConflicts.length + msgConflicts.length;
+        logger.debug('SyncService', `Detected ${totalConflicts} conflicts during merge`);
+
+        if (totalConflicts > 0) {
+          // 自动解决冲突
+          const resolvedConversations = resolveConflicts(convConflicts, strategy);
+          const resolvedMessages = resolveConflicts(msgConflicts, strategy);
+
+          // 应用解决后的数据到本地数据库
+          await db.transaction('rw', db.conversations, db.messages, async () => {
+            for (const resolved of resolvedConversations) {
+              await db.conversations.put(resolved.data);
             }
+            for (const resolved of resolvedMessages) {
+              await db.messages.put(resolved.data);
+            }
+          });
+          logger.info('SyncService', `Resolved and applied ${totalConflicts} conflicts using ${strategy}`);
+        }
+
+        // 应用云端存在但本地不存在的数据，或云端更新的数据（非冲突部分）
+        // 简单起见，对云端数据执行 bulkPut，Dexie 会根据主键自动处理
+        await db.transaction('rw', db.conversations, db.messages, async () => {
+          if (cloudPayload.conversations) {
+            await db.conversations.bulkPut(cloudPayload.conversations);
+          }
+          if (cloudPayload.messages) {
+            await db.messages.bulkPut(cloudPayload.messages);
+          }
+        });
+
+        // 应用配置合并（可选，通常配置以本地为准或简单覆盖）
+        if (cloudPayload.config) {
+          useConfigStore.setState(state => ({
+            ...state,
+            ...cloudPayload.config,
+            cloudSync: state.cloudSync // 保持本地同步开关状态
           }));
-          return {
-            success: false,
-            conflicts,
-            requiresManualResolution: true
-          };
         }
-
-        // 自动解决
-        const resolvedConversations = resolveConflicts(conflicts.conversations, strategy);
-        const resolvedMessages = resolveConflicts(conflicts.messages, strategy);
-
-        // 应用解决后的数据
-        for (const resolved of resolvedConversations) {
-          await db.conversations.put(resolved.data);
-        }
-        for (const resolved of resolvedMessages) {
-          await db.messages.put(resolved.data);
-        }
-
-        logger.info('SyncService', `Resolved and applied ${totalConflicts} conflicts`);
       }
 
-      // 5. 应用无冲突的数据
-      for (const item of cloudData) {
-        await this._applyCloudDataByType(item.dataType, item.data);
-      }
+      // 4. 将合并后的最新数据推送到云端
+      await this.syncToCloud();
 
-      // 6. 上传本地数据
-      await this.syncAllDataToCloud(password);
-
-      // 更新同步状态
+      // 5. 更新同步结果状态
       useConfigStore.getState().updateCloudSync({
         syncStatus: 'success',
         lastSyncTime: Date.now(),
@@ -1240,8 +926,6 @@ class SyncService {
       logger.info('SyncService', 'Sync with conflict resolution completed successfully');
       return {
         success: true,
-        conflicts: totalConflicts,
-        resolved: totalConflicts,
         strategy
       };
 
@@ -1250,13 +934,10 @@ class SyncService {
       logger.error('SyncService', 'Sync with conflict resolution failed', { error, message: errorMessage });
       
       // 更新同步状态
-      useConfigStore.setState(state => ({
-        cloudSync: {
-          ...state.cloudSync,
-          syncStatus: 'error',
-          lastError: errorMessage
-        }
-      }));
+      useConfigStore.getState().updateCloudSync({
+        syncStatus: 'error',
+        lastError: errorMessage
+      });
 
       throw new Error(errorMessage);
     }

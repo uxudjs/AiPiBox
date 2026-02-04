@@ -127,9 +127,39 @@ export const useConfigStore = create((set, get) => ({
       }
       // 加载后立即应用主题
       get().applyTheme();
+      
+      // 同时加载同步状态
+      await get().loadSyncStatus();
     } catch (e) {
       logger.error('ConfigStore', 'Failed to load theme', e);
       get().applyTheme();
+    }
+  },
+
+  // 加载同步状态（未加密）
+  loadSyncStatus: async () => {
+    try {
+      const status = await db.settings.get('syncStatus');
+      if (status && status.value) {
+        set((state) => ({
+          cloudSync: { ...state.cloudSync, ...status.value }
+        }));
+      }
+    } catch (e) {
+      logger.error('ConfigStore', 'Failed to load sync status', e);
+    }
+  },
+
+  // 单独保存同步状态（未加密，用于重启后恢复界面显示）
+  saveSyncStatus: async (syncData) => {
+    try {
+      const { lastSyncTime, syncStatus, lastError } = syncData || get().cloudSync;
+      await db.settings.put({ 
+        key: 'syncStatus', 
+        value: { lastSyncTime, syncStatus, lastError } 
+      });
+    } catch (e) {
+      logger.error('ConfigStore', 'Failed to save sync status', e);
     }
   },
 
@@ -314,9 +344,12 @@ export const useConfigStore = create((set, get) => ({
       });
     }
     
-    set((state) => ({
-      cloudSync: { ...state.cloudSync, ...updates }
-    }));
+    set((state) => {
+      const newCloudSync = { ...state.cloudSync, ...updates };
+      // 异步保存同步状态
+      get().saveSyncStatus(newCloudSync);
+      return { cloudSync: newCloudSync };
+    });
   },
 
   // 更新通用设置
