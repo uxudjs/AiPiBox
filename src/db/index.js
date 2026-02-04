@@ -188,6 +188,21 @@ db.version(10).stores({
   }
 });
 
+/**
+ * 版本 11：同步墓碑支持
+ * 新增 deleted_records 表，用于记录已删除对象的 ID 和时间戳
+ */
+db.version(11).stores({
+  conversations: '++id, title, lastUpdatedAt, isIncognito, isGenerating, hasUnread, compressionData, manualTitle',
+  messages: '++id, conversationId, role, timestamp, model, parentId, isCompressed, taskId, status',
+  images: '++id, providerId, modelId, prompt, negativePrompt, imageUrl, timestamp, width, height, seed, steps, cfgScale, mode',
+  deleted_records: '++id, [tableName+recordId], deletedAt',
+  settings: 'key, value',
+  backups: '++id, timestamp',
+  published: 'id, content, language, timestamp',
+  system_logs: '++id, level, module, content, timestamp'
+});
+
 } catch (error) {
   logger.error('db', 'Failed to initialize database schema', error);
   // 如果数据库初始化失败，尝试删除并重新创建
@@ -220,4 +235,41 @@ export async function clearAllData() {
   await db.settings.clear();
   await db.backups.clear();
   await db.system_logs.clear();
+}
+
+/**
+ * 记录删除墓碑
+ * @param {string} tableName 表名
+ * @param {string|number} recordId 记录 ID
+ */
+export async function recordDeletion(tableName, recordId) {
+  try {
+    await db.deleted_records.put({
+      tableName,
+      recordId,
+      deletedAt: Date.now()
+    });
+  } catch (e) {
+    logger.error('db', `Failed to record deletion for ${tableName}:${recordId}`, e);
+  }
+}
+
+/**
+ * 批量记录删除墓碑
+ * @param {string} tableName 表名
+ * @param {Array<string|number>} recordIds 记录 ID 列表
+ */
+export async function recordBatchDeletion(tableName, recordIds) {
+  if (!recordIds || recordIds.length === 0) return;
+  try {
+    const deletedAt = Date.now();
+    const records = recordIds.map(id => ({
+      tableName,
+      recordId: id,
+      deletedAt
+    }));
+    await db.deleted_records.bulkPut(records);
+  } catch (e) {
+    logger.error('db', `Failed to record batch deletion for ${tableName}`, e);
+  }
 }

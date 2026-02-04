@@ -288,6 +288,8 @@ class SyncService {
       let messages = await db.messages.toArray();
       // db.images 存储的是图片工厂生成的图片，也根据开关决定是否同步
       const images = syncImages ? await db.images.toArray() : [];
+      // 导出删除墓碑
+      const deletedRecords = await db.deleted_records.toArray();
       
       // 处理消息中的图片数据
       if (!syncImages) {
@@ -324,6 +326,7 @@ class SyncService {
         messages,
         images,
         knowledgeBases,
+        deletedRecords,
         timestamp: Date.now()
       };
 
@@ -465,15 +468,56 @@ class SyncService {
     }
 
     // 2. Apply DB Data (Conversations, Messages, Images)
+    // 首先应用云端的删除墓碑
+    if (cloudData.deletedRecords && cloudData.deletedRecords.length > 0) {
+      await db.transaction('rw', [db.conversations, db.messages, db.images, db.deleted_records], async () => {
+        for (const record of cloudData.deletedRecords) {
+          const { tableName, recordId, deletedAt } = record;
+          if (db[tableName]) {
+            // 获取本地数据，如果本地数据较旧，则执行删除
+            const local = await db[tableName].get(recordId);
+            if (local) {
+              const localUpdatedAt = local.lastUpdatedAt || local.timestamp || local.updatedAt || 0;
+              if (localUpdatedAt < deletedAt) {
+                await db[tableName].delete(recordId);
+                logger.debug('SyncService', `Applied cloud deletion for ${tableName}:${recordId}`);
+              }
+            }
+          }
+          // 同步墓碑记录本身
+          await db.deleted_records.put(record);
+        }
+      });
+    }
+
+    // 获取本地墓碑以便进行复活过滤
+    const localTombstones = await db.deleted_records.toArray();
+    const tombstoneMap = new Map(localTombstones.map(t => [`${t.tableName}:${t.recordId}`, t.deletedAt]));
+
+    const shouldSkipByTombstone = (tableName, item) => {
+      const key = `${tableName}:${item.id}`;
+      const deletedAt = tombstoneMap.get(key);
+      if (deletedAt) {
+        const itemUpdatedAt = item.lastUpdatedAt || item.timestamp || item.updatedAt || 0;
+        if (itemUpdatedAt < deletedAt) {
+          return true; // 已被本地删除且云端没有更新的修改，跳过合并（防复活）
+        }
+      }
+      return false;
+    };
+
     // Strategy: Upsert (bulkPut). 
     // This adds new items and updates existing ones based on primary key.
-    
     await db.transaction('rw', [db.conversations, db.messages, db.images], async () => {
         if (cloudData.conversations && cloudData.conversations.length > 0) {
-            await db.conversations.bulkPut(cloudData.conversations);
+            const conversationsToApply = cloudData.conversations.filter(c => !shouldSkipByTombstone('conversations', c));
+            if (conversationsToApply.length > 0) {
+              await db.conversations.bulkPut(conversationsToApply);
+            }
         }
         if (cloudData.messages && cloudData.messages.length > 0) {
-            let messagesToApply = cloudData.messages;
+            // 过滤掉墓碑中的消息
+            let messagesToApply = cloudData.messages.filter(m => !shouldSkipByTombstone('messages', m));
             
             // 如果本地未开启图片同步，则过滤掉云端消息中的图片数据，保留占位符
             if (!syncImages) {
@@ -511,7 +555,10 @@ class SyncService {
             await db.messages.bulkPut(messagesToApply);
         }
         if (cloudData.images && cloudData.images.length > 0 && syncImages) {
-            await db.images.bulkPut(cloudData.images);
+            const imagesToApply = cloudData.images.filter(img => !shouldSkipByTombstone('images', img));
+            if (imagesToApply.length > 0) {
+              await db.images.bulkPut(imagesToApply);
+            }
         }
     });
 
@@ -521,10 +568,12 @@ class SyncService {
             const kbModule = await import('../store/useKnowledgeBaseStore');
             const { knowledgeBases: localKBs } = kbModule.useKnowledgeBaseStore.getState();
             
-            // 合并逻辑：基于 ID 去重
+            // 合并逻辑：基于 ID 去重并检查墓碑
             const kbMap = new Map(localKBs.map(kb => [kb.id, kb]));
             cloudData.knowledgeBases.forEach(kb => {
-                kbMap.set(kb.id, kb); // 云端覆盖本地
+                if (!shouldSkipByTombstone('knowledgeBases', kb)) {
+                  kbMap.set(kb.id, kb); // 云端覆盖本地
+                }
             });
             
             kbModule.useKnowledgeBaseStore.setState({
@@ -1011,9 +1060,44 @@ class SyncService {
 
       // 3. 执行冲突检测与合并
       if (cloudPayload) {
+        // 首先应用云端的删除墓碑
+        if (cloudPayload.deletedRecords && cloudPayload.deletedRecords.length > 0) {
+          await db.transaction('rw', [db.conversations, db.messages, db.images, db.deleted_records], async () => {
+            for (const record of cloudPayload.deletedRecords) {
+              const { tableName, recordId, deletedAt } = record;
+              if (db[tableName]) {
+                const local = await db[tableName].get(recordId);
+                if (local) {
+                  const localUpdatedAt = local.lastUpdatedAt || local.timestamp || local.updatedAt || 0;
+                  if (localUpdatedAt < deletedAt) {
+                    await db[tableName].delete(recordId);
+                  }
+                }
+              }
+              await db.deleted_records.put(record);
+            }
+          });
+        }
+
         const localConversations = await db.conversations.toArray();
         const localMessages = await db.messages.toArray();
         const localImages = await db.images.toArray();
+
+        // 获取本地墓碑以便过滤
+        const localTombstones = await db.deleted_records.toArray();
+        const tombstoneMap = new Map(localTombstones.map(t => [`${t.tableName}:${t.recordId}`, t.deletedAt]));
+
+        const shouldSkipByTombstone = (tableName, item) => {
+          const key = `${tableName}:${item.id}`;
+          const deletedAt = tombstoneMap.get(key);
+          if (deletedAt) {
+            const itemUpdatedAt = item.lastUpdatedAt || item.timestamp || item.updatedAt || 0;
+            if (itemUpdatedAt < deletedAt) {
+              return true;
+            }
+          }
+          return false;
+        };
 
         // 检测冲突 (针对对话和消息执行精细冲突解决)
         const convConflicts = detectConflicts(localConversations, cloudPayload.conversations || []);
@@ -1047,15 +1131,19 @@ class SyncService {
         const { syncImages } = useConfigStore.getState().cloudSync;
         await db.transaction('rw', [db.conversations, db.messages, db.images], async () => {
           if (cloudPayload.conversations) {
-            // 关键修复：过滤掉已发生冲突的对话，避免 bulkPut 使用云端旧数据覆盖本地新数据
-            const conversationsToApply = cloudPayload.conversations.filter(c => !conflictConvIds.has(c.id));
+            // 关键修复：过滤掉已发生冲突的对话，并检查墓碑
+            const conversationsToApply = cloudPayload.conversations.filter(c => 
+              !conflictConvIds.has(c.id) && !shouldSkipByTombstone('conversations', c)
+            );
             if (conversationsToApply.length > 0) {
               await db.conversations.bulkPut(conversationsToApply);
             }
           }
           if (cloudPayload.messages) {
-            // 关键修复：过滤掉已发生冲突的消息
-            let messagesToApply = cloudPayload.messages.filter(m => !conflictMsgIds.has(m.id));
+            // 关键修复：过滤掉已发生冲突的消息，并检查墓碑
+            let messagesToApply = cloudPayload.messages.filter(m => 
+              !conflictMsgIds.has(m.id) && !shouldSkipByTombstone('messages', m)
+            );
             
             if (messagesToApply.length > 0) {
               if (!syncImages) {
@@ -1088,7 +1176,10 @@ class SyncService {
             }
           }
           if (cloudPayload.images && syncImages) {
-            await db.images.bulkPut(cloudPayload.images);
+            const imagesToApply = cloudPayload.images.filter(img => !shouldSkipByTombstone('images', img));
+            if (imagesToApply.length > 0) {
+              await db.images.bulkPut(imagesToApply);
+            }
           }
         });
 
@@ -1099,8 +1190,10 @@ class SyncService {
                 const { knowledgeBases: currentKBs } = kbModule.useKnowledgeBaseStore.getState();
                 const kbMap = new Map(currentKBs.map(kb => [kb.id, kb]));
                 cloudPayload.knowledgeBases.forEach(kb => {
-                    // 如果云端更新，则覆盖本地（简单的时间戳策略或直接覆盖）
-                    kbMap.set(kb.id, kb);
+                    // 如果云端更新且没有被本地删除，则覆盖本地
+                    if (!shouldSkipByTombstone('knowledgeBases', kb)) {
+                      kbMap.set(kb.id, kb);
+                    }
                 });
                 kbModule.useKnowledgeBaseStore.setState({
                     knowledgeBases: Array.from(kbMap.values())

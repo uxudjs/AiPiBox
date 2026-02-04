@@ -243,16 +243,38 @@ const InputArea = () => {
         {showConvSettings && <div className="absolute bottom-full left-0 mb-4 w-full z-[10001] animate-in fade-in slide-in-from-bottom-4"><ConversationSettings inline={true} conversationId={currentConversationId} onClose={() => setShowConvSettings(false)} /></div>}
         {showModelSelector && <ModelSelectorPopup onClose={() => setShowModelSelector(false)} modelSearchQuery={modelSearchQuery} setModelSearchQuery={setModelSearchQuery} modelSearchInputRef={modelSearchInputRef} flatModelItems={flatModelItems} toggleProvider={toggleProvider} getProviderColors={getProviderColors} currentModel={currentModel} setCurrentModel={setCurrentModel} t={t} />}
 
-        <div className="flex flex-col gap-2 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-[24px] p-3 border border-border/30 shadow-lg">
-          <div className="flex items-center justify-end px-2 py-1 gap-3 text-[10px] font-medium border-b border-border/10 mb-1">
-            <button onClick={() => { if (isMobileDevice() && nativeCameraRef.current) nativeCameraRef.current.click(); else setShowCamera(true); }} className="flex items-center gap-1.5 text-muted-foreground/60 hover:text-primary transition-colors"><Camera className="w-3.5 h-3.5" />{t('inputArea.takePhoto')}</button>
-            <button onClick={handleManualSync} disabled={isManualSyncing} className={cn("flex items-center gap-1.5 transition-all", isSyncSuccess ? "text-green-500" : isSyncError ? "text-destructive" : "text-muted-foreground/60 hover:text-primary")}>
-              {isSyncSuccess ? <Check className="w-3.5 h-3.5" /> : isSyncError ? <AlertCircle className="w-3.5 h-3.5" /> : <RefreshCw className={cn("w-3.5 h-3.5", isManualSyncing && "animate-spin")} />}
-              <span>{isManualSyncing ? t('settings.security.syncStatusSyncing') : isSyncSuccess ? t('settings.security.syncStatusSuccess') : isSyncError ? t('settings.security.syncStatusError') : t('inputArea.manualSync')}</span>
-            </button>
-            <button onClick={() => createNewConversation()} className="flex items-center gap-1.5 text-muted-foreground/60 hover:text-primary transition-colors"><Plus className="w-3.5 h-3.5" />{t('inputArea.newConversation')}</button>
-          </div>
+        {/* Top Independent Buttons */}
+        <div className="flex items-center justify-end gap-2 mb-2 px-1">
+          <button 
+            onClick={() => { if (isMobileDevice() && nativeCameraRef.current) nativeCameraRef.current.click(); else setShowCamera(true); }} 
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-border/30 rounded-full shadow-sm hover:bg-accent/50 transition-all text-[11px] font-medium text-muted-foreground hover:text-primary"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            <span>{t('inputArea.takePhoto')}</span>
+          </button>
+          
+          <button 
+            onClick={handleManualSync} 
+            disabled={isManualSyncing} 
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-border/30 rounded-full shadow-sm transition-all text-[11px] font-medium hover:bg-accent/50",
+              isSyncSuccess ? "text-green-500" : isSyncError ? "text-destructive" : "text-muted-foreground hover:text-primary"
+            )}
+          >
+            {isSyncSuccess ? <Check className="w-3.5 h-3.5" /> : isSyncError ? <AlertCircle className="w-3.5 h-3.5" /> : <RefreshCw className={cn("w-3.5 h-3.5", isManualSyncing && "animate-spin")} />}
+            <span>{isManualSyncing ? t('settings.security.syncStatusSyncing') : isSyncSuccess ? t('settings.security.syncStatusSuccess') : isSyncError ? t('settings.security.syncStatusError') : t('inputArea.manualSync')}</span>
+          </button>
 
+          <button 
+            onClick={() => createNewConversation()} 
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-border/30 rounded-full shadow-sm hover:bg-accent/50 transition-all text-[11px] font-medium text-muted-foreground hover:text-primary"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{t('inputArea.newConversation')}</span>
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-[24px] p-3 border border-border/30 shadow-lg">
           <textarea
             ref={textareaRef} rows={1} value={input} onChange={e => setInput(e.target.value)} onPaste={handlePaste} placeholder={t('inputArea.placeholderQuestion')}
             className="w-full bg-transparent border-none focus:ring-0 text-base py-3 px-4 resize-none max-h-60 custom-scrollbar min-h-[50px] text-foreground"

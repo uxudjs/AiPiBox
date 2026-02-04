@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { recordDeletion } from '../db';
 
 /**
  * 知识库 Store
@@ -62,7 +63,8 @@ const useKnowledgeBaseStore = create(
       /**
        * 移除知识库及其关联文档
        */
-      deleteKnowledgeBase: (kbId) => {
+      deleteKnowledgeBase: async (kbId) => {
+        await recordDeletion('knowledgeBases', kbId);
         set((state) => ({
           knowledgeBases: state.knowledgeBases.filter(kb => kb.id !== kbId),
           activeKnowledgeBase: state.activeKnowledgeBase === kbId ? null : state.activeKnowledgeBase

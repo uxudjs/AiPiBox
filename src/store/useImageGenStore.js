@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db } from '../db';
+import { db, recordDeletion, recordBatchDeletion } from '../db';
 import { logger } from '../services/logger';
 
 export const useImageGenStore = create((set, get) => ({
@@ -60,6 +60,7 @@ export const useImageGenStore = create((set, get) => ({
   // 删除图片
   deleteImage: async (id) => {
     try {
+      await recordDeletion('images', id);
       await db.images.delete(id);
       set((state) => ({ history: state.history.filter(img => img.id !== id) }));
     } catch (e) {
@@ -70,6 +71,7 @@ export const useImageGenStore = create((set, get) => ({
   // 批量删除图片
   deleteBatchImages: async (ids) => {
     try {
+      await recordBatchDeletion('images', ids);
       await db.images.bulkDelete(ids);
       set((state) => ({ history: state.history.filter(img => !ids.includes(img.id)) }));
     } catch (e) {
@@ -80,6 +82,8 @@ export const useImageGenStore = create((set, get) => ({
   // 清空历史
   clearAllHistory: async () => {
     try {
+      const allIds = (await db.images.toArray()).map(img => img.id);
+      await recordBatchDeletion('images', allIds);
       await db.images.clear();
       set({ history: [] });
     } catch (e) {

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db } from '../db';
+import { db, recordDeletion, recordBatchDeletion } from '../db';
 import { chatCompletion, resumeTask } from '../services/aiService';
 import { useConfigStore } from './useConfigStore';
 import { logger } from '../services/logger';
@@ -169,6 +169,17 @@ export const useChatStore = create((set, get) => ({
    */
   deleteBatchConversations: async () => {
     const { selectedConversations, currentConversationId } = get();
+    
+    // 记录对话和消息的删除墓碑
+    const allMessageIds = [];
+    for (const id of selectedConversations) {
+      const msgs = await db.messages.where('conversationId').equals(id).toArray();
+      allMessageIds.push(...msgs.map(m => m.id));
+    }
+    
+    await recordBatchDeletion('conversations', selectedConversations);
+    await recordBatchDeletion('messages', allMessageIds);
+
     for (const id of selectedConversations) {
       await db.conversations.delete(id);
       await db.messages.where('conversationId').equals(id).delete();
@@ -186,6 +197,13 @@ export const useChatStore = create((set, get) => ({
   clearAllHistory: async () => {
     const { t } = useI18nStore.getState();
     if (confirm(t('sidebar.clearAllConfirm'))) {
+      // 记录所有对话和消息的删除墓碑
+      const allConvIds = (await db.conversations.toArray()).map(c => c.id);
+      const allMsgIds = (await db.messages.toArray()).map(m => m.id);
+      
+      await recordBatchDeletion('conversations', allConvIds);
+      await recordBatchDeletion('messages', allMsgIds);
+
       await db.conversations.clear();
       await db.messages.clear();
       set({ currentConversationId: null, selectedConversations: [] });
@@ -637,6 +655,9 @@ export const useChatStore = create((set, get) => ({
       const msg = path[messageIndex];
       
       if (msg) {
+        // 记录删除墓碑
+        await recordDeletion('messages', msg.id);
+
         // 删除消息树中的节点较为复杂，直接删除消息
         // 树遍历会处理缺失节点（中断链）
         await db.messages.delete(msg.id);
