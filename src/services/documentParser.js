@@ -5,6 +5,7 @@
  */
 import { logger } from './logger';
 import * as pdfjsLib from 'pdfjs-dist';
+import { useTranslation } from '../i18n';
 
 /**
  * PDF Worker CDN 容灾列表
@@ -46,7 +47,10 @@ export const SUPPORTED_TYPES = {
     ],
     extensions: ['.ppt', '.pptx'],
     icon: 'PPT',
-    description: '演示文稿'
+    description: () => {
+      const { t } = useTranslation();
+      return t('document.presentation');
+    }
   },
   EXCEL: {
     mimeTypes: [
@@ -61,7 +65,10 @@ export const SUPPORTED_TYPES = {
     mimeTypes: ['text/plain', 'text/markdown', 'text/x-markdown'],
     extensions: ['.txt', '.md'],
     icon: 'TXT',
-    description: '文本文件'
+    description: () => {
+      const { t } = useTranslation();
+      return t('document.textFile');
+    }
   }
 };
 
@@ -92,15 +99,17 @@ const initPdfWorker = async () => {
 export function validateFile(file) {
   logger.info('DocumentParser', 'Validating file:', file.name);
   
+  const { t } = useTranslation();
+  
   // 检查文件大小
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`文件大小超过限制 (${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB)`);
+    throw new Error(t('document.fileSizeExceeded', { maxSize: (MAX_FILE_SIZE / 1024 / 1024).toFixed(0) }));
   }
   
   // 检查文件类型
   const fileType = getFileType(file);
   if (!fileType) {
-    throw new Error(`不支持的文件类型: ${file.name}`);
+    throw new Error(t('document.unsupportedFileType', { fileName: file.name }));
   }
   
   return fileType;
@@ -294,7 +303,8 @@ async function parsePowerPoint(file) {
   if (fullText.trim() === '') {
     // 处理旧版二进制格式
     if (file.name.endsWith('.ppt')) {
-      throw new Error('仅支持 .pptx 格式的 PowerPoint 文件，请将文件另存为 .pptx 后重试。');
+      const { t } = useTranslation();
+      throw new Error(t('document.pptxOnly'));
     }
     fullText = '[未提取到文本内容，可能是纯图片幻灯片]';
   }
@@ -315,6 +325,8 @@ async function parsePowerPoint(file) {
  * 文本类文件解析（Markdown/TXT）
  */
 async function parseText(file) {
+  const { t } = useTranslation();
+  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -328,7 +340,7 @@ async function parseText(file) {
         }
       });
     };
-    reader.onerror = () => reject(new Error('读取文件失败'));
+    reader.onerror = () => reject(new Error(t('document.readFailed')));
     reader.readAsText(file);
   });
 }
@@ -392,25 +404,31 @@ export async function parseDocument(file, onProgress = null) {
  * 生成包含文件元信息的提示词上下文，并自动截断超长文本
  */
 export function formatDocumentForAI(parsedDoc, maxLength = 32000) {
+  const { t } = useTranslation();
   let content = parsedDoc.text || '';
   
   // 文本预清洗：统一换行符并折叠连续空白
-  content = content.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+  content = content.replace(/\r
+/g, '
+').replace(/
+{3,}/g, '
+
+');
   
   if (content.length > maxLength) {
     const truncated = content.substring(0, maxLength);
-    content = truncated + '\n\n[... 内容已截断，完整内容请查看原文档 ...]';
+    content = truncated + '\n\n[... ' + t('document.contentTruncated') + ' ...]';
   }
   
   const metadata = parsedDoc.metadata || {};
-  let header = `文档信息\n`;
-  header += `文件名: ${metadata.fileName}\n`;
-  header += `类型: ${metadata.fileType}\n`;
-  if (metadata.pages) header += `页数: ${metadata.pages}\n`;
-  if (metadata.sheets) header += `工作表: ${metadata.sheets.join(', ')}\n`;
-  if (metadata.slides) header += `幻灯片数: ${metadata.slides}\n`;
-  header += `大小: ${(metadata.fileSize / 1024).toFixed(2)} KB\n`;
-  header += `-------------------\n\n`;
+  let header = t('document.info') + '\n';
+  header += t('document.fileName') + ': ' + metadata.fileName + '\n';
+  header += t('document.type') + ': ' + metadata.fileType + '\n';
+  if (metadata.pages) header += t('document.pages') + ': ' + metadata.pages + '\n';
+  if (metadata.sheets) header += t('document.sheets') + ': ' + metadata.sheets.join(', ') + '\n';
+  if (metadata.slides) header += t('document.slides') + ': ' + metadata.slides + '\n';
+  header += t('document.size') + ': ' + (metadata.fileSize / 1024).toFixed(2) + ' KB\n';
+  header += '-------------------\n\n';
   
   return header + content;
 }

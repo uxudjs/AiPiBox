@@ -405,7 +405,8 @@ export const zhTW = {
     supportHint: '支援 PDF、Word、PowerPoint、Excel、文字檔案 (最大10MB)',
     parsing: '解析中',
     completed: '已解析',
-    deleteFile: '刪除檔案'
+    deleteFile: '刪除檔案',
+    unsupportedType: '不支援的檔案類型'
   },
 
   knowledgeBase: {
@@ -585,7 +586,80 @@ export const zhTW = {
 
   document: {
     presentation: '簡報',
-    textFile: '文字檔案'
+    textFile: '文字檔案',
+    info: '文件資訊',
+    fileName: '檔案名稱',
+    type: '類型',
+    pages: '頁數',
+    sheets: '工作表',
+    slides: '投影片數',
+    size: '大小',
+    contentTruncated: '內容已截斷，完整內容請查看原文件',
+    fileSizeExceeded: '檔案大小超過限制 ({maxSize}MB)',
+    unsupportedFileType: '不支援的檔案類型: {fileName}',
+    pptxOnly: '僅支援 .pptx 格式的 PowerPoint 檔案，請將檔案另存為 .pptx 後重試。',
+    readFailed: '讀取檔案失敗'
+  },
+
+  services: {
+    sync: {
+      checksumFailed: '資料完整性校驗失敗',
+      versionIncompatible: '備份檔案版本不相容: {version}',
+      validationFailed: '資料驗證失敗: {errors}'
+    },
+    search: {
+      queryEmpty: '搜尋查詢不能為空',
+      untitled: '無標題',
+      noSnippet: '無摘要',
+      unsupportedEngine: '不支援的搜尋引擎: {engine}'
+    },
+    database: {
+      unsupportedType: '不支援的資料庫類型: {dbType}'
+    }
+  },
+
+  app: {
+    initFailed: '初始化失敗，請嘗試重新整理頁面',
+    dbAccessError: '無法存取資料庫，請檢查瀏覽器設定'
+  },
+
+  store: {
+    chat: {
+      titleGeneratorPrompt: '你是一個專業的對話命名助手。你的任務是閱讀用戶的輸入，並生成一個簡短、精準的標題（不超過10個字）。\n\n規則：\n1. 直接輸出標題，不要包含任何標點符號、引號或解釋性文字。\n2. 標題應概括對話的核心主題。\n3. 如果無法概括，請輸出「新對話」。',
+      titleGeneratorUser: '用戶輸入：{message}\n\n請生成標題：',
+      cannotCompressIncognito: '無法壓縮隱身模式對話',
+      conversationIdRequired: '未指定對話ID',
+      conversationEmpty: '對話為空，無需壓縮',
+      cannotApplyCompressionIncognito: '無法應用壓縮到隱身模式對話',
+      compressedMessageNotFound: '找不到最後一個被壓縮的訊息'
+    },
+    knowledgeBase: {
+      untitled: '未命名知識庫'
+    },
+    file: {
+      documentPrefix: '文件 {index}'
+    }
+  },
+
+  crypto: {
+    decryptFailed: '解密失敗：密碼錯誤或資料損壞'
+  },
+
+  validation: {
+    checksumFailed: '校驗和計算失敗',
+    invalidDataFormat: '資料格式無效',
+    configMissing: '配置資料缺失或格式錯誤',
+    providerConfigInvalid: '提供商配置格式錯誤',
+    defaultModelsInvalid: '預設模型配置格式錯誤',
+    conversationsInvalid: '對話資料格式錯誤',
+    messagesInvalid: '訊息資料格式錯誤',
+    imagesInvalid: '圖片歷史資料格式錯誤',
+    publishedCodesInvalid: '已發佈代碼資料格式錯誤',
+    knowledgeBasesInvalid: '知識庫資料格式錯誤',
+    logsInvalid: '系統日誌資料格式錯誤',
+    collectionFailed: '資料收集失敗: {error}',
+    validationFailed: '資料驗證失敗: {errors}',
+    restoreFailed: '資料恢復失敗: {error}'
   },
 
   help: {

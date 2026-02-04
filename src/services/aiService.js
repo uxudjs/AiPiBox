@@ -3,6 +3,7 @@ import { logger } from './logger';
 import { inferModelDisplayName, inferModelCapabilities } from '../utils/modelNameInference';
 import { withCache } from '../utils/requestCache';
 import { getProxyApiUrl, detectPlatform } from '../utils/envDetect';
+import { useTranslation } from '../i18n';
 
 /**
  * AI 服务提供商标识符常量
@@ -583,7 +584,9 @@ export async function search(query, engine, apiKey) {
   // ... (保持原样)
   logger.info('aiService', 'Starting search:', { query, engine });
   
-  if (!query || !query.trim()) throw new Error('搜索查询不能为空');
+  const { t } = useTranslation();
+  
+  if (!query || !query.trim()) throw new Error(t('services.search.queryEmpty'));
 
   try {
     if (engine === 'tavily') {
@@ -597,9 +600,9 @@ export async function search(query, engine, apiKey) {
         include_raw_content: false
       }, { timeout: 10000 });
       return res.data.results?.map(r => ({
-        title: r.title || '无标题',
+        title: r.title || t('services.search.untitled'),
         url: r.url || '',
-        snippet: r.content || r.snippet || '无摘要'
+        snippet: r.content || r.snippet || t('services.search.noSnippet')
       })) || [];
     } else if (engine === 'bing') {
       if (!apiKey) throw new Error('Bing Search 需要 API 密钥。');
@@ -609,9 +612,9 @@ export async function search(query, engine, apiKey) {
         timeout: 10000
       });
       return res.data.webPages?.value?.map(r => ({
-        title: r.name || '无标题',
+        title: r.name || t('services.search.untitled'),
         url: r.url || '',
-        snippet: r.snippet || r.description || '无摘要'
+        snippet: r.snippet || r.description || t('services.search.noSnippet')
       })) || [];
     } else if (engine === 'google') {
       if (!apiKey) throw new Error('Google Custom Search 需要 API 密钥。');
@@ -622,12 +625,12 @@ export async function search(query, engine, apiKey) {
         timeout: 10000
       });
       return res.data.items?.map(r => ({
-        title: r.title || '无标题',
+        title: r.title || t('services.search.untitled'),
         url: r.link || '',
-        snippet: r.snippet || r.htmlSnippet?.replace(/<[^>]*>/g, '') || '无摘要'
+        snippet: r.snippet || r.htmlSnippet?.replace(/<[^>]*>/g, '') || t('services.search.noSnippet')
       })) || [];
     }
-    throw new Error(`不支持的搜索引擎: ${engine}`);
+    throw new Error(t('services.search.unsupportedEngine', { engine }));
   } catch (error) {
     logger.error('aiService', 'Search failed:', error);
     throw new Error(`Search failed: ${error.message}`);

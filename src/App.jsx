@@ -47,7 +47,7 @@ function App() {
         }
       } catch (err) {
         logger.error('App', 'Application initialization failed:', err);
-        setInitError(err.message || '初始化失败，请尝试刷新页面');
+        setInitError(err.message || t('app.initFailed'));
       } finally {
         setLoading(false);
       }

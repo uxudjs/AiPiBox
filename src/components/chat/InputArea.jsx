@@ -157,7 +157,15 @@ const InputArea = () => {
     
     if (docFiles.length > 0) {
       const targetConvId = currentConversationId || 'temp';
-      docFiles.forEach(file => addFile(file, targetConvId));
+      for (const file of docFiles) {
+        try {
+          await addFile(file, targetConvId);
+        } catch (err) {
+          logger.error('InputArea', 'Failed to add file:', file.name, err);
+          // 这里的报错由 store 或 documentParser 抛出，我们向用户提示
+          alert(t('inputArea.error') + `: ${file.name} - ${err.message}`);
+        }
+      }
     }
     
     // 重置 input 以便允许再次选择相同文件
@@ -183,6 +191,7 @@ const InputArea = () => {
         }]);
       } catch (err) {
         logger.error('InputArea', 'Failed to process image file', err);
+        alert(t('inputArea.error') + ': ' + (err.message || 'Image processing failed'));
       }
     }
   };
@@ -1198,10 +1207,23 @@ Question: ${userMsg}`;
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      alert(t('fileUpload.unsupportedType') || 'Unsupported file type');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
-      setCameraInitialImage(event.target.result);
-      setShowCamera(true);
+      if (event.target.result) {
+        setCameraInitialImage(event.target.result);
+        setShowCamera(true);
+      } else {
+        logger.error('InputArea', 'FileReader returned empty result');
+      }
+    };
+    reader.onerror = (err) => {
+      logger.error('InputArea', 'FileReader error', err);
+      alert(t('inputArea.error') + ': File reading failed');
     };
     reader.readAsDataURL(file);
     
@@ -1211,18 +1233,33 @@ Question: ${userMsg}`;
 
   const handlePhotoCaptured = async (dataUrl) => {
     try {
-      // Convert Data URL to File object for consistency
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      if (!dataUrl || !dataUrl.startsWith('data:')) {
+        throw new Error('Invalid image data format');
+      }
+
+      // 替代 fetch(dataUrl) 以提高稳定性，避免 TypeError: Load failed
+      const [header, base64Data] = dataUrl.split(',');
+      const mimeMatch = header.match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      
+      const bstr = atob(base64Data);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      
+      const file = new File([u8arr], `photo_${Date.now()}.jpg`, { type: mime });
       
       setPendingImages(prev => [...prev, {
         id: Date.now() + Math.random(),
         data: dataUrl,
         file
       }]);
+      logger.info('InputArea', 'Photo captured and processed successfully');
     } catch (err) {
       logger.error('InputArea', 'Failed to process captured photo', err);
+      alert(t('inputArea.error') + ': ' + (err.message || 'Image processing failed'));
     }
   };
 

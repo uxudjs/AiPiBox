@@ -405,7 +405,8 @@ export const koKR = {
     supportHint: 'PDF, Word, PowerPoint, Excel, 텍스트 파일 (최대 10MB) 지원',
     parsing: '분석 중',
     completed: '분석 완료',
-    deleteFile: '파일 삭제'
+    deleteFile: '파일 삭제',
+    unsupportedType: '지원되지 않는 파일 형식'
   },
 
   knowledgeBase: {
@@ -585,7 +586,80 @@ export const koKR = {
 
   document: {
     presentation: '프레젠테이션',
-    textFile: '텍스트 파일'
+    textFile: '텍스트 파일',
+    info: '문서 정보',
+    fileName: '파일 이름',
+    type: '유형',
+    pages: '페이지 수',
+    sheets: '시트',
+    slides: '슬라이드 수',
+    size: '크기',
+    contentTruncated: '콘텐츠가 잘렸습니다. 전체 내용은 원본 문서를 참조하세요',
+    fileSizeExceeded: '파일 크기가 제한을 초과합니다 ({maxSize}MB)',
+    unsupportedFileType: '지원되지 않는 파일 유형: {fileName}',
+    pptxOnly: '.pptx 형식의 PowerPoint 파일만 지원됩니다. 파일을 .pptx로 저장한 후 다시 시도하세요.',
+    readFailed: '파일 읽기에 실패했습니다'
+  },
+
+  services: {
+    sync: {
+      checksumFailed: '데이터 무결성 검사에 실패했습니다',
+      versionIncompatible: '백업 파일 버전이 호환되지 않습니다: {version}',
+      validationFailed: '데이터 검증에 실패했습니다: {errors}'
+    },
+    search: {
+      queryEmpty: '검색 쿼리는 비어 있을 수 없습니다',
+      untitled: '제목 없음',
+      noSnippet: '스니펫 없음',
+      unsupportedEngine: '지원되지 않는 검색 엔진: {engine}'
+    },
+    database: {
+      unsupportedType: '지원되지 않는 데이터베이스 유형: {dbType}'
+    }
+  },
+
+  app: {
+    initFailed: '초기화에 실패했습니다. 페이지를 새로고침하세요',
+    dbAccessError: '데이터베이스에 액세스할 수 없습니다. 브라우저 설정을 확인하세요'
+  },
+
+  store: {
+    chat: {
+      titleGeneratorPrompt: '당신은 전문적인 대화 제목 생성 어시스턴트입니다. 사용자 입력을 읽고 짧고 정확한 제목(10단어 이하)을 생성하세요.\n\n규칙:\n1. 제목을 직접 출력하고 구두점, 인용부호 또는 설명 텍스트를 포함하지 마세요.\n2. 제목은 대화의 핵심 주제를 요약해야 합니다.\n3. 요약할 수 없다면 "새 대화"를 출력하세요.',
+      titleGeneratorUser: '사용자 입력: {message}\n\n제목을 생성해주세요:',
+      cannotCompressIncognito: '시크릿 모드 대화를 압축할 수 없습니다',
+      conversationIdRequired: '대화 ID가 지정되지 않았습니다',
+      conversationEmpty: '대화가 비어 있습니다. 압축이 필요하지 않습니다',
+      cannotApplyCompressionIncognito: '시크릿 모드 대화에 압축을 적용할 수 없습니다',
+      compressedMessageNotFound: '마지막으로 압축된 메시지를 찾을 수 없습니다'
+    },
+    knowledgeBase: {
+      untitled: '제목 없는 지식 베이스'
+    },
+    file: {
+      documentPrefix: '문서 {index}'
+    }
+  },
+
+  crypto: {
+    decryptFailed: '암호 해독에 실패했습니다: 비밀번호가 잘못되었거나 데이터가 손상되었습니다'
+  },
+
+  validation: {
+    checksumFailed: '체크섬 계산에 실패했습니다',
+    invalidDataFormat: '유효하지 않은 데이터 형식',
+    configMissing: '구성 데이터가 누락되었거나 형식이 잘못되었습니다',
+    providerConfigInvalid: '프로바이더 구성 형식이 잘못되었습니다',
+    defaultModelsInvalid: '기본 모델 구성 형식이 잘못되었습니다',
+    conversationsInvalid: '대화 데이터 형식이 잘못되었습니다',
+    messagesInvalid: '메시지 데이터 형식이 잘못되었습니다',
+    imagesInvalid: '이미지 기록 데이터 형식이 잘못되었습니다',
+    publishedCodesInvalid: '게시된 코드 데이터 형식이 잘못되었습니다',
+    knowledgeBasesInvalid: '지식 베이스 데이터 형식이 잘못되었습니다',
+    logsInvalid: '시스템 로그 데이터 형식이 잘못되었습니다',
+    collectionFailed: '데이터 수집에 실패했습니다: {error}',
+    validationFailed: '데이터 검증에 실패했습니다: {errors}',
+    restoreFailed: '데이터 복원에 실패했습니다: {error}'
   },
 
   help: {

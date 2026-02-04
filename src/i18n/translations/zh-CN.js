@@ -442,7 +442,8 @@ export const zhCN = {
     supportHint: '支持 PDF、Word、PowerPoint、Excel、文本文件 (最大10MB)',
     parsing: '解析中',
     completed: '已解析',
-    deleteFile: '删除文件'
+    deleteFile: '删除文件',
+    unsupportedType: '不支持的文件类型'
   },
 
   knowledgeBase: {
@@ -586,7 +587,80 @@ export const zhCN = {
 
   document: {
     presentation: '演示文稿',
-    textFile: '文本文件'
+    textFile: '文本文件',
+    info: '文档信息',
+    fileName: '文件名',
+    type: '类型',
+    pages: '页数',
+    sheets: '工作表',
+    slides: '幻灯片数',
+    size: '大小',
+    contentTruncated: '内容已截断，完整内容请查看原文档',
+    fileSizeExceeded: '文件大小超过限制 ({maxSize}MB)',
+    unsupportedFileType: '不支持的文件类型: {fileName}',
+    pptxOnly: '仅支持 .pptx 格式的 PowerPoint 文件，请将文件另存为 .pptx 后重试。',
+    readFailed: '读取文件失败'
+  },
+
+  services: {
+    sync: {
+      checksumFailed: '数据完整性校验失败',
+      versionIncompatible: '备份文件版本不兼容: {version}',
+      validationFailed: '数据验证失败: {errors}'
+    },
+    search: {
+      queryEmpty: '搜索查询不能为空',
+      untitled: '无标题',
+      noSnippet: '无摘要',
+      unsupportedEngine: '不支持的搜索引擎: {engine}'
+    },
+    database: {
+      unsupportedType: '不支持的数据库类型: {dbType}'
+    }
+  },
+
+  app: {
+    initFailed: '初始化失败，请尝试刷新页面',
+    dbAccessError: '无法访问数据库，请检查浏览器设置'
+  },
+
+  store: {
+    chat: {
+      titleGeneratorPrompt: '你是一个专业的对话命名助手。你的任务是阅读用户的输入，并生成一个简短、精准的标题（不超过10个字）。\n\n规则：\n1. 直接输出标题，不要包含任何标点符号、引号或解释性文字。\n2. 标题应概括对话的核心主题。\n3. 如果无法概括，请输出“新对话”。',
+      titleGeneratorUser: '用户输入：{message}\n\n请生成标题：',
+      cannotCompressIncognito: '无法压缩隐身模式对话',
+      conversationIdRequired: '未指定对话ID',
+      conversationEmpty: '对话为空，无需压缩',
+      cannotApplyCompressionIncognito: '无法应用压缩到隐身模式对话',
+      compressedMessageNotFound: '找不到最后一个被压缩的消息'
+    },
+    knowledgeBase: {
+      untitled: '未命名知识库'
+    },
+    file: {
+      documentPrefix: '文档 {index}'
+    }
+  },
+
+  crypto: {
+    decryptFailed: '解密失败：密码错误或数据损坏'
+  },
+
+  validation: {
+    checksumFailed: '校验和计算失败',
+    invalidDataFormat: '数据格式无效',
+    configMissing: '配置数据缺失或格式错误',
+    providerConfigInvalid: '提供商配置格式错误',
+    defaultModelsInvalid: '默认模型配置格式错误',
+    conversationsInvalid: '对话数据格式错误',
+    messagesInvalid: '消息数据格式错误',
+    imagesInvalid: '图片历史数据格式错误',
+    publishedCodesInvalid: '已发布代码数据格式错误',
+    knowledgeBasesInvalid: '知识库数据格式错误',
+    logsInvalid: '系统日志数据格式错误',
+    collectionFailed: '数据收集失败: {error}',
+    validationFailed: '数据验证失败: {errors}',
+    restoreFailed: '数据恢复失败: {error}'
   },
 
   help: {

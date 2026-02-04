@@ -19,6 +19,7 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
   const [capturedImage, setCapturedImage] = useState(initialImage); // base64 string
   const [facingMode, setFacingMode] = useState('user'); // 'user' | 'environment'
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   
   // Edit states
   const [rotation, setRotation] = useState(0);
@@ -201,8 +202,10 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
   const renderEditedImage = useCallback(() => {
     if (!capturedImage || !canvasRef.current) return;
     
+    setIsImageLoaded(false);
     const img = new Image();
     img.onload = () => {
+      if (!canvasRef.current) return;
       // Step 1: Create a canvas for Rotation
       const rotateCanvas = document.createElement('canvas');
       const rotCtx = rotateCanvas.getContext('2d');
@@ -250,9 +253,14 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
       
       ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
       ctx.drawImage(rotateCanvas, startX, startY, finalW, finalH, 0, 0, finalW, finalH);
+      setIsImageLoaded(true);
+    };
+    img.onerror = (err) => {
+      logger.error('CameraCapture', 'Failed to load image for editing', err);
+      setIsImageLoaded(false);
     };
     img.src = capturedImage;
-  }, [capturedImage, rotation, brightness, contrast, aspectRatio]);
+  }, [capturedImage, rotation, brightness, contrast, aspectRatio, aspectRatioValue]);
 
   useEffect(() => {
     if (mode === 'edit') {
@@ -261,10 +269,18 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
   }, [renderEditedImage, mode]);
 
   const handleConfirm = () => {
-    if (canvasRef.current) {
-      const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.9);
-      onCapture(dataUrl);
-      handleClose();
+    if (canvasRef.current && isImageLoaded) {
+      try {
+        const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.9);
+        if (!dataUrl || dataUrl === 'data:,') {
+          throw new Error('Generated empty image');
+        }
+        onCapture(dataUrl);
+        handleClose();
+      } catch (err) {
+        logger.error('CameraCapture', 'Confirm failed', err);
+        alert(t('inputArea.error') + ': Failed to export image');
+      }
     }
   };
 
@@ -458,8 +474,15 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
                <button onClick={handleRetake} className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors">
                   {t('common.cancel') || 'Cancel'}
                </button>
-               <button onClick={handleConfirm} className="flex-1 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
-                  <Check className="w-5 h-5" />
+               <button 
+                  onClick={handleConfirm} 
+                  disabled={!isImageLoaded}
+                  className={cn(
+                    "flex-1 py-3 text-primary-foreground rounded-xl font-bold transition-all flex items-center justify-center gap-2",
+                    isImageLoaded ? "bg-primary hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                  )}
+               >
+                  {isImageLoaded ? <Check className="w-5 h-5" /> : <RefreshCw className="w-4 h-4 animate-spin" />}
                   {t('inputArea.camera.usePhoto') || 'Use Photo'}
                </button>
             </div>

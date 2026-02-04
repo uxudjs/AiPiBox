@@ -442,7 +442,8 @@ export const enUS = {
     supportHint: 'Supports PDF, Word, PPT, Excel, Text (Max 10MB)',
     parsing: 'Parsing',
     completed: 'Parsed',
-    deleteFile: 'Delete file'
+    deleteFile: 'Delete file',
+    unsupportedType: 'Unsupported file type'
   },
 
   knowledgeBase: {
@@ -586,7 +587,80 @@ export const enUS = {
 
   document: {
     presentation: 'Presentation',
-    textFile: 'Text File'
+    textFile: 'Text File',
+    info: 'Document Information',
+    fileName: 'File Name',
+    type: 'Type',
+    pages: 'Pages',
+    sheets: 'Sheets',
+    slides: 'Slides',
+    size: 'Size',
+    contentTruncated: 'Content truncated, please view the original document for complete content',
+    fileSizeExceeded: 'File size exceeds limit ({maxSize}MB)',
+    unsupportedFileType: 'Unsupported file type: {fileName}',
+    pptxOnly: 'Only .pptx format PowerPoint files are supported. Please save the file as .pptx and try again.',
+    readFailed: 'Failed to read file'
+  },
+
+  services: {
+    sync: {
+      checksumFailed: 'Data integrity check failed',
+      versionIncompatible: 'Backup file version incompatible: {version}',
+      validationFailed: 'Data validation failed: {errors}'
+    },
+    search: {
+      queryEmpty: 'Search query cannot be empty',
+      untitled: 'Untitled',
+      noSnippet: 'No snippet',
+      unsupportedEngine: 'Unsupported search engine: {engine}'
+    },
+    database: {
+      unsupportedType: 'Unsupported database type: {dbType}'
+    }
+  },
+
+  app: {
+    initFailed: 'Initialization failed, please try refreshing the page',
+    dbAccessError: 'Unable to access database, please check browser settings'
+  },
+
+  store: {
+    chat: {
+      titleGeneratorPrompt: 'You are a professional conversation naming assistant. Your task is to read user input and generate a short, accurate title (no more than 10 words).\n\nRules:\n1. Output the title directly without any punctuation, quotes, or explanatory text.\n2. The title should summarize the core topic of the conversation.\n3. If you cannot summarize, output "New Conversation".',
+      titleGeneratorUser: 'User input: {message}\n\nPlease generate a title:',
+      cannotCompressIncognito: 'Cannot compress incognito mode conversation',
+      conversationIdRequired: 'Conversation ID not specified',
+      conversationEmpty: 'Conversation is empty, no compression needed',
+      cannotApplyCompressionIncognito: 'Cannot apply compression to incognito mode conversation',
+      compressedMessageNotFound: 'Cannot find the last compressed message'
+    },
+    knowledgeBase: {
+      untitled: 'Untitled Knowledge Base'
+    },
+    file: {
+      documentPrefix: 'Document {index}'
+    }
+  },
+
+  crypto: {
+    decryptFailed: 'Decryption failed: incorrect password or corrupted data'
+  },
+
+  validation: {
+    checksumFailed: 'Checksum calculation failed',
+    invalidDataFormat: 'Invalid data format',
+    configMissing: 'Configuration data missing or invalid format',
+    providerConfigInvalid: 'Provider configuration format invalid',
+    defaultModelsInvalid: 'Default models configuration format invalid',
+    conversationsInvalid: 'Conversations data format invalid',
+    messagesInvalid: 'Messages data format invalid',
+    imagesInvalid: 'Images history data format invalid',
+    publishedCodesInvalid: 'Published codes data format invalid',
+    knowledgeBasesInvalid: 'Knowledge bases data format invalid',
+    logsInvalid: 'System logs data format invalid',
+    collectionFailed: 'Data collection failed: {error}',
+    validationFailed: 'Data validation failed: {errors}',
+    restoreFailed: 'Data restore failed: {error}'
   },
 
   help: {

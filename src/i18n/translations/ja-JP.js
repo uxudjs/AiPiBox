@@ -405,7 +405,8 @@ export const jaJP = {
     supportHint: 'PDF、Word、PowerPoint、Excel、テキストファイル (最大10MB) をサポート',
     parsing: '解析中',
     completed: '解析完了',
-    deleteFile: 'ファイルを削除'
+    deleteFile: 'ファイルを削除',
+    unsupportedType: 'サポートされていないファイル形式'
   },
 
   knowledgeBase: {
@@ -585,7 +586,80 @@ export const jaJP = {
 
   document: {
     presentation: 'プレゼンテーション',
-    textFile: 'テキストファイル'
+    textFile: 'テキストファイル',
+    info: 'ドキュメント情報',
+    fileName: 'ファイル名',
+    type: 'タイプ',
+    pages: 'ページ数',
+    sheets: 'シート',
+    slides: 'スライド数',
+    size: 'サイズ',
+    contentTruncated: 'コンテンツが切り捨てられました。完全な内容は元のドキュメントをご覧ください',
+    fileSizeExceeded: 'ファイルサイズが制限を超えています ({maxSize}MB)',
+    unsupportedFileType: 'サポートされていないファイルタイプ: {fileName}',
+    pptxOnly: '.pptx形式のPowerPointファイルのみサポートされています。ファイルを .pptx として保存してから再試行してください。',
+    readFailed: 'ファイルの読み取りに失敗しました'
+  },
+
+  services: {
+    sync: {
+      checksumFailed: 'データ整合性チェックに失敗しました',
+      versionIncompatible: 'バックアップファイルのバージョンが互換性がありません: {version}',
+      validationFailed: 'データ検証に失敗しました: {errors}'
+    },
+    search: {
+      queryEmpty: '検索クエリを空にすることはできません',
+      untitled: 'タイトルなし',
+      noSnippet: 'スニペットなし',
+      unsupportedEngine: 'サポートされていない検索エンジン: {engine}'
+    },
+    database: {
+      unsupportedType: 'サポートされていないデータベースタイプ: {dbType}'
+    }
+  },
+
+  app: {
+    initFailed: '初期化に失敗しました。ページを更新してみてください',
+    dbAccessError: 'データベースにアクセスできません。ブラウザの設定を確認してください'
+  },
+
+  store: {
+    chat: {
+      titleGeneratorPrompt: 'あなたはプロの会話タイトル生成アシスタントです。ユーザーの入力を読み、短く正確なタイトル（10文字以内）を生成してください。\n\nルール：\n1. タイトルを直接出力し、句読点、引用符、または説明テキストを含めないでください。\n2. タイトルは会話の主要なトピックを要約する必要があります。\n3. 要約できない場合は「新しい会話」と出力してください。',
+      titleGeneratorUser: 'ユーザー入力: {message}\n\nタイトルを生成してください：',
+      cannotCompressIncognito: 'シークレットモードの会話を圧縮できません',
+      conversationIdRequired: '会話IDが指定されていません',
+      conversationEmpty: '会話が空です。圧縮は不要です',
+      cannotApplyCompressionIncognito: 'シークレットモードの会話に圧縮を適用できません',
+      compressedMessageNotFound: '最後に圧縮されたメッセージが見つかりません'
+    },
+    knowledgeBase: {
+      untitled: '無題の知識ベース'
+    },
+    file: {
+      documentPrefix: 'ドキュメント {index}'
+    }
+  },
+
+  crypto: {
+    decryptFailed: '解増に失敗しました：パスワードが間違っているか、データが破損しています'
+  },
+
+  validation: {
+    checksumFailed: 'チェックサム計算に失敗しました',
+    invalidDataFormat: '無効なデータ形式',
+    configMissing: '設定データが欠落しているか、形式が無効です',
+    providerConfigInvalid: 'プロバイダ設定の形式が無効です',
+    defaultModelsInvalid: 'デフォルトモデル設定の形式が無効です',
+    conversationsInvalid: '会話データの形式が無効です',
+    messagesInvalid: 'メッセージデータの形式が無効です',
+    imagesInvalid: '画像履歴データの形式が無効です',
+    publishedCodesInvalid: '公開コードデータの形式が無効です',
+    knowledgeBasesInvalid: '知識ベースデータの形式が無効です',
+    logsInvalid: 'システムログデータの形式が無効です',
+    collectionFailed: 'データ収集に失敗しました: {error}',
+    validationFailed: 'データ検証に失敗しました: {errors}',
+    restoreFailed: 'データ復元に失敗しました: {error}'
   },
 
   help: {

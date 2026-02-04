@@ -70,7 +70,7 @@ async function getPool() {
       ssl: DB_CONFIG.ssl
     });
   } else {
-    throw new Error(`不支持的数据库类型: ${dbType}`);
+    throw new Error(`Unsupported database type: ${dbType}`);
   }
 
   return pool;

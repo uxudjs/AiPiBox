@@ -2,6 +2,7 @@ import { db } from '../db';
 import { useConfigStore } from '../store/useConfigStore';
 import { encryptData, decryptData, hashPassword } from '../utils/crypto';
 import { logger } from './logger';
+import { useTranslation } from '../i18n';
 import { 
   collectAllSyncData, 
   restoreAllData, 
@@ -652,7 +653,8 @@ class SyncService {
       // 验证校验和
       const calculatedChecksum = await calculateChecksum(backupData.payload);
       if (calculatedChecksum !== backupData.checksum) {
-        throw new Error('数据完整性校验失败');
+        const { t } = useTranslation();
+        throw new Error(t('services.sync.checksumFailed'));
       }
       
       logger.info('SyncService', 'Checksum validated successfully');
@@ -662,7 +664,8 @@ class SyncService {
       
       // 版本兼容性检查
       if (!isVersionCompatible(backupPackage.version)) {
-        throw new Error(`备份文件版本不兼容: ${backupPackage.version}`);
+        const { t } = useTranslation();
+        throw new Error(t('services.sync.versionIncompatible', { version: backupPackage.version }));
       }
       
       logger.info('SyncService', 'Version compatibility check passed');
@@ -670,7 +673,8 @@ class SyncService {
       // 验证数据完整性
       const validation = validateRestoredData(backupPackage.data);
       if (!validation.valid) {
-        throw new Error(`数据验证失败: ${validation.errors.join(', ')}`);
+        const { t } = useTranslation();
+        throw new Error(t('services.sync.validationFailed', { errors: validation.errors.join(', ') }));
       }
       
       // 恢复数据
