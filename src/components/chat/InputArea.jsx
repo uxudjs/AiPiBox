@@ -269,6 +269,7 @@ const InputArea = () => {
             activeKnowledgeBase={activeKnowledgeBase} setShowKBSelector={setShowKBSelector} setShowConvSettings={setShowConvSettings} setShowModelSelector={setShowModelSelector}
             currentModelData={currentModelData} currentModel={currentModel} currentIsAIGenerating={currentIsAIGenerating}
             onStopGeneration={() => stopAIGeneration(currentConversationId)} onSendMessage={sendMessage}
+            isLoading={isLoading || isSending}
             isSendDisabled={isLoading || isSending || (!input.trim() && pendingImages.length === 0 && uploadedFiles.length === 0) || !isFilesReady}
           />
         </div>

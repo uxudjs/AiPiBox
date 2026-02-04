@@ -27,6 +27,7 @@ const InputToolbar = ({
   currentIsAIGenerating,
   onStopGeneration,
   onSendMessage,
+  isLoading,
   isSendDisabled
 }) => {
   const { t } = useTranslation();
@@ -136,7 +137,7 @@ const InputToolbar = ({
         >
           {currentIsAIGenerating ? (
             <Square className="w-5 h-5" />
-          ) : (isSendDisabled && !currentIsAIGenerating) ? (
+          ) : isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             <ArrowUp className="w-5 h-5" />

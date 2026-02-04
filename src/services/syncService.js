@@ -338,7 +338,7 @@ class SyncService {
         data: encryptedData,
         timestamp: payload.timestamp
       }, {
-        timeout: 5000
+        timeout: this.cloudSyncConfig.timeout
       });
 
       // Update last sync time
@@ -405,7 +405,7 @@ class SyncService {
       const apiBaseUrl = this._getApiBaseUrl();
       
       const response = await axios.get(`${apiBaseUrl}/api/sync/${syncId}`, {
-        timeout: 5000
+        timeout: this.cloudSyncConfig.timeout
       });
       const { data: encryptedData, timestamp } = response.data; // data here is the encrypted string
 
@@ -603,7 +603,7 @@ class SyncService {
     
     try {
       const response = await axios.get(healthCheckUrl, { 
-        timeout: 5000,
+        timeout: this.cloudSyncConfig.timeout,
         validateStatus: (status) => status >= 200 && status < 300
       });
       
@@ -991,7 +991,7 @@ class SyncService {
       let cloudPayload = null;
       try {
         const response = await axios.get(`${apiBaseUrl}/api/sync/${syncId}`, {
-          timeout: 10000
+          timeout: this.cloudSyncConfig.timeout
         });
         
         if (response.data && response.data.data) {
@@ -1057,36 +1057,33 @@ class SyncService {
             // 关键修复：过滤掉已发生冲突的消息
             let messagesToApply = cloudPayload.messages.filter(m => !conflictMsgIds.has(m.id));
             
-            if (messagesToApply.length === 0) return;
-
-            if (!syncImages) {
-              messagesToApply = messagesToApply.map(msg => ({
-                ...msg,
-                content: Array.isArray(msg.content) 
-                  ? msg.content.map(part => part.type === 'image_url' ? { ...part, image_url: { ...part.image_url, url: '' }, _sync_placeholder: true } : part)
-                  : msg.content
-              }));
-            } else {
-              // 保留本地图片数据的合并逻辑
-              const localMessages = await db.messages.where('id').anyOf(messagesToApply.map(m => m.id)).toArray();
-              const localMsgMap = new Map(localMessages.map(m => [m.id, m]));
-              messagesToApply = messagesToApply.map(msg => {
-                const localMsg = localMsgMap.get(msg.id);
-                if (localMsg && Array.isArray(localMsg.content) && Array.isArray(msg.content)) {
-                    const newContent = msg.content.map((part, idx) => {
-                        const localPart = localMsg.content[idx];
-                        if (part.type === 'image_url' && (!part.image_url?.url || part._sync_placeholder) && localPart?.type === 'image_url' && localPart.image_url?.url) {
-                            return localPart;
-                        }
-                        return part;
-                    });
-                    return { ...msg, content: newContent };
-                }
-                return msg;
-              });
-            }
-            
             if (messagesToApply.length > 0) {
+              if (!syncImages) {
+                messagesToApply = messagesToApply.map(msg => ({
+                  ...msg,
+                  content: Array.isArray(msg.content) 
+                    ? msg.content.map(part => part.type === 'image_url' ? { ...part, image_url: { ...part.image_url, url: '' }, _sync_placeholder: true } : part)
+                    : msg.content
+                }));
+              } else {
+                // 保留本地图片数据的合并逻辑
+                const localMessages = await db.messages.where('id').anyOf(messagesToApply.map(m => m.id)).toArray();
+                const localMsgMap = new Map(localMessages.map(m => [m.id, m]));
+                messagesToApply = messagesToApply.map(msg => {
+                  const localMsg = localMsgMap.get(msg.id);
+                  if (localMsg && Array.isArray(localMsg.content) && Array.isArray(msg.content)) {
+                      const newContent = msg.content.map((part, idx) => {
+                          const localPart = localMsg.content[idx];
+                          if (part.type === 'image_url' && (!part.image_url?.url || part._sync_placeholder) && localPart?.type === 'image_url' && localPart.image_url?.url) {
+                              return localPart;
+                          }
+                          return part;
+                      });
+                      return { ...msg, content: newContent };
+                  }
+                  return msg;
+                });
+              }
               await db.messages.bulkPut(messagesToApply);
             }
           }
