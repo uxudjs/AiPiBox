@@ -30,6 +30,7 @@ class SyncService {
   constructor() {
     this.isSyncing = false;
     this.initialized = false;
+    this.hasSyncedOnce = false; // 防覆盖标记：本会话是否已完成过一次拉取合并
     this.syncInterval = null;
     // 限制同步频率，避免频繁请求后端
     this.debouncedSync = this.debounce(this.syncToCloud.bind(this), 5000);
@@ -205,9 +206,28 @@ class SyncService {
 
   /**
    * 执行全量推送同步
+   * @param {boolean} force - 是否强制推送，忽略 hasSyncedOnce 检查
    */
-  async syncToCloud() {
+  async syncToCloud(force = false) {
     if (this.isSyncing) return;
+
+    // 安全检查：如果从未与云端进行过同步（拉取合并），则不允许直接推送，防止空数据覆盖云端
+    if (!this.hasSyncedOnce && !force) {
+      logger.info('SyncService', 'Not synced with cloud yet. Upgrading to conflict resolution sync to prevent data loss.');
+      // 动态获取 AuthStore
+      let AuthStore;
+      try {
+        const authModule = await import('../store/useAuthStore');
+        AuthStore = authModule.useAuthStore;
+      } catch (e) {
+        return;
+      }
+      const { sessionPassword } = AuthStore.getState();
+      if (sessionPassword) {
+        return this.syncWithConflictResolution(sessionPassword);
+      }
+      return;
+    }
     
     // 动态获取 AuthStore 以避免循环依赖
     let AuthStore;
@@ -246,9 +266,19 @@ class SyncService {
       // Gather data
       const configState = useConfigStore.getState();
       
-      // Export DB data
+      // Export DB and Store data
       const conversations = await db.conversations.toArray();
       const messages = await db.messages.toArray();
+      const images = await db.images.toArray();
+      
+      // 动态获取知识库数据
+      let knowledgeBases = [];
+      try {
+        const kbModule = await import('../store/useKnowledgeBaseStore');
+        knowledgeBases = kbModule.useKnowledgeBaseStore.getState().knowledgeBases || [];
+      } catch (e) {
+        logger.warn('SyncService', 'Failed to collect knowledge bases for sync', e);
+      }
       
       const payload = {
         config: {
@@ -258,10 +288,14 @@ class SyncService {
             proxy: configState.proxy, 
             searchSettings: configState.searchSettings,
             conversationPresets: configState.conversationPresets,
-            conversationSettings: configState.conversationSettings
+            conversationSettings: configState.conversationSettings,
+            // 包含知识库检索设置
+            retrievalSettings: configState.retrievalSettings
         },
         conversations,
         messages,
+        images,
+        knowledgeBases,
         timestamp: Date.now()
       };
 
@@ -375,32 +409,65 @@ class SyncService {
   }
 
   async applyCloudData(cloudData) {
+    if (!cloudData) return;
+
     // 1. Apply Config
     if (cloudData.config) {
-       // Merge logic? Or overwrite? 
-       // ConfigStore has setState.
-       // Let's overwrite for now, but preserve local keys if needed.
+       // 更新通用配置
        useConfigStore.setState(state => ({
            ...state,
            ...cloudData.config,
            // Preserve cloudSync settings as they are local preference for enabling
            cloudSync: state.cloudSync 
        }));
+
+       // 更新知识库检索设置 (它存储在 KnowledgeBaseStore 中)
+       if (cloudData.config.retrievalSettings) {
+           try {
+               const kbModule = await import('../store/useKnowledgeBaseStore');
+               kbModule.useKnowledgeBaseStore.setState({
+                   retrievalSettings: cloudData.config.retrievalSettings
+               });
+           } catch (e) {
+               logger.warn('SyncService', 'Failed to apply retrieval settings', e);
+           }
+       }
     }
 
-    // 2. Apply DB Data (Conversations & Messages)
-    // Strategy: Upsert.
-    // If ID exists, overwrite if cloud timestamp > local.
-    // Actually, simple upsert is safer than delete-all.
+    // 2. Apply DB Data (Conversations, Messages, Images)
+    // Strategy: Upsert (bulkPut). 
+    // This adds new items and updates existing ones based on primary key.
     
-    if (cloudData.conversations) {
-       await db.transaction('rw', db.conversations, db.messages, async () => {
-           // Bulk put is faster
-           await db.conversations.bulkPut(cloudData.conversations);
-           if (cloudData.messages) {
-               await db.messages.bulkPut(cloudData.messages);
-           }
-       });
+    await db.transaction('rw', [db.conversations, db.messages, db.images], async () => {
+        if (cloudData.conversations && cloudData.conversations.length > 0) {
+            await db.conversations.bulkPut(cloudData.conversations);
+        }
+        if (cloudData.messages && cloudData.messages.length > 0) {
+            await db.messages.bulkPut(cloudData.messages);
+        }
+        if (cloudData.images && cloudData.images.length > 0) {
+            await db.images.bulkPut(cloudData.images);
+        }
+    });
+
+    // 3. Apply Knowledge Base Data
+    if (cloudData.knowledgeBases && cloudData.knowledgeBases.length > 0) {
+        try {
+            const kbModule = await import('../store/useKnowledgeBaseStore');
+            const { knowledgeBases: localKBs } = kbModule.useKnowledgeBaseStore.getState();
+            
+            // 合并逻辑：基于 ID 去重
+            const kbMap = new Map(localKBs.map(kb => [kb.id, kb]));
+            cloudData.knowledgeBases.forEach(kb => {
+                kbMap.set(kb.id, kb); // 云端覆盖本地
+            });
+            
+            kbModule.useKnowledgeBaseStore.setState({
+                knowledgeBases: Array.from(kbMap.values())
+            });
+        } catch (e) {
+            logger.error('SyncService', 'Failed to apply knowledge bases from cloud', e);
+        }
     }
     
     // Update sync time and status
@@ -448,6 +515,17 @@ class SyncService {
    * @param {boolean} force - 是否强制刷新，跳过缓存
    */
   async checkProxyHealth(force = false) {
+    // 核心逻辑：如果代理功能本身已关闭，健康检查应直接判定为不可用
+    const { proxy } = useConfigStore.getState();
+    if (!proxy?.enabled) {
+      this.proxyStatus = {
+        ...this.proxyStatus,
+        isAvailable: false,
+        lastCheckTime: Date.now()
+      };
+      return false;
+    }
+
     // 性能优化：5秒内不重复进行物理健康检查，除非强制刷新
     if (!force && Date.now() - this.proxyStatus.lastCheckTime < 5000 && this.proxyStatus.lastCheckTime !== 0) {
       return this.proxyStatus.isAvailable;
@@ -871,8 +949,9 @@ class SyncService {
       if (cloudPayload) {
         const localConversations = await db.conversations.toArray();
         const localMessages = await db.messages.toArray();
+        const localImages = await db.images.toArray();
 
-        // 检测冲突
+        // 检测冲突 (针对对话和消息执行精细冲突解决)
         const convConflicts = detectConflicts(localConversations, cloudPayload.conversations || []);
         const msgConflicts = detectConflicts(localMessages, cloudPayload.messages || []);
         
@@ -885,7 +964,7 @@ class SyncService {
           const resolvedMessages = resolveConflicts(msgConflicts, strategy);
 
           // 应用解决后的数据到本地数据库
-          await db.transaction('rw', db.conversations, db.messages, async () => {
+          await db.transaction('rw', [db.conversations, db.messages], async () => {
             for (const resolved of resolvedConversations) {
               await db.conversations.put(resolved.data);
             }
@@ -896,29 +975,64 @@ class SyncService {
           logger.info('SyncService', `Resolved and applied ${totalConflicts} conflicts using ${strategy}`);
         }
 
-        // 应用云端存在但本地不存在的数据，或云端更新的数据（非冲突部分）
-        // 简单起见，对云端数据执行 bulkPut，Dexie 会根据主键自动处理
-        await db.transaction('rw', db.conversations, db.messages, async () => {
+        // 基础合并策略：对于图片和知识库，执行全量 Upsert 合并
+        await db.transaction('rw', [db.conversations, db.messages, db.images], async () => {
           if (cloudPayload.conversations) {
             await db.conversations.bulkPut(cloudPayload.conversations);
           }
           if (cloudPayload.messages) {
             await db.messages.bulkPut(cloudPayload.messages);
           }
+          if (cloudPayload.images) {
+            await db.images.bulkPut(cloudPayload.images);
+          }
         });
 
-        // 应用配置合并（可选，通常配置以本地为准或简单覆盖）
+        // 知识库合并
+        if (cloudPayload.knowledgeBases && cloudPayload.knowledgeBases.length > 0) {
+            try {
+                const kbModule = await import('../store/useKnowledgeBaseStore');
+                const { knowledgeBases: currentKBs } = kbModule.useKnowledgeBaseStore.getState();
+                const kbMap = new Map(currentKBs.map(kb => [kb.id, kb]));
+                cloudPayload.knowledgeBases.forEach(kb => {
+                    // 如果云端更新，则覆盖本地（简单的时间戳策略或直接覆盖）
+                    kbMap.set(kb.id, kb);
+                });
+                kbModule.useKnowledgeBaseStore.setState({
+                    knowledgeBases: Array.from(kbMap.values())
+                });
+            } catch (e) {
+                logger.error('SyncService', 'Merge knowledge bases failed', e);
+            }
+        }
+
+        // 应用配置合并
         if (cloudPayload.config) {
           useConfigStore.setState(state => ({
             ...state,
             ...cloudPayload.config,
             cloudSync: state.cloudSync // 保持本地同步开关状态
           }));
+
+          // 合并知识库检索设置
+          if (cloudPayload.config.retrievalSettings) {
+            try {
+                const kbModule = await import('../store/useKnowledgeBaseStore');
+                kbModule.useKnowledgeBaseStore.setState({
+                    retrievalSettings: cloudPayload.config.retrievalSettings
+                });
+            } catch (e) {
+                logger.warn('SyncService', 'Failed to merge retrieval settings', e);
+            }
+          }
         }
       }
 
-      // 4. 将合并后的最新数据推送到云端
-      await this.syncToCloud();
+      // 标记为已成功完成同步基础，允许后续自动推送
+      this.hasSyncedOnce = true;
+
+      // 4. 将合并后的最新数据推送到云端 (使用 force=true 避免进入递归)
+      await this.syncToCloud(true);
 
       // 5. 更新同步结果状态
       useConfigStore.getState().updateCloudSync({

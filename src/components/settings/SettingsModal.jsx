@@ -72,18 +72,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   const [editingModel, setEditingModel] = useState(null);
   const [isTestingSync, setIsTestingSync] = useState(false);
   const [proxyStatus, setProxyStatus] = useState(() => {
-    // 初始化时检查环境
-    try {
-      const { detectPlatform, Platform } = require('../../utils/envDetect');
-      const platform = detectPlatform();
-      // 生产环境默认代理可用
-      if (platform !== Platform.LOCAL && platform !== Platform.UNKNOWN) {
-        return { isAvailable: true, lastCheckTime: Date.now(), errorCount: 0 };
-      }
-    } catch (error) {
-      // 忽略错误
-    }
-    return { isAvailable: false, lastCheckTime: 0, errorCount: 0 };
+    // 始终从 syncService 获取初始状态，确保与实际连接情况同步
+    return syncService.getProxyStatus();
   });
   const [cloudSyncError, setCloudSyncError] = useState(null);
   
@@ -195,8 +185,14 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       
       return () => clearInterval(interval);
     } else if (isOpen) {
-      // 如果代理或云同步未启用，直接获取状态（不进行实际检查）
-      setProxyStatus(syncService.getProxyStatus());
+      // 如果代理或云同步未启用，获取底层状态
+      const status = syncService.getProxyStatus();
+      // 核心修复：如果代理功能本身已关闭，即使底层状态在线，在UI上也应显示为不可用
+      if (!localConfig?.proxy?.enabled) {
+        setProxyStatus({ ...status, isAvailable: false });
+      } else {
+        setProxyStatus(status);
+      }
     }
   }, [isOpen, localConfig?.cloudSync?.enabled, localConfig?.proxy?.enabled]);
   
@@ -401,35 +397,40 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
               <div className="p-2 border-b flex items-center justify-center bg-accent/20">
                 <span className="text-xs font-black text-primary uppercase tracking-widest">{t('settings.search.selectEngine')}</span>
               </div>
-            <div ref={searchDropdownScrollRef} className="max-h-[min(400px,calc(100vh-300px))] overflow-y-auto p-2 custom-scrollbar space-y-1">
-              {engines.map(engine => {
-                const isSelected = searchSettings.engine === engine.value;
-                const EngineIcon = engine.icon;
-                
-                return (
-                  <button
-                    key={engine.value}
-                    type="button"
-                    onClick={() => {
-                      updateLocalConfig('searchSettings', { engine: engine.value });
-                      setOpenSearchDropdown(false);
-                    }}
-                    className={cn(
-                      "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between group/item border border-transparent",
-                      isSelected 
-                        ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
-                        : "hover:bg-primary/5 hover:border-primary/20"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <EngineIcon className="w-4 h-4" />
-                      <span className="text-xs truncate">{engine.label}</span>
-                    </div>
-                    {isSelected && <Check className="w-3.5 h-3.5" />}
-                  </button>
-                );
-              })}
-            </div>
+              <div ref={searchDropdownScrollRef} className="max-h-[min(400px,calc(100vh-300px))] overflow-y-auto p-1.5 custom-scrollbar space-y-1">
+                {engines.map(engine => {
+                  const isSelected = searchSettings.engine === engine.value;
+                  const EngineIcon = engine.icon;
+                  
+                  return (
+                    <button
+                      key={engine.value}
+                      type="button"
+                      onClick={() => {
+                        updateLocalConfig('searchSettings', { engine: engine.value });
+                        setOpenSearchDropdown(false);
+                      }}
+                      className={cn(
+                        "w-full text-left p-2 rounded-lg transition-all flex items-center justify-between group/item border border-transparent",
+                        isSelected 
+                          ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
+                          : "hover:bg-primary/5 hover:border-primary/20"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center transition-colors",
+                          isSelected ? "bg-white/20" : "bg-accent"
+                        )}>
+                          <EngineIcon className={cn("w-4 h-4", isSelected ? "text-white" : "text-muted-foreground")} />
+                        </div>
+                        <span className="text-xs truncate">{engine.label}</span>
+                      </div>
+                      {isSelected && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </>
         )}
@@ -464,31 +465,31 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
               <div className="p-2 border-b flex items-center justify-center bg-accent/20">
                 <span className="text-xs font-black text-primary uppercase tracking-widest">{label}</span>
               </div>
-            <div ref={generalDropdownScrollRef} className="max-h-[min(400px,calc(100vh-300px))] overflow-y-auto p-2 custom-scrollbar space-y-1">
-              {options.map(option => {
-                const isSelected = currentValue === option.value;
-                
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      onChange(option.value);
-                      setOpenGeneralDropdown(null);
-                    }}
-                    className={cn(
-                      "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between group/item border border-transparent",
-                      isSelected 
-                        ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
-                        : "hover:bg-primary/5 hover:border-primary/20"
-                    )}
-                  >
-                    <span className="text-xs truncate">{option.label}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5" />}
-                  </button>
-                );
-              })}
-            </div>
+              <div ref={generalDropdownScrollRef} className="max-h-[min(400px,calc(100vh-300px))] overflow-y-auto p-1.5 custom-scrollbar space-y-1">
+                {options.map(option => {
+                  const isSelected = currentValue === option.value;
+                  
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        onChange(option.value);
+                        setOpenGeneralDropdown(null);
+                      }}
+                      className={cn(
+                        "w-full text-left p-2 rounded-lg transition-all flex items-center justify-between group/item border border-transparent",
+                        isSelected 
+                          ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
+                          : "hover:bg-primary/5 hover:border-primary/20"
+                      )}
+                    >
+                      <span className="text-xs truncate">{option.label}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </>
         )}
@@ -1528,36 +1529,36 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                               <div className="p-2 border-b flex items-center justify-center bg-accent/20">
                                 <span className="text-xs font-black text-primary uppercase tracking-widest">{t('settings.security.selectDuration')}</span>
                               </div>
-                            <div className="max-h-[400px] overflow-y-auto p-2 custom-scrollbar space-y-1">
-                              {[
-                                { value: 'none', label: t('settings.security.persistenceNone') },
-                                { value: '1d', label: t('settings.security.persistence1d') },
-                                { value: '5d', label: t('settings.security.persistence5d') },
-                                { value: '10d', label: t('settings.security.persistence10d') },
-                                { value: '30d', label: t('settings.security.persistence30d') }
-                              ].map(option => {
-                                const isSelected = (localConfig.persistenceMode || persistenceMode) === option.value;
-                                return (
-                                  <button
-                                    key={option.value}
-                                    type="button"
-                                    onClick={() => {
-                                      setLocalConfig(prev => ({ ...prev, persistenceMode: option.value }));
-                                      setOpenGeneralDropdown(null);
-                                    }}
-                                    className={cn(
-                                      "w-full text-left p-2.5 rounded-xl transition-all flex items-center justify-between group/item border border-transparent",
-                                      isSelected 
-                                        ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
-                                        : "hover:bg-primary/5 hover:border-primary/20"
-                                    )}
-                                  >
-                                    <span className="text-xs truncate">{option.label}</span>
-                                    {isSelected && <Check className="w-3.5 h-3.5" />}
-                                  </button>
-                                );
-                              })}
-                            </div>
+                              <div className="max-h-[400px] overflow-y-auto p-1.5 custom-scrollbar space-y-1">
+                                {[
+                                  { value: 'none', label: t('settings.security.persistenceNone') },
+                                  { value: '1d', label: t('settings.security.persistence1d') },
+                                  { value: '5d', label: t('settings.security.persistence5d') },
+                                  { value: '10d', label: t('settings.security.persistence10d') },
+                                  { value: '30d', label: t('settings.security.persistence30d') }
+                                ].map(option => {
+                                  const isSelected = (localConfig.persistenceMode || persistenceMode) === option.value;
+                                  return (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() => {
+                                        setLocalConfig(prev => ({ ...prev, persistenceMode: option.value }));
+                                        setOpenGeneralDropdown(null);
+                                      }}
+                                      className={cn(
+                                        "w-full text-left p-2 rounded-lg transition-all flex items-center justify-between group/item border border-transparent",
+                                        isSelected 
+                                          ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
+                                          : "hover:bg-primary/5 hover:border-primary/20"
+                                      )}
+                                    >
+                                      <span className="text-xs truncate">{option.label}</span>
+                                      {isSelected && <Check className="w-3.5 h-3.5" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </>
                         )}

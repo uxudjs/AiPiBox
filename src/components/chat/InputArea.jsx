@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Plus, Camera, Search, ChevronUp, Cpu, Loader2, Globe, Brain, Sparkles, X, ChevronDown, Check, Settings, Paperclip, Square, BookOpen, Sliders, ArrowUp, FileText, Minimize2, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { useChatStore } from '../../store/useChatStore';
 import { useConfigStore } from '../../store/useConfigStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useFileStore } from '../../store/useFileStore';
+import { syncService } from '../../services/syncService';
 import { useViewStore } from '../../store/useViewStore';
 import { compressImage } from '../../utils/imageCompression';
 import { useTranslation } from '../../i18n';
@@ -74,6 +76,7 @@ const InputArea = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const [isSyncSuccess, setIsSyncSuccess] = useState(false);
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const fileInputRef = useRef(null);
   const modelSearchInputRef = useRef(null);
@@ -1270,12 +1273,15 @@ Question: ${userMsg}`;
   /**
    * 手动云端同步
    */
+  /**
+   * 手动云端同步
+   */
   const handleManualSync = async () => {
     const { sessionPassword } = useAuthStore.getState();
     const { cloudSync } = useConfigStore.getState();
 
     if (!cloudSync?.enabled) {
-      alert(t('settings.security.enableCloudSync'));
+      alert(t('settings.security.enableCloudSync') || '请先在设置中开启云同步');
       return;
     }
 
@@ -1287,9 +1293,14 @@ Question: ${userMsg}`;
     if (isManualSyncing) return;
 
     setIsManualSyncing(true);
+    setIsSyncSuccess(false);
     try {
+      // 真实调用同步服务，执行拉取、合并、推送全流程
       await syncService.syncWithConflictResolution(sessionPassword);
-      // 同步成功通常不需要弹窗，因为 UI 会自动刷新，且同步按钮会有完成状态指示（可选）
+      
+      // 显示成功反馈
+      setIsSyncSuccess(true);
+      setTimeout(() => setIsSyncSuccess(false), 3000); // 3秒后恢复
     } catch (error) {
       logger.error('InputArea', 'Manual sync failed:', error);
       alert(t('settings.security.syncFailed', { error: error.message }));
@@ -1737,6 +1748,46 @@ Question: ${userMsg}`;
           </>
         )}
 
+        {/* 顶部按钮组：拍照、同步、新对话 */}
+        <div className="flex items-center justify-center mb-3 gap-8 text-[10px] font-medium text-muted-foreground/60">
+          <button 
+            onClick={handleCamera} 
+            className="flex items-center gap-1.5 hover:text-primary transition-colors py-1 px-2 rounded-lg hover:bg-primary/5"
+          >
+            <Camera className="w-3.5 h-3.5" /> 
+            {t('inputArea.takePhoto')}
+          </button>
+          
+          <button 
+            onClick={handleManualSync} 
+            disabled={isManualSyncing}
+            className={cn(
+              "flex items-center gap-1.5 transition-all py-1 px-2 rounded-lg",
+              isSyncSuccess ? "text-green-500 bg-green-500/5" : "hover:text-primary hover:bg-primary/5",
+              isManualSyncing && "text-primary opacity-70 cursor-wait"
+            )}
+          >
+            {isSyncSuccess ? (
+              <Check className="w-3.5 h-3.5 animate-in zoom-in duration-300" />
+            ) : (
+              <RefreshCw className={cn("w-3.5 h-3.5", isManualSyncing && "animate-spin")} />
+            )}
+            <span>
+              {isManualSyncing ? (t('common.syncing') || '正在同步...') : 
+               isSyncSuccess ? (t('common.syncSuccess') || '同步成功') : 
+               t('inputArea.manualSync')}
+            </span>
+          </button>
+          
+          <button 
+            onClick={() => createNewConversation()} 
+            className="flex items-center gap-1.5 hover:text-primary transition-colors py-1 px-2 rounded-lg hover:bg-primary/5"
+          >
+            <Plus className="w-3.5 h-3.5" /> 
+            {t('inputArea.newConversation')}
+          </button>
+        </div>
+
         <div className="flex flex-col gap-2 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-[24px] p-3 border border-border/30 transition-all shadow-lg">
           <textarea
             ref={textareaRef}
@@ -1862,13 +1913,6 @@ Question: ${userMsg}`;
           </div>
         </div>
         
-        <div className="flex items-center justify-center mt-3 gap-6 text-[10px] font-medium text-muted-foreground/60">
-          <span onClick={handleCamera} className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"><Camera className="w-3 h-3" /> {t('inputArea.takePhoto')}</span>
-          <span onClick={handleManualSync} className={cn("flex items-center gap-1 cursor-pointer hover:text-primary transition-colors", isManualSyncing && "text-primary opacity-70 cursor-wait")}>
-            <RefreshCw className={cn("w-3 h-3", isManualSyncing && "animate-spin")} /> {t('inputArea.manualSync')}
-          </span>
-          <span onClick={() => createNewConversation()} className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors"><ChevronUp className="w-3 h-3" /> {t('inputArea.newConversation')}</span>
-        </div>
       </div>
       
       {previewImage && (

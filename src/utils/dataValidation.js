@@ -129,7 +129,8 @@ export async function collectAllSyncData(options = {}) {
         searchSettings: useConfigStore.getState().searchSettings,
         conversationPresets: useConfigStore.getState().conversationPresets,
         conversationSettings: useConfigStore.getState().conversationSettings,
-        cloudSync: useConfigStore.getState().cloudSync
+        cloudSync: useConfigStore.getState().cloudSync,
+        retrievalSettings: useKnowledgeBaseStore.getState().retrievalSettings
       },
       conversations: await db.conversations.toArray(),
       messages: await db.messages.toArray(),
@@ -223,6 +224,12 @@ export async function restoreAllData(data, options = {}) {
     // 恢复Zustand状态
     if (data.config) {
       useConfigStore.setState(data.config);
+      
+      // 恢复知识库检索设置
+      if (data.config.retrievalSettings) {
+        useKnowledgeBaseStore.setState({ retrievalSettings: data.config.retrievalSettings });
+      }
+      
       // 应用主题
       useConfigStore.getState().applyTheme();
     }
