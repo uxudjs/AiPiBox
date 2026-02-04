@@ -57,7 +57,7 @@ class ErrorBoundary extends React.Component {
 
   handleClearData = () => {
     const { t } = useI18nStore.getState();
-    if (window.confirm(t('error.clearDataConfirm'))) {
+    if (window.confirm(t ? t('error.clearDataConfirm') : '确定要清除所有数据并重置应用吗？此操作不可恢复。')) {
       // 清除所有localStorage数据
       localStorage.clear();
       // 清除所有sessionStorage数据
@@ -81,6 +81,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       const { error, errorInfo, errorCount } = this.state;
+      const { t } = useI18nStore.getState();
 
       return (
         <div className="h-screen w-full flex items-center justify-center bg-background p-4">
@@ -104,7 +105,7 @@ class ErrorBoundary extends React.Component {
               {errorInfo && (
                 <details className="mt-4">
                   <summary className="text-xs cursor-pointer hover:text-primary transition-colors">
-                    {t('error.stackTrace')}
+                    {t ? t('error.stackTrace') : 'Stack Trace'}
                   </summary>
                   <div className="text-xs font-mono text-muted-foreground mt-2 overflow-auto custom-scrollbar max-h-40">
                     {errorInfo.componentStack}

@@ -389,8 +389,19 @@ export const useChatStore = create((set, get) => ({
     
     // 处理多根节点情况：选择第一个根节点
     let currentMsg = roots[0];
+    const visited = new Set();
+    const MAX_ITERATIONS = 5000; // 安全上限
+    let iterations = 0;
     
-    while (currentMsg) {
+    while (currentMsg && iterations < MAX_ITERATIONS) {
+       // 循环检测
+       if (visited.has(currentMsg.id)) {
+         logger.error('useChatStore', 'Circular reference detected in message tree at ID:', currentMsg.id);
+         break;
+       }
+       visited.add(currentMsg.id);
+       iterations++;
+
        // 为消息添加兄弟节点信息
        const pid = currentMsg.parentId || 'root';
        const siblings = childrenMap.get(pid) || [];
@@ -413,6 +424,10 @@ export const useChatStore = create((set, get) => ({
          nextMsg = children[children.length - 1];
        }
        currentMsg = nextMsg;
+    }
+
+    if (iterations >= MAX_ITERATIONS) {
+      logger.error('useChatStore', 'Maximum message depth reached, possible infinite loop or extremely long conversation');
     }
     
     return path;

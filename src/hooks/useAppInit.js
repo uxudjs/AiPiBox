@@ -37,7 +37,9 @@ export const useAppInit = () => {
 
       try {
         await Promise.race([loadPromise, timeoutPromise]);
+        logger.info('useAppInit', 'Base environment initialized successfully');
       } catch (err) {
+        logger.error('useAppInit', 'Base environment initialization failed', err);
         setInitError(err.message || t('app.initFailed'));
       } finally {
         setLoading(false);
