@@ -161,6 +161,11 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
   const { t } = useTranslation();
   const [previewImage, setPreviewImage] = useState(null);
 
+  // 防御性检查：确保 content 有效
+  if (content === null || content === undefined) {
+    return null;
+  }
+
   // 如果内容是数组（包含图片和文本），直接渲染对应组件
   if (Array.isArray(content)) {
     return (

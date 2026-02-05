@@ -409,11 +409,19 @@ export const useChatStore = create((set, get) => ({
       // 构建消息树的索引结构
       const msgMap = new Map();
       const childrenMap = new Map();
+      
+      /**
+       * ID 归一化处理：由于同步可能导致主键类型不一致（数字 vs 字符串）
+       * 统一使用字符串作为 Map 的键以确保匹配逻辑正确
+       */
+      const normalizeId = (id) => (id === undefined || id === null) ? 'root' : String(id);
 
       allMessages.forEach(m => {
-        if (m && m.id) {
-          msgMap.set(m.id, m);
-          const pid = m.parentId || 'root';
+        if (m && m.id !== undefined && m.id !== null) {
+          const mid = normalizeId(m.id);
+          msgMap.set(mid, m);
+          
+          const pid = normalizeId(m.parentId);
           if (!childrenMap.has(pid)) childrenMap.set(pid, []);
           childrenMap.get(pid).push(m);
         }
@@ -426,7 +434,16 @@ export const useChatStore = create((set, get) => ({
       
       // 从根节点开始遍历
       let roots = childrenMap.get('root') || [];
-      if (roots.length === 0) return [];
+      if (roots.length === 0) {
+        // [容错处理] 如果没有明确标记为 root 的消息，则视第一条消息为起点（防止数据迁移/同步导致的根节点标记丢失）
+        const firstMsg = allMessages[0];
+        if (firstMsg) {
+          logger.warn('useChatStore', 'No explicit root messages found, falling back to first message in sequence', { conversationId });
+          roots = [firstMsg];
+        } else {
+          return [];
+        }
+      }
       
       // 处理多根节点情况：选择第一个根节点
       let currentMsg = roots[0];
@@ -435,34 +452,37 @@ export const useChatStore = create((set, get) => ({
       let iterations = 0;
       
       while (currentMsg && iterations < MAX_ITERATIONS) {
+         const currentMid = normalizeId(currentMsg.id);
+         
          // 循环检测
-         if (visited.has(currentMsg.id)) {
-           logger.error('useChatStore', 'Circular reference detected in message tree at ID:', currentMsg.id);
+         if (visited.has(currentMid)) {
+           logger.error('useChatStore', 'Circular reference detected in message tree at ID:', currentMid);
            break;
          }
-         visited.add(currentMsg.id);
+         visited.add(currentMid);
          iterations++;
 
          // 为消息添加兄弟节点信息
-         const pid = currentMsg.parentId || 'root';
+         const pid = normalizeId(currentMsg.parentId);
          const siblings = childrenMap.get(pid) || [];
          
          path.push({
            ...currentMsg,
            siblingCount: siblings.length,
-           siblingIndex: siblings.findIndex(m => m.id === currentMsg.id) + 1,
+           siblingIndex: siblings.findIndex(m => normalizeId(m.id) === currentMid) + 1,
            siblings: siblings.map(s => s.id)
          });
          
-         const children = childrenMap.get(currentMsg.id);
+         const children = childrenMap.get(currentMid);
          if (!children || children.length === 0) break;
          
          let nextId = currentMsg.selectedChildId;
-         let nextMsg = nextId ? msgMap.get(nextId) : null;
+         let nextMsg = nextId ? msgMap.get(normalizeId(nextId)) : null;
          
-         // 如果没有选中子节点或选中节点无效，默认选择最后一个子节点（最新分支）
-         if (!nextMsg || nextMsg.parentId !== currentMsg.id) {
-           nextMsg = children[children.length - 1];
+         // 如果没有选中子节点或选中节点无效，默认选择第一个子节点（有序历史）
+         // 容错逻辑：必须确保 nextMsg 的父节点确实是当前节点
+         if (!nextMsg || normalizeId(nextMsg.parentId) !== currentMid) {
+           nextMsg = children[0]; // 默认选择分支中的第一条（通常是第一个生成的）
          }
          currentMsg = nextMsg;
       }
@@ -471,11 +491,11 @@ export const useChatStore = create((set, get) => ({
         logger.error('useChatStore', 'Maximum message depth reached, possible infinite loop or extremely long conversation');
       }
       
-      // 性能防御：如果消息过多，仅返回最近的 100 条。
-      // 注意：由于是链表结构，这会从展示上切断历史，但能防止渲染挂掉。
-      if (path.length > 100) {
-        logger.warn('useChatStore', `Conversation ${conversationId} has ${path.length} messages, limiting UI to last 100`);
-        return path.slice(-100);
+      // 性能防御：如果消息过多，仅返回最近的 200 条。
+      // 将原有的 100 限制放宽至 200，权衡性能与用户体验
+      if (path.length > 200) {
+        logger.warn('useChatStore', `Conversation ${conversationId} has ${path.length} messages, limiting UI to last 200`);
+        return path.slice(-200);
       }
       
       return path;

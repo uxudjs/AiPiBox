@@ -526,7 +526,15 @@ class SyncService {
     // This adds new items and updates existing ones based on primary key.
     await db.transaction('rw', [db.conversations, db.messages, db.images], async () => {
         if (cloudData.conversations && cloudData.conversations.length > 0) {
-            const conversationsToApply = cloudData.conversations.filter(c => !shouldSkipByTombstone('conversations', c));
+            let conversationsToApply = cloudData.conversations.filter(c => !shouldSkipByTombstone('conversations', c));
+            
+            // [数据清洗] 确保关键字段格式正确
+            conversationsToApply = conversationsToApply.map(c => ({
+              ...c,
+              lastUpdatedAt: typeof c.lastUpdatedAt === 'number' ? c.lastUpdatedAt : Date.now(),
+              title: String(c.title || 'Untitled')
+            }));
+
             if (conversationsToApply.length > 0) {
               await db.conversations.bulkPut(conversationsToApply);
             }
@@ -535,11 +543,23 @@ class SyncService {
             // 过滤掉墓碑中的消息
             let messagesToApply = cloudData.messages.filter(m => !shouldSkipByTombstone('messages', m));
             
+            // [数据清洗] 确保字段类型与本地期望一致，修复同步带来的脏数据
+            messagesToApply = messagesToApply.map(msg => {
+                const cleaned = {
+                  ...msg,
+                  timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : (msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now()),
+                  role: msg.role || 'user',
+                  content: msg.content === undefined || msg.content === null ? '' : msg.content
+                };
+                // 如果 parentId 是数字 0 或其他虚假值，统一转为 null 以适配根节点逻辑
+                if (!cleaned.parentId) cleaned.parentId = null;
+                return cleaned;
+            });
+
             // 如果本地未开启图片同步，则过滤掉云端消息中的图片数据，保留占位符
             if (!syncImages) {
                 messagesToApply = messagesToApply.map(msg => {
                     // 如果本地已存在该消息且含有图片数据，且云端是占位符，则保留本地图片数据以防丢失
-                    // 但由于 bulkPut 是全量覆盖，这里需要更精细的合并逻辑
                     return {
                         ...msg,
                         content: Array.isArray(msg.content)
@@ -549,7 +569,8 @@ class SyncService {
                 });
             } else {
                 // 即使开启了同步，也要处理云端可能存在的占位符（防止覆盖本地已有图片）
-                const localMessages = await db.messages.where('id').anyOf(messagesToApply.map(m => m.id)).toArray();
+                const ids = messagesToApply.map(m => m.id).filter(id => id !== undefined && id !== null);
+                const localMessages = await db.messages.where('id').anyOf(ids).toArray();
                 const localMsgMap = new Map(localMessages.map(m => [m.id, m]));
                 
                 messagesToApply = messagesToApply.map(msg => {
@@ -568,7 +589,9 @@ class SyncService {
                 });
             }
             
-            await db.messages.bulkPut(messagesToApply);
+            if (messagesToApply.length > 0) {
+              await db.messages.bulkPut(messagesToApply);
+            }
         }
         if (cloudData.images && cloudData.images.length > 0 && syncImages) {
             const imagesToApply = cloudData.images.filter(img => !shouldSkipByTombstone('images', img));
