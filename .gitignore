@@ -45,12 +45,16 @@ pnpm-debug.log*
 .wrangler
 .dev.vars
 
+# Proxy cache
+proxy/data/
+
 # Test coverage
 coverage/
 .nyc_output/
 
-# Bug fix
-BUGFIX.md
+# Temporary files
+*.tmp
+*.temp
 
-# Other
-.gitignore
+# AI Rules
+BUGFIX.md
