@@ -31,7 +31,8 @@ export const enUS = {
     download: 'Download',
     deleteConfirm: 'Are you sure you want to delete?',
     pleaseSelect: 'Please select',
-    saveSuccess: 'Saved successfully'
+    saveSuccess: 'Saved successfully',
+    reload: 'Reload'
   },
 
   sidebar: {
@@ -635,7 +636,11 @@ export const enUS = {
 
   app: {
     initFailed: 'Initialization failed, please try refreshing the page',
-    dbAccessError: 'Unable to access database, please check browser settings'
+    dbAccessError: 'Unable to access database, please check browser settings',
+    clearCache: 'Clear Cache & Restart',
+    supportHint: 'If the issue persists, please try clearing your browser cache or contact support.',
+    clearCacheConfirm: 'Are you sure you want to clear all cache data and restart? This will log you out and reset local settings.',
+    unknownError: 'Unknown Error'
   },
 
   store: {

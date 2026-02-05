@@ -31,7 +31,8 @@ export const koKR = {
     download: '다운로드',
     deleteConfirm: '삭제하시겠습니까?',
     pleaseSelect: '선택하세요',
-    saveSuccess: '저장 성공'
+    saveSuccess: '저장 성공',
+    reload: '새로 고침'
   },
 
   sidebar: {
@@ -633,7 +634,11 @@ export const koKR = {
 
   app: {
     initFailed: '초기화에 실패했습니다. 페이지를 새로고침하세요',
-    dbAccessError: '데이터베이스에 액세스할 수 없습니다. 브라우저 설정을 확인하세요'
+    dbAccessError: '데이터베이스에 액세스할 수 없습니다. 브라우저 설정을 확인하세요',
+    clearCache: '캐시 지우기 및 다시 시작',
+    supportHint: '문제가 지속되면 브라우저 캐시를 지우거나 지원팀에 문의하십시오.',
+    clearCacheConfirm: '모든 캐시 데이터를 지우고 다시 시작하시겠습니까? 이 작업은 로그아웃되고 로컬 설정이 재설정됩니다.',
+    unknownError: '알 수 없는 오류'
   },
 
   store: {

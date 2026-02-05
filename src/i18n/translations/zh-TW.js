@@ -31,7 +31,8 @@ export const zhTW = {
     download: '下載',
     deleteConfirm: '確定要刪除嗎？',
     pleaseSelect: '請選擇',
-    saveSuccess: '儲存成功'
+    saveSuccess: '儲存成功',
+    reload: '重新載入'
   },
 
   sidebar: {
@@ -633,7 +634,11 @@ export const zhTW = {
 
   app: {
     initFailed: '初始化失敗，請嘗試重新整理頁面',
-    dbAccessError: '無法存取資料庫，請檢查瀏覽器設定'
+    dbAccessError: '無法存取資料庫，請檢查瀏覽器設定',
+    clearCache: '清除快取並重啟',
+    supportHint: '如果問題持續出現，請嘗試清除瀏覽器快取或聯繫支援。',
+    clearCacheConfirm: '確定要清除所有快取資料並重啟嗎？這將登出應用程式並重置本地設定。',
+    unknownError: '未知錯誤'
   },
 
   store: {

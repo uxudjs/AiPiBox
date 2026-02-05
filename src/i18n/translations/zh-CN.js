@@ -31,7 +31,8 @@ export const zhCN = {
     download: '下载',
     deleteConfirm: '确定要删除吗？',
     pleaseSelect: '请选择',
-    saveSuccess: '保存成功'
+    saveSuccess: '保存成功',
+    reload: '重新加载'
   },
 
   sidebar: {
@@ -634,7 +635,11 @@ export const zhCN = {
 
   app: {
     initFailed: '初始化失败，请尝试刷新页面',
-    dbAccessError: '无法访问数据库，请检查浏览器设置'
+    dbAccessError: '无法访问数据库，请检查浏览器设置',
+    clearCache: '清除缓存并重启',
+    supportHint: '如果问题持续出现，请尝试清除浏览器缓存或联系支持。',
+    clearCacheConfirm: '确定要清除所有缓存数据并重启吗？这将登出应用并重置本地设置。',
+    unknownError: '未知错误'
   },
 
   store: {

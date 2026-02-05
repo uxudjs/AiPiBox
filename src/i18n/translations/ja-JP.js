@@ -31,7 +31,8 @@ export const jaJP = {
     download: 'ダウンロード',
     deleteConfirm: '削除してもよろしいですか？',
     pleaseSelect: '選択してください',
-    saveSuccess: '保存成功'
+    saveSuccess: '保存成功',
+    reload: '再読み込み'
   },
 
   sidebar: {
@@ -633,7 +634,11 @@ export const jaJP = {
 
   app: {
     initFailed: '初期化に失敗しました。ページを更新してみてください',
-    dbAccessError: 'データベースにアクセスできません。ブラウザの設定を確認してください'
+    dbAccessError: 'データベースにアクセスできません。ブラウザの設定を確認してください',
+    clearCache: 'キャッシュをクリアして再起動',
+    supportHint: '問題が解決しない場合は、ブラウザのキャッシュをクリアするか、サポートにお問い合わせください。',
+    clearCacheConfirm: 'すべてのキャッシュデータをクリアして再起動してもよろしいですか？これにより、ログアウトされ、ローカル設定がリセットされます。',
+    unknownError: '不明なエラー'
   },
 
   store: {
