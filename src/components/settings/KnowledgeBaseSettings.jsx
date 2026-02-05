@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Upload, FileText, X, AlertCircle, Check, Loader2, FileType } from 'lucide-react';
+import { Plus, Trash2, Upload, FileText, X, AlertCircle, Check, Loader2, FileType, Edit2, Save } from 'lucide-react';
 import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
 import { cn } from '../../utils/cn';
 import { logger } from '../../services/logger';
@@ -24,6 +24,7 @@ const KnowledgeBaseSettings = ({
   const {
     knowledgeBases,
     createKnowledgeBase,
+    updateKnowledgeBase,
     deleteKnowledgeBase,
     addDocument,
     deleteDocument,
@@ -36,6 +37,11 @@ const KnowledgeBaseSettings = ({
   const [showNewKBForm, setShowNewKBForm] = useState(false);
   const [uploadingTo, setUploadingTo] = useState(null);
   const [uploadProgress, setUploadProgress] = useState({}); // { fileName: { status, progress, error } }
+
+  // 编辑状态
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
 
   /**
    * 创建新知识库
@@ -123,8 +129,39 @@ const KnowledgeBaseSettings = ({
   };
 
   /**
-   * 获取所有支持的扩展名
+   * 开始编辑知识库
    */
+  const handleStartEdit = (kb, e) => {
+    e.stopPropagation();
+    setEditingId(kb.id);
+    setEditName(kb.name);
+    setEditDescription(kb.description || '');
+  };
+
+  /**
+   * 保存编辑
+   */
+  const handleSaveEdit = (e) => {
+    e.stopPropagation();
+    if (!editName.trim()) {
+      alert(t('knowledgeBase.kbNamePlaceholder'));
+      return;
+    }
+    updateKnowledgeBase(editingId, {
+      name: editName.trim(),
+      description: editDescription.trim()
+    });
+    setEditingId(null);
+  };
+
+  /**
+   * 取消编辑
+   */
+  const handleCancelEdit = (e) => {
+    e.stopPropagation();
+    setEditingId(null);
+  };
+
   const getAllSupportedExtensions = () => {
     return Object.values(SUPPORTED_TYPES)
       .flatMap(type => type.extensions)
@@ -284,15 +321,37 @@ const KnowledgeBaseSettings = ({
                   className="p-4 flex items-center justify-between cursor-pointer hover:bg-accent/20 transition-colors"
                   onClick={() => setExpandedKB(isExpanded ? null : kb.id)}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-primary flex-shrink-0" />
-                      <h4 className="font-bold text-sm truncate">{kb.name}</h4>
-                    </div>
-                    {kb.description && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
-                        {kb.description}
-                      </p>
+                  <div className="flex-1 min-w-0 mr-4">
+                    {editingId === kb.id ? (
+                      <div className="space-y-2" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full px-2 py-1 text-sm bg-background border rounded focus:ring-1 focus:ring-primary"
+                          placeholder={t('knowledgeBase.kbNamePlaceholder')}
+                          autoFocus
+                        />
+                        <textarea
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          className="w-full px-2 py-1 text-xs bg-background border rounded focus:ring-1 focus:ring-primary resize-none"
+                          placeholder={t('knowledgeBase.kbDescriptionPlaceholder')}
+                          rows={2}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-primary flex-shrink-0" />
+                          <h4 className="font-bold text-sm truncate">{kb.name}</h4>
+                        </div>
+                        {kb.description && (
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {kb.description}
+                          </p>
+                        )}
+                      </>
                     )}
                     {stats && (
                       <div className="flex gap-3 mt-2 text-[10px] text-muted-foreground">
@@ -302,19 +361,47 @@ const KnowledgeBaseSettings = ({
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(t('knowledgeBase.deleteConfirm', { name: kb.name }))) {
-                          deleteKnowledgeBase(kb.id);
-                        }
-                      }}
-                      className="p-2 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
-                      title={t('common.delete')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center gap-1">
+                    {editingId === kb.id ? (
+                      <>
+                        <button
+                          onClick={handleSaveEdit}
+                          className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+                          title={t('common.save')}
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="p-2 hover:bg-accent rounded-lg transition-colors"
+                          title={t('common.cancel')}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={(e) => handleStartEdit(kb, e)}
+                          className="p-2 hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-lg transition-colors"
+                          title={t('common.edit')}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(t('knowledgeBase.deleteConfirm', { name: kb.name }))) {
+                              deleteKnowledgeBase(kb.id);
+                            }
+                          }}
+                          className="p-2 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
+                          title={t('common.delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

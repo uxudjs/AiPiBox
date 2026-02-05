@@ -188,9 +188,24 @@ const Sidebar = ({ isOpen, onClose }) => {
                 >
                   {isMultiSelect ? t('sidebar.cancelSelect') : t('sidebar.multiSelect')}
                 </button>
-                <button onClick={clearAllHistory} className="hover:text-destructive transition-colors">
+                <button 
+                  onClick={clearAllHistory} 
+                  className={cn(
+                    "hover:text-destructive transition-colors flex items-center gap-1",
+                    isMultiSelect && "hidden"
+                  )}
+                >
                   {t('sidebar.clearAll')}
                 </button>
+                {isMultiSelect && selectedConversations.length > 0 && (
+                  <button 
+                    onClick={deleteBatchConversations}
+                    className="text-destructive hover:opacity-80 transition-all flex items-center gap-1 animate-in fade-in slide-in-from-right-2"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>{t('common.delete')}</span>
+                  </button>
+                )}
               </div>
             </div>
           )}

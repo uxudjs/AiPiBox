@@ -275,6 +275,18 @@ export const useChatStore = create((set, get) => ({
       set({ pendingConversationSettings: null });
     }
     
+    // [逻辑优化] 每次新建对话时强制使用全局默认模型，而不是保持上一次使用的模型
+    const { getEffectiveModel } = useConfigStore.getState();
+    const defaultModel = getEffectiveModel('chat');
+    if (defaultModel) {
+      set({ 
+        currentModel: { 
+          providerId: defaultModel.providerId, 
+          modelId: defaultModel.modelId 
+        } 
+      });
+    }
+    
     set({ currentConversationId: id });
     syncService.debouncedSync();
     return id;

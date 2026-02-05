@@ -5,7 +5,7 @@
  */
 import { logger } from './logger';
 import * as pdfjsLib from 'pdfjs-dist';
-import { useTranslation } from '../i18n';
+import { useI18nStore } from '../i18n';
 
 /**
  * PDF Worker CDN 容灾列表
@@ -48,7 +48,7 @@ export const SUPPORTED_TYPES = {
     extensions: ['.ppt', '.pptx'],
     icon: 'PPT',
     description: () => {
-      const { t } = useTranslation();
+      const t = useI18nStore.getState().t;
       return t('document.presentation');
     }
   },
@@ -66,7 +66,7 @@ export const SUPPORTED_TYPES = {
     extensions: ['.txt', '.md'],
     icon: 'TXT',
     description: () => {
-      const { t } = useTranslation();
+      const t = useI18nStore.getState().t;
       return t('document.textFile');
     }
   }
@@ -99,7 +99,7 @@ const initPdfWorker = async () => {
 export function validateFile(file) {
   logger.info('DocumentParser', 'Validating file:', file.name);
   
-  const { t } = useTranslation();
+  const t = useI18nStore.getState().t;
   
   // 检查文件大小
   if (file.size > MAX_FILE_SIZE) {
@@ -303,7 +303,7 @@ async function parsePowerPoint(file) {
   if (fullText.trim() === '') {
     // 处理旧版二进制格式
     if (file.name.endsWith('.ppt')) {
-      const { t } = useTranslation();
+      const t = useI18nStore.getState().t;
       throw new Error(t('document.pptxOnly'));
     }
     fullText = '[未提取到文本内容，可能是纯图片幻灯片]';
@@ -325,7 +325,7 @@ async function parsePowerPoint(file) {
  * 文本类文件解析（Markdown/TXT）
  */
 async function parseText(file) {
-  const { t } = useTranslation();
+  const t = useI18nStore.getState().t;
   
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -404,7 +404,7 @@ export async function parseDocument(file, onProgress = null) {
  * 生成包含文件元信息的提示词上下文，并自动截断超长文本
  */
 export function formatDocumentForAI(parsedDoc, maxLength = 32000) {
-  const { t } = useTranslation();
+  const t = useI18nStore.getState().t;
   let content = parsedDoc.text || '';
   
   // 文本预清洗：统一换行符并折叠连续空白

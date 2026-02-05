@@ -101,7 +101,7 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
   const handleZoomIn = () => setScale(s => Math.min(s + 0.2, 5));
   const handleZoomOut = () => setScale(s => Math.max(s - 0.2, 0.5));
 
-  // 拖拽处理
+  // 拖拽处理 (鼠标)
   const handleMouseDown = (e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -117,6 +117,30 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
   };
 
   const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // 触控处理
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      const touch = e.touches[0];
+      setLastMousePos({ x: touch.clientX, y: touch.clientY });
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - lastMousePos.x;
+    const dy = touch.clientY - lastMousePos.y;
+    setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+    setLastMousePos({ x: touch.clientX, y: touch.clientY });
+    // 阻止页面滚动
+    if (e.cancelable) e.preventDefault();
+  };
+
+  const handleTouchEnd = () => {
     setIsDragging(false);
   };
 
@@ -311,6 +335,9 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onWheel={(e) => {
           if (isFullscreen || e.ctrlKey) {
             e.preventDefault();

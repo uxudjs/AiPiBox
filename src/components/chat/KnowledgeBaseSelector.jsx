@@ -59,8 +59,15 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
     // Inline模式：用于InputArea中的弹窗
     <div className="bg-card rounded-3xl shadow-2xl max-w-full w-full max-h-[70vh] flex flex-col border overflow-hidden" onClick={(e) => e.stopPropagation()}>
       {/* 头部 */}
-      <div className="flex items-center justify-center p-2 border-b bg-accent/20">
+      <div className="flex items-center justify-between p-2 border-b bg-accent/20">
+        <div className="w-8" /> {/* 占位以居中标题 */}
         <span className="text-xs font-black text-primary uppercase tracking-widest">{t('inputArea.selectKB')}</span>
+        <button
+          onClick={onClose}
+          className="p-1 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* 搜索框 */}
