@@ -2,7 +2,7 @@ import { db } from '../db';
 import { useConfigStore } from '../store/useConfigStore';
 import { encryptData, decryptData, hashPassword } from '../utils/crypto';
 import { logger } from './logger';
-import { useTranslation } from '../i18n';
+import { useI18nStore } from '../i18n';
 import { 
   collectAllSyncData, 
   restoreAllData, 
@@ -883,7 +883,7 @@ class SyncService {
       // 验证校验和
       const calculatedChecksum = await calculateChecksum(backupData.payload);
       if (calculatedChecksum !== backupData.checksum) {
-        const { t } = useTranslation();
+        const { t } = useI18nStore.getState();
         throw new Error(t('services.sync.checksumFailed'));
       }
       
@@ -894,7 +894,7 @@ class SyncService {
       
       // 版本兼容性检查
       if (!isVersionCompatible(backupPackage.version)) {
-        const { t } = useTranslation();
+        const { t } = useI18nStore.getState();
         throw new Error(t('services.sync.versionIncompatible', { version: backupPackage.version }));
       }
       
@@ -903,7 +903,7 @@ class SyncService {
       // 验证数据完整性
       const validation = validateRestoredData(backupPackage.data);
       if (!validation.valid) {
-        const { t } = useTranslation();
+        const { t } = useI18nStore.getState();
         throw new Error(t('services.sync.validationFailed', { errors: validation.errors.join(', ') }));
       }
       

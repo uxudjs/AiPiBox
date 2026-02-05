@@ -9,7 +9,7 @@ import {
   Copy, Play, ExternalLink, Check, Info, Loader2, Image as ImageIcon
 } from 'lucide-react';
 import { db } from '../../db';
-import { useTranslation } from '../../i18n';
+import { useTranslation, useI18nStore } from '../../i18n';
 import { logger } from '../../services/logger';
 import ImagePreviewModal from '../ui/ImagePreviewModal';
 import MermaidRenderer from './MermaidRenderer';
@@ -139,6 +139,7 @@ class ErrorBoundary extends Component {
   // 渲染错误提示界面
   render() {
     if (this.state.hasError) {
+      const { t } = useI18nStore.getState();
       let displayContent = this.props.content;
       try {
         if (typeof displayContent === 'object' && displayContent !== null) {

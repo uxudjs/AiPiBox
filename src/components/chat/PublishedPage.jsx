@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../../db';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 /**
  * 发布页面组件
@@ -10,6 +11,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
  * @param {string} props.id - 发布页面的ID（可选，兼容路由参数）
  */
 const PublishedPage = ({ id: propId }) => {
+  const { t } = useTranslation();
   const params = useParams();
   const id = propId || params.id;
   const [data, setData] = useState(null);
