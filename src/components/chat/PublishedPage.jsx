@@ -34,8 +34,8 @@ const PublishedPage = ({ id: propId }) => {
   if (!data) return (
     <div className="h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
       <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-      <h1 className="text-xl font-bold">内容未找到</h1>
-      <p className="text-muted-foreground">该发布页面不存在或已被删除。</p>
+      <h1 className="text-xl font-bold">{t('plusMenu.contentNotFound')}</h1>
+      <p className="text-muted-foreground">{t('plusMenu.pageNotExist')}</p>
     </div>
   );
 

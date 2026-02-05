@@ -90,7 +90,7 @@ class ErrorBoundary extends React.Component {
               <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
                 <AlertTriangle className="w-8 h-8 text-destructive" />
               </div>
-              <h1 className="text-2xl font-bold text-destructive">应用程序遇到错误</h1>
+              <h1 className="text-2xl font-bold text-destructive">{t('app.appError')}</h1>
               <p className="text-sm text-muted-foreground">
                 很抱歉，应用程序遇到了意外错误。您可以尝试以下操作恢复：
               </p>
@@ -98,7 +98,7 @@ class ErrorBoundary extends React.Component {
 
             {/* 错误详情 */}
             <div className="bg-accent/50 p-4 rounded-lg border border-border">
-              <h3 className="text-sm font-semibold mb-2 text-foreground">错误详情：</h3>
+              <h3 className="text-sm font-semibold mb-2 text-foreground">{t('app.errorDetails')}</h3>
               <div className="text-xs font-mono text-muted-foreground overflow-auto custom-scrollbar max-h-32">
                 {error && error.toString()}
               </div>
@@ -130,7 +130,7 @@ class ErrorBoundary extends React.Component {
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-opacity font-medium"
               >
                 <Home className="w-4 h-4" />
-                <span>尝试继续</span>
+                <span>{t('app.tryContinue')}</span>
               </button>
               
               <button
@@ -138,7 +138,7 @@ class ErrorBoundary extends React.Component {
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-accent text-foreground rounded-xl hover:bg-accent/80 transition-colors font-medium border"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>重新加载</span>
+                <span>{t('common.reload')}</span>
               </button>
 
               <button
@@ -146,7 +146,7 @@ class ErrorBoundary extends React.Component {
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors font-medium border border-destructive/30"
               >
                 <AlertTriangle className="w-4 h-4" />
-                <span>清除数据</span>
+                <span>{t('app.clearData')}</span>
               </button>
             </div>
 

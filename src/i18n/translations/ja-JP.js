@@ -569,7 +569,9 @@ export const jaJP = {
     fileParser: 'ファイルパーサー',
     fileParserDesc: 'ドキュメントをアップロードして解析',
     conversationSettings: '会話設定',
-    conversationSettingsDesc: '現在の会話パラメータを設定'
+    conversationSettingsDesc: '現在の会話パラメータを設定',
+    contentNotFound: 'コンテンツが見つかりません',
+    pageNotExist: 'この公開ページは存在しないか、削除されました。'
   },
 
   markdown: {
@@ -580,7 +582,8 @@ export const jaJP = {
     publish: '公開',
     published: '公開済み',
     generatingChart: 'チャート生成中...',
-    imageSyncDisabled: '画像同期が未有効'
+    imageSyncDisabled: '画像同期が未有効',
+    renderError: 'コンテンツレンダリングエラー'
   },
 
   mermaid: {
@@ -638,7 +641,11 @@ export const jaJP = {
     clearCache: 'キャッシュをクリアして再起動',
     supportHint: '問題が解決しない場合は、ブラウザのキャッシュをクリアするか、サポートにお問い合わせください。',
     clearCacheConfirm: 'すべてのキャッシュデータをクリアして再起動してもよろしいですか？これにより、ログアウトされ、ローカル設定がリセットされます。',
-    unknownError: '不明なエラー'
+    unknownError: '不明なエラー',
+    appError: 'アプリケーションエラーが発生しました',
+    errorDetails: 'エラー詳細：',
+    tryContinue: '続ける',
+    clearData: 'データをクリア'
   },
 
   store: {
@@ -660,7 +667,7 @@ export const jaJP = {
   },
 
   crypto: {
-    decryptFailed: '解増に失敗しました：パスワードが間違っているか、データが破損しています'
+    decryptFailed: '復号に失敗しました：パスワードが間違っているか、データが破損しています'
   },
 
   validation: {

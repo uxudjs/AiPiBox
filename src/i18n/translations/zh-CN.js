@@ -570,7 +570,9 @@ export const zhCN = {
     fileParser: '文件解析器',
     fileParserDesc: '上传和解析文档',
     conversationSettings: '对话设定',
-    conversationSettingsDesc: '设置当前对话参数'
+    conversationSettingsDesc: '设置当前对话参数',
+    contentNotFound: '内容未找到',
+    pageNotExist: '该发布页面不存在或已被删除。'
   },
 
   markdown: {
@@ -581,7 +583,8 @@ export const zhCN = {
     publish: '一键发布',
     published: '已发布',
     generatingChart: '图表生成中...',
-    imageSyncDisabled: '未开启图片同步'
+    imageSyncDisabled: '未开启图片同步',
+    renderError: '内容渲染出错'
   },
 
   mermaid: {
@@ -639,7 +642,11 @@ export const zhCN = {
     clearCache: '清除缓存并重启',
     supportHint: '如果问题持续出现，请尝试清除浏览器缓存或联系支持。',
     clearCacheConfirm: '确定要清除所有缓存数据并重启吗？这将登出应用并重置本地设置。',
-    unknownError: '未知错误'
+    unknownError: '未知错误',
+    appError: '应用程序遇到错误',
+    errorDetails: '错误详情：',
+    tryContinue: '尝试继续',
+    clearData: '清除数据'
   },
 
   store: {

@@ -442,7 +442,7 @@ export const zhTW = {
     newKB: '新建知識庫',
     kbName: '知識庫名稱',
     kbNamePlaceholder: '例如：技術文檔庫',
-    kbDescription: '描述（建議）',
+    kbDescription: '描述（選填）',
     kbDescriptionPlaceholder: '簡單描述這個知識庫的用途...',
     retrievalSettings: '檢索設置',
     topK: '檢索文件數量 (Top-K)',
@@ -543,7 +543,7 @@ export const zhTW = {
       anime: '動漫',
       'digital-art': '數位藝術',
       'fantasy-art': '幻想藝術',
-      neonpunk: '霸虹龐克',
+      neonpunk: '霓虹龐克',
       '3d-model': '3D 模型'
     },
     gallery: '圖片庫',
@@ -569,7 +569,9 @@ export const zhTW = {
     fileParser: '文件解析器',
     fileParserDesc: '上傳和解析文檔',
     conversationSettings: '對話設定',
-    conversationSettingsDesc: '設置當前對話參數'
+    conversationSettingsDesc: '設置當前對話參數',
+    contentNotFound: '內容未找到',
+    pageNotExist: '該發佈頁面不存在或已被刪除。'
   },
 
   markdown: {
@@ -580,7 +582,8 @@ export const zhTW = {
     publish: '一鍵發佈',
     published: '已發佈',
     generatingChart: '圖表生成中...',
-    imageSyncDisabled: '未開啟圖片同步'
+    imageSyncDisabled: '未開啟圖片同步',
+    renderError: '內容渲染出錯'
   },
 
   mermaid: {
@@ -638,7 +641,11 @@ export const zhTW = {
     clearCache: '清除快取並重啟',
     supportHint: '如果問題持續出現，請嘗試清除瀏覽器快取或聯繫支援。',
     clearCacheConfirm: '確定要清除所有快取資料並重啟嗎？這將登出應用程式並重置本地設定。',
-    unknownError: '未知錯誤'
+    unknownError: '未知錯誤',
+    appError: '應用程式遇到錯誤',
+    errorDetails: '錯誤詳情：',
+    tryContinue: '嘗試繼續',
+    clearData: '清除資料'
   },
 
   store: {

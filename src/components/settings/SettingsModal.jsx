@@ -982,15 +982,14 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       <div className="flex items-center justify-between">
                         <label className="text-sm font-medium">{t('settings.llm.modelManagement')} ({editingProvider.models.length})</label>
                         <div className="flex gap-2">
-                          {editingProvider.models.length > 5 && (
-                            <input
-                              type="text"
-                              placeholder={t('settings.llm.searchModel')}
-                              value={modelSearchQuery}
-                              onChange={(e) => setModelSearchQuery(e.target.value)}
-                              className="px-3 py-1 text-xs bg-accent rounded-lg border-none focus:ring-1 focus:ring-primary"
-                            />
-                          )}
+                          <input
+                            type="text"
+                            placeholder={t('settings.llm.searchModel')}
+                            value={modelSearchQuery}
+                            onChange={(e) => setModelSearchQuery(e.target.value)}
+                            className="px-3 py-1 text-xs bg-accent rounded-lg border-none focus:ring-1 focus:ring-primary"
+                          />
+
                           <button
                             onClick={() => setEditingModel({ 
                               providerId: editingProvider.id,

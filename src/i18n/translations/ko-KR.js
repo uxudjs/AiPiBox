@@ -569,7 +569,9 @@ export const koKR = {
     fileParser: '파일 파서',
     fileParserDesc: '문서 업로드 및 분석',
     conversationSettings: '대화 설정',
-    conversationSettingsDesc: '현재 대화 매개변수 설정'
+    conversationSettingsDesc: '현재 대화 매개변수 설정',
+    contentNotFound: '콘텐츠를 찾을 수 없습니다',
+    pageNotExist: '이 게시된 페이지는 존재하지 않거나 삭제되었습니다.'
   },
 
   markdown: {
@@ -580,7 +582,8 @@ export const koKR = {
     publish: '게시',
     published: '게시됨',
     generatingChart: '차트 생성 중...',
-    imageSyncDisabled: '이미지 동기화 비활성화됨'
+    imageSyncDisabled: '이미지 동기화 비활성화됨',
+    renderError: '콘텐츠 렌더링 오류'
   },
 
   mermaid: {

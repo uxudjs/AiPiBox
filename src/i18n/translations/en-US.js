@@ -233,7 +233,6 @@ export const enUS = {
       syncImages: 'Sync Image Data',
       syncImagesHint: 'Synchronize images in conversations. Disabling this can save significant cloud storage and bandwidth.',
       syncImagesOffConfirm: 'Are you sure you want to turn off image sync? Image data in the cloud will be cleaned up to save space.',
-      syncImagesOffConfirm: 'Are you sure you want to turn off image sync? Image data in the cloud will be cleaned up to save space.',
       autoSync: 'Automatic Real-time Sync',
       autoSyncHint: 'Automatically initiate cloud sync when local data changes are detected',
       syncApiUrl: 'Sync Service API URL',
@@ -571,7 +570,9 @@ export const enUS = {
     fileParser: 'File Parser',
     fileParserDesc: 'Upload and parse documents',
     conversationSettings: 'Conversation Settings',
-    conversationSettingsDesc: 'Set current conversation parameters'
+    conversationSettingsDesc: 'Set current conversation parameters',
+    contentNotFound: 'Content not found',
+    pageNotExist: 'This published page does not exist or has been deleted.'
   },
 
   markdown: {
@@ -582,7 +583,8 @@ export const enUS = {
     publish: 'One-click Publish',
     published: 'Published',
     generatingChart: 'Generating chart...',
-    imageSyncDisabled: 'Image sync not enabled'
+    imageSyncDisabled: 'Image sync not enabled',
+    renderError: 'Content rendering error'
   },
 
   mermaid: {
@@ -640,7 +642,11 @@ export const enUS = {
     clearCache: 'Clear Cache & Restart',
     supportHint: 'If the issue persists, please try clearing your browser cache or contact support.',
     clearCacheConfirm: 'Are you sure you want to clear all cache data and restart? This will log you out and reset local settings.',
-    unknownError: 'Unknown Error'
+    unknownError: 'Unknown Error',
+    appError: 'Application encountered an error',
+    errorDetails: 'Error details:',
+    tryContinue: 'Try to continue',
+    clearData: 'Clear data'
   },
 
   store: {

@@ -1081,8 +1081,14 @@ export async function generateImage({
   if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
     headers['api-key'] = apiKey;
   } else if (provider !== AI_PROVIDERS.GOOGLE && format !== 'gemini' && format !== 'google') {
-    headers['Authorization'] = `Bearer ${apiKey}`;
+    // Perplexity 认证不使用 Bearer 前缀
+    if (provider === 'perplexity' || (baseUrl && baseUrl.includes('api.perplexity.ai'))) {
+      headers['Authorization'] = apiKey;
+    } else {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
   }
+
 
   const size = `${options.width || 1024}x${options.height || 1024}`;
   const batchSize = options.batchSize || 1;

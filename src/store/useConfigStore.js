@@ -16,6 +16,7 @@ export const DEFAULT_PROVIDERS = [
   { id: 'groq', name: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', apiKey: '', enabled: false, models: [], format: 'openai' },
   { id: 'perplexity', name: 'Perplexity', baseUrl: 'https://api.perplexity.ai', apiKey: '', enabled: false, models: [], format: 'openai' },
   { id: 'xai', name: 'XAI (Grok)', baseUrl: 'https://api.x.ai/v1', apiKey: '', enabled: false, models: [], format: 'openai' },
+
   { id: 'aliyun', name: 'Aliyun (Qwen)', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', apiKey: '', enabled: false, models: [], format: 'openai', region: 'china' },
   { id: 'chatglm', name: 'ChatGLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', apiKey: '', enabled: false, models: [], format: 'openai' },
   { id: 'volcengine', name: 'VolcEngine', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', apiKey: '', enabled: false, models: [], format: 'openai' },

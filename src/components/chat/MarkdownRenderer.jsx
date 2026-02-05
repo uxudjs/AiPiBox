@@ -150,7 +150,7 @@ class ErrorBoundary extends Component {
 
       return (
         <div className="p-4 border border-red-200 bg-red-50 text-red-600 rounded-lg">
-          <p className="font-bold">内容渲染出错</p>
+          <p className="font-bold">{t('markdown.renderError')}</p>
           <pre className="text-xs mt-2 overflow-auto max-h-40 bg-white p-2 rounded border border-red-100">
             {displayContent}
           </pre>

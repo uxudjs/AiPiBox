@@ -10,7 +10,7 @@ const LoadingFallback = () => {
     <div className="h-full w-full flex items-center justify-center bg-background/50 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-3">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground animate-pulse">加载中...</p>
+        <p className="text-sm text-muted-foreground animate-pulse">{t('common.loading')}</p>
       </div>
     </div>
   );
