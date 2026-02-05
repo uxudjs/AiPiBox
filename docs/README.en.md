@@ -15,17 +15,18 @@ A powerful, privacy-focused modern AI conversation assistant application with mu
 
 ### 🔐 Privacy & Security
 - **Local-First Storage** - All data stored in browser IndexedDB
-- **End-to-End Encryption** - Hardware-level encryption for API keys and sensitive config
-- **Optional Cloud Sync** - Encrypted backup to cloud database
+- **End-to-End Encryption** - API keys and sensitive configurations encrypted using Web Crypto API
+- **Optional Cloud Sync** - Encrypted backup to cloud database, data encrypted on client before upload
 - **No Server Tracking** - Runs completely client-side, protecting user privacy
 
 ### 💬 Intelligent Conversations
-- **Multi-Model Support** - OpenAI, Claude, Gemini, and other mainstream AI models
+- **Multi-Model Support** - OpenAI, Claude, Gemini, Azure, Groq, Perplexity, and other mainstream AI models
 - **Custom Providers** - Support for any OpenAI API-compatible service
-- **Context Management** - Smart control of conversation context length
-- **Streaming Response** - Real-time display of AI responses
-- **Conversation Groups** - Organize conversation history by time and tags
+- **Message Tree Structure** - Support for branching conversations, explore different conversation paths anytime
+- **Streaming Response** - Real-time display of AI responses with interrupt capability
+- **Conversation Compression** - Automatic or manual compression of conversation history to save context space
 - **Auto-naming** - Intelligent generation of conversation titles
+- **Context Management** - Smart control of conversation context length
 
 ### 🌍 Internationalization
 - **Multi-language Interface** - Simplified Chinese, Traditional Chinese, English, Japanese, Korean
@@ -33,17 +34,20 @@ A powerful, privacy-focused modern AI conversation assistant application with mu
 - **Localized Experience** - Complete interface translation and unified terminology
 
 ### 📚 Knowledge Base
-- **Document Parsing** - Support for PDF, Word, Excel, PowerPoint
-- **Vector Retrieval** - Keyword-based intelligent document retrieval
-- **Conversation Integration** - Seamless reference of knowledge base content
+- **Document Parsing** - Support for PDF, Word, Excel, PowerPoint, TXT, and other formats
+- **Local Processing** - Document content parsed and indexed entirely in browser, original files not uploaded
+- **Keyword Retrieval** - Intelligent keyword-based document retrieval
+- **Conversation Integration** - Seamlessly reference knowledge base content to enhance answers
 - **Batch Management** - Efficient document upload and organization
+- **Cloud Sync** - Synchronize only knowledge base metadata and index structures
 
 ### 🎨 Image Generation
 - **Text-to-Image** - Generate images from text descriptions
 - **Image-to-Image** - Generate variants based on reference images
-- **Model Switching** - Support for DALL-E, Stable Diffusion, etc.
+- **Model Switching** - Support for DALL-E 3, DALL-E 2, Stable Diffusion, etc.
 - **Parameter Control** - Fine-grained adjustment of size, quality, style, etc.
 - **History Management** - Save and manage generated images
+- **Multiple Modes** - Support standard, HD, artistic, and other generation modes
 
 ### 🌐 Web Search
 - **Real-time Search** - Integration with Google, Bing, DuckDuckGo
@@ -51,7 +55,8 @@ A powerful, privacy-focused modern AI conversation assistant application with mu
 - **Configurable Engines** - Flexible selection of search providers
 
 ### 🎯 Advanced Features
-- **Deep Thinking Mode** - Enable AI's chain-of-reasoning capabilities
+- **Deep Thinking Mode** - Enable AI's chain-of-reasoning capabilities (supports o1, DeepSeek, and other models)
+- **Multimodal Interaction** - Support for image upload, photo capture, OCR text extraction
 - **Code Highlighting** - Support for multiple programming languages
 - **Math Formulas** - LaTeX/KaTeX math formula rendering
 - **Mermaid Charts** - Flowcharts, sequence diagrams, and other visualizations
@@ -110,7 +115,7 @@ AiPiBox supports multiple deployment methods, with all core features working acr
 
 **Advantages**: Simple deployment, powerful performance, automatic HTTPS, global CDN
 
-#### Method 1: CLI Deployment (Fastest)
+#### CLI Deployment (Fastest)
 
 ```bash
 # 1. Install Vercel CLI
@@ -121,51 +126,29 @@ vercel login
 
 # 3. Deploy from project directory
 vercel --prod
-
-# Or use shortcut
-npm run deploy:vercel
 ```
 
-After deployment, you'll get a URL like `https://your-project.vercel.app`.
+#### Web Interface (Beginner-Friendly)
 
-#### Method 2: Web Interface (Beginner-Friendly)
-
-1. **Fork this repository** to your GitHub account
+1. Fork this repository to your GitHub account
 2. Visit [vercel.com](https://vercel.com) and login
-3. Click **"Add New Project"**
-4. Select the imported GitHub repository
-5. **Framework Preset**: Choose `Vite`
-6. **Build Configuration**:
+3. Click "Add New Project"
+4. Select the AiPiBox repository
+5. Framework Preset: Choose `Vite`
+6. Build Configuration:
    - Build Command: `npm run build`
    - Output Directory: `dist`
    - Install Command: `npm install`
-7. Click **"Deploy"**
+7. Click "Deploy"
 
-#### Environment Variables (Optional)
-
-To enable cloud sync functionality:
-
-1. Add environment variables in Vercel project settings:
-   ```
-   DATABASE_TYPE=mysql
-   DATABASE_URL=mysql://user:password@host:3306/aipibox
-   ```
-2. Redeploy the project
-
-#### Verify Deployment
-
-Visit `https://your-project.vercel.app/api/health` and you should see:
+After deployment, verify at `https://your-project.vercel.app/api/health`:
 ```json
 {"status": "ok", "version": "1.0.0"}
 ```
 
----
-
 ### 2️⃣ Netlify
 
-**Advantages**: Rich plugin ecosystem, form handling, authentication
-
-#### Method 1: CLI Deployment
+#### CLI Deployment
 
 ```bash
 # 1. Install Netlify CLI
@@ -179,36 +162,24 @@ netlify init
 
 # 4. Deploy to production
 netlify deploy --prod
-
-# Or use shortcut
-npm run deploy:netlify
 ```
 
-#### Method 2: Web Interface
+#### Web Interface
 
 1. Visit [netlify.com](https://netlify.com) and login
-2. Click **"Add new site"** → **"Import an existing project"**
-3. Select **"GitHub"** and authorize
+2. Click "Add new site" → "Import an existing project"
+3. Select GitHub and authorize
 4. Select the AiPiBox repository
-5. **Build Settings**:
+5. Build Settings:
    - Build command: `npm run build`
    - Publish directory: `dist`
-   - Use defaults for other settings
-6. Click **"Deploy site"**
-
-#### Custom Domain (Optional)
-
-1. In Netlify project settings, click **"Domain management"**
-2. Add your custom domain
-3. Configure DNS records as instructed
-
----
+6. Click "Deploy site"
 
 ### 3️⃣ Cloudflare Pages
 
 **Advantages**: World's fastest CDN, unlimited bandwidth, Workers integration
 
-#### Method 1: CLI Deployment
+#### CLI Deployment
 
 ```bash
 # 1. Install Wrangler CLI
@@ -222,118 +193,68 @@ npm run build
 
 # 4. Deploy to Cloudflare Pages
 wrangler pages deploy dist --project-name=aipibox
-
-# Or use shortcut
-npm run deploy:cf
 ```
 
-#### Method 2: Web Interface
+#### Web Interface
 
 1. Visit [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Select **Workers & Pages** from left menu
-3. Click **"Create application"** → **"Pages"** → **"Connect to Git"**
+2. Select "Workers & Pages" from left menu
+3. Click "Create application" → "Pages" → "Connect to Git"
 4. Select GitHub and authorize
 5. Select the AiPiBox repository
-6. **Build Settings**:
+6. Build Settings:
    - Framework preset: `None` or `Vite`
    - Build command: `npm run build`
    - Build output directory: `/dist`
-7. Click **"Save and Deploy"**
+7. Click "Save and Deploy"
 
 #### Configure KV Namespace (Cloud Sync)
 
 1. Create a KV Namespace in Cloudflare Dashboard
-2. Go to Pages project **Settings** → **Functions** → **KV namespace bindings**
+2. Go to Pages project Settings → Functions → KV namespace bindings
 3. Add binding:
    - Variable name: `SYNC_DATA`
    - KV namespace: Select the namespace you just created
 4. Redeploy the project
 
----
-
 ### 4️⃣ GitHub Pages
-
-**Advantages**: Completely free, seamless GitHub integration
 
 **Note**: GitHub Pages can only host static files and cannot run backend APIs. Requires additional proxy service configuration.
 
-#### Automatic Deployment (Manual Upload)
+#### Deployment Steps
 
-GitHub Pages requires manual build and deployment.
+1. Fork this repository
+2. Build the project:
+```bash
+npm install
+npm run build
+```
 
-**Steps:**
+3. Deploy using gh-pages tool:
+```bash
+npm install -g gh-pages
+gh-pages -d dist
+```
 
-1. **Fork this repository**
-   - Visit [AiPiBox GitHub](https://github.com/uxudjs/AiPiBox)
-   - Click **"Fork"** button in top right
-   - Repository will be copied to your account
+4. Enable GitHub Pages:
+   - Go to repository Settings → Pages
+   - Source: `Deploy from a branch`
+   - Branch: `gh-pages` / `(root)`
 
-2. **Build the project**
-   ```bash
-   # Clone your forked repository
-   git clone https://github.com/<your-username>/AiPiBox.git
-   cd AiPiBox
-   
-   # Install dependencies
-   npm install
-   
-   # Build
-   npm run build
-   ```
-
-3. **Deploy using gh-pages tool**
-   ```bash
-   # Install gh-pages
-   npm install -g gh-pages
-   
-   # Deploy to GitHub Pages
-   gh-pages -d dist
-   ```
-
-4. **Enable GitHub Pages**
-   - Go to your forked repository
-   - Click **Settings** → **Pages**
-   - **Source**: Select `Deploy from a branch`
-   - **Branch**: Select `gh-pages` / `(root)`
-   - Save settings
-
-5. **Access the application**
-   - Go back to **Settings** → **Pages**
-   - Find your site URL: `https://<username>.github.io/AiPiBox/`
-   - Click to visit
-
-6. **Subsequent updates**
-   - After each code modification, repeat steps 2 and 3
-   - Rebuild and redeploy
+5. Visit: `https://<username>.github.io/AiPiBox/`
 
 #### Configure External API Service
 
-Since GitHub Pages doesn't support backend functions, you need to configure an external proxy:
+Recommended using Vercel free tier:
 
-**Recommended: Use Vercel Free Tier**
-
-1. Fork this project again (or create a new branch)
-2. Deploy this project on Vercel (for API only)
-3. Get the Vercel deployment URL, e.g., `https://aipibox-api.vercel.app`
-4. In GitHub Pages app:
-   - Open **Settings** → **Network & Proxy**
-   - **Cloud Proxy URL**: `https://aipibox-api.vercel.app/api/ai-proxy`
-   - Click **Save and Apply**
-
-**Alternative: Cloudflare Workers**
-
-Deploy API using Cloudflare Workers, then configure the address:
-```
-https://your-worker.your-username.workers.dev/ai-proxy
-```
-
----
+1. Deploy this project on Vercel (for API only)
+2. Get deployment URL: `https://aipibox-api.vercel.app`
+3. In GitHub Pages app:
+   - Open Settings → Network & Proxy
+   - Cloud Proxy URL: `https://aipibox-api.vercel.app/api/ai-proxy`
+   - Save and Apply
 
 ### 5️⃣ Local Development
-
-**Use Cases**: Development testing, feature debugging, offline usage
-
-#### Complete Environment Setup
 
 ```bash
 # 1. Clone project
@@ -356,25 +277,9 @@ npm run dev
 
 Visit `http://localhost:3000` to use.
 
-#### Automatic Environment Detection
-
 The app automatically detects local environment and uses:
 - Proxy address: `http://localhost:5000/api/proxy`
 - Sync address: `http://localhost:5000/api/sync`
-
-No manual configuration needed!
-
-#### Production Build Testing
-
-```bash
-# Build production version
-npm run build
-
-# Preview build
-npm run preview
-```
-
----
 
 ### 🔧 Post-Deployment Configuration
 
@@ -382,10 +287,10 @@ Regardless of deployment method, on first visit you need to:
 
 1. **Set Access Password**: For encrypting local data
 2. **Configure API Keys**:
-   - Open **Settings** → **Providers & Models**
+   - Open Settings → Providers & Models
    - Add your OpenAI, Claude, or other AI service API keys
-   - Click **Test Connection** to verify
-   - **Save and Apply**
+   - Click Test Connection to verify
+   - Save and Apply
 3. **Select Language**: Settings → General → Language
 
 🎉 Now you can start using it!
@@ -407,12 +312,15 @@ Regardless of deployment method, on first visit you need to:
 
 ### State Management
 - **Zustand** - Lightweight state management
-- **Dexie.js** - IndexedDB wrapper
+- **Dexie.js** - IndexedDB wrapper for local data persistence
 
 ### UI Components
 - **Lucide React** - Beautiful icon library
 - **Framer Motion** - Smooth animations
 - **React Markdown** - Markdown rendering
+- **Highlight.js** - Code syntax highlighting
+- **KaTeX** - Math formula rendering
+- **Mermaid** - Chart visualization
 
 ### Document Processing
 - **PDF.js** - PDF document parsing
@@ -421,19 +329,102 @@ Regardless of deployment method, on first visit you need to:
 
 ### Backend Services
 - **Express** - Local proxy server
-- **Serverless Functions** - Cloud API deployment
+- **Serverless Functions** - Cloud API deployment (Vercel/Netlify/Cloudflare)
+
+### Database Support
+- **MySQL** - Relational database (Vercel/Netlify)
+- **PostgreSQL** - Relational database (Vercel/Netlify)
+- **Cloudflare KV** - Key-value storage (Cloudflare Pages)
+
+## 📁 Project Structure
+
+```
+AiPiBox/
+├── api/                      # Serverless API endpoints
+│   ├── ai-proxy.js          # AI request proxy
+│   ├── health.js            # Health check
+│   ├── db-config.js         # Database configuration
+│   └── sync/                # Cloud sync API
+│       ├── upload.js        # Upload data
+│       ├── download.js      # Download data
+│       └── delete.js        # Delete data
+├── functions/               # Cloudflare Functions
+│   ├── api/
+│   │   ├── ai-proxy.js     # AI proxy (Cloudflare)
+│   │   └── health.js       # Health check
+│   └── sync/[[path]].js    # Dynamic route sync
+├── proxy/                   # Local proxy server
+│   └── server.js           # Express proxy service
+├── public/                  # Static assets
+├── src/
+│   ├── components/          # React components
+│   │   ├── auth/           # Authentication
+│   │   ├── chat/           # Chat components
+│   │   ├── image/          # Image generation
+│   │   ├── layout/         # Layout components
+│   │   ├── settings/       # Settings interface
+│   │   ├── sync/           # Sync status
+│   │   └── ui/             # Common UI components
+│   ├── db/                  # IndexedDB database
+│   │   └── index.js        # Dexie configuration
+│   ├── hooks/               # Custom Hooks
+│   ├── i18n/                # Internationalization
+│   │   ├── index.js        # i18n config
+│   │   └── translations/   # Translation files
+│   │       ├── zh-CN.js    # Simplified Chinese
+│   │       ├── zh-TW.js    # Traditional Chinese
+│   │       ├── en-US.js    # English
+│   │       ├── ja-JP.js    # Japanese
+│   │       └── ko-KR.js    # Korean
+│   ├── router/              # Router configuration
+│   ├── services/            # Business services
+│   │   ├── aiService.js    # AI service wrapper
+│   │   ├── documentParser.js # Document parsing
+│   │   ├── logger.js       # Logging system
+│   │   └── syncService.js  # Sync service
+│   ├── store/               # Zustand state management
+│   │   ├── useAuthStore.js # Auth state
+│   │   ├── useChatStore.js # Chat state
+│   │   ├── useConfigStore.js # Config state
+│   │   ├── useFileStore.js # File state
+│   │   ├── useImageGenStore.js # Image gen state
+│   │   ├── useKnowledgeBaseStore.js # Knowledge base
+│   │   └── useViewStore.js # UI state
+│   ├── utils/               # Utility functions
+│   │   ├── cn.js           # Style utilities
+│   │   ├── conflictResolver.js # Conflict resolution
+│   │   ├── constants.js    # Constants
+│   │   ├── crypto.js       # Encryption utilities
+│   │   ├── dataValidation.js # Data validation
+│   │   ├── diagnostics.js  # Diagnostics
+│   │   ├── envDetect.js    # Environment detection
+│   │   ├── imageCompression.js # Image compression
+│   │   ├── modelNameInference.js # Model name inference
+│   │   └── requestCache.js # Request caching
+│   ├── App.jsx              # Root component
+│   ├── index.css            # Global styles
+│   └── main.jsx             # App entry
+├── .env.example             # Environment template
+├── package.json             # Project config
+├── vite.config.js           # Vite config
+├── tailwind.config.js       # Tailwind config
+├── vercel.json              # Vercel config
+├── netlify.toml             # Netlify config
+└── README.md                # Documentation
+```
 
 ## 🔒 Data Security
 
 ### Local Encryption
 - API keys encrypted using Web Crypto API
-- Encryption keys derived from user password
+- Encryption keys derived from user password (PBKDF2)
 - Sensitive config encrypted before storing in IndexedDB
 
 ### Cloud Sync
-- Data encrypted on client before upload
+- Data encrypted on client before upload (AES-GCM)
 - Server only stores encrypted data
 - SHA-256 checksum for data integrity
+- Conflict detection and resolution support
 
 ### Data Backup
 ```javascript
@@ -472,6 +463,13 @@ indexedDB.deleteDatabase('AiPiBoxDB');
 location.reload();
 ```
 
+### Cloud Sync Issues
+
+- Check if sync password is correct
+- Verify database connection (if using cloud sync)
+- Check sync logs for detailed error information
+- Try manual sync to test connection
+
 ## 🤝 Contributing
 
 Contributions of code, bug reports, or suggestions are welcome!
@@ -489,7 +487,7 @@ Contributions of code, bug reports, or suggestions are welcome!
 - Use ESLint for code checking
 - Follow existing code style
 - Add necessary comments and documentation
-- Ensure all tests pass
+- Ensure all features work properly
 
 ## 📄 License
 
@@ -506,6 +504,9 @@ This project uses the following open-source projects:
 - [Dexie.js](https://dexie.org/) - IndexedDB wrapper
 - [React Markdown](https://github.com/remarkjs/react-markdown) - Markdown rendering
 - [Lucide](https://lucide.dev/) - Icon library
+- [Highlight.js](https://highlightjs.org/) - Code highlighting
+- [KaTeX](https://katex.org/) - Math formulas
+- [Mermaid](https://mermaid.js.org/) - Chart rendering
 
 Thanks to all open-source contributors!
 
