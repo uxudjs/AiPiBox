@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../i18n';
 import { useImageGenStore } from '../../store/useImageGenStore';
 import { cn } from '../../utils/cn';
-import { Type, ImageIcon } from 'lucide-react';
+import { Type, Image as ImageIcon } from 'lucide-react';
 
 const ModeTabs = () => {
   const { t } = useTranslation();

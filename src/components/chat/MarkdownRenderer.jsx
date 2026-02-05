@@ -6,7 +6,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { 
-  Copy, Play, ExternalLink, Check, Info, Loader2
+  Copy, Play, ExternalLink, Check, Info, Loader2, Image as ImageIcon
 } from 'lucide-react';
 import { db } from '../../db';
 import { useTranslation } from '../../i18n';

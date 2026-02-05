@@ -7,7 +7,7 @@ import { generateImage } from '../../services/aiService';
 import { logger } from '../../services/logger';
 import { cn } from '../../utils/cn';
 import { 
-  ImageIcon, 
+  Image as ImageIcon, 
   Send, 
   Loader2, 
   Settings2, 

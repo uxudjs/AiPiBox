@@ -751,8 +751,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
           <div 
             ref={contentScrollRef}
             className={cn(
-              "flex-1 overflow-y-auto custom-scrollbar bg-card/30",
-              activeTab === 'logs' ? "p-0" : "p-6 md:p-8 space-y-8"
+              "flex-1 bg-card/30",
+              activeTab === 'logs' 
+                ? "p-0 overflow-hidden flex flex-col" 
+                : "p-6 md:p-8 space-y-8 overflow-y-auto custom-scrollbar"
             )}
           >
             {activeTab === 'llm' && !editingProvider && (
@@ -1646,10 +1648,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
             )}
 
             {activeTab === 'logs' && (
-              <div className="animate-in fade-in">
+              <div className="flex-1 min-h-0 animate-in fade-in">
                 <SystemLogs 
                   searchQuery={logSearchQuery} 
-                  scrollParent={contentScrollRef.current}
+                  scrollParent={null}
                 />
               </div>
             )}

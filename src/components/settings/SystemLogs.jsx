@@ -108,7 +108,22 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
   const [filterLevel, setFilterLevel] = useState('ALL');
   const [selectedLog, setSelectedLog] = useState(null);
   const containerRef = useRef(null);
+  const [listHeight, setListHeight] = useState(600);
   
+  // 动态测量列表高度
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setListHeight(entry.contentRect.height);
+      }
+    });
+    
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   // Use Dexie's live query to watch logs
   const logs = useLiveQuery(
     () => db.system_logs.orderBy('timestamp').reverse().toArray(),
@@ -182,7 +197,7 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
   );
 
   return (
-    <div className="flex flex-col relative">
+    <div className="flex flex-col h-full relative overflow-hidden">
       {/* Log Details Modal Overlay */}
       {selectedLog && <LogDetailsModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
 
@@ -226,13 +241,13 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
       </div>
 
       {/* Log List */}
-      <div ref={containerRef} className="relative">
+      <div ref={containerRef} className="relative flex-1 min-h-0 overflow-hidden">
         <VirtualList
           items={filteredLogs}
           renderItem={renderLogItem}
           itemHeight={60} // Fixed height matching the renderItem container
-          scrollParent={scrollParent}
-          containerHeight={600} // 后备高度
+          scrollParent={null} // 强制内部滚动以实现固定页脚
+          containerHeight={listHeight} 
           className="custom-scrollbar"
           emptyMessage={
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
