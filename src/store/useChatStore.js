@@ -37,9 +37,36 @@ export const useChatStore = create((set, get) => ({
   setIncognito: (val) => set({ isIncognito: val, incognitoMessages: [] }),
   
   /**
-   * 设置当前对话 ID
+   * 设置当前对话 ID，并清理之前的空对话
    */
-  setCurrentConversation: (id) => set({ currentConversationId: id }),
+  setCurrentConversation: async (id) => {
+    const { currentConversationId, checkAndCleanupEmptyConversation } = get();
+    // 如果切换到了不同的对话，尝试清理旧对话
+    if (currentConversationId && currentConversationId !== id && currentConversationId !== 'incognito') {
+      await checkAndCleanupEmptyConversation(currentConversationId);
+    }
+    set({ currentConversationId: id });
+  },
+
+  /**
+   * 检查并清理空对话（没有消息的对话）
+   * 用于自动删除用户创建但未使用的“新对话”
+   */
+  checkAndCleanupEmptyConversation: async (id) => {
+    if (!id || id === 'incognito') return;
+    try {
+      const messageCount = await db.messages.where('conversationId').equals(id).count();
+      if (messageCount === 0) {
+        logger.info('useChatStore', 'Cleaning up empty conversation:', id);
+        // 物理删除，不记录墓碑，不同步（因为它从未同步过）
+        await db.conversations.delete(id);
+        return true;
+      }
+    } catch (e) {
+      logger.error('useChatStore', 'Failed to cleanup empty conversation:', e);
+    }
+    return false;
+  },
 
   /**
    * 更新当前使用的模型
@@ -165,6 +192,37 @@ export const useChatStore = create((set, get) => ({
   clearSelection: () => set({ selectedConversations: [] }),
 
   /**
+   * 删除单个对话
+   * 包含记录墓碑与触发同步
+   */
+  deleteConversation: async (id) => {
+    if (!id || id === 'incognito') return;
+    
+    try {
+      // 记录对话和消息的删除墓碑
+      const msgs = await db.messages.where('conversationId').equals(id).toArray();
+      const messageIds = msgs.map(m => m.id);
+      
+      await recordDeletion('conversations', id);
+      if (messageIds.length > 0) {
+        await recordBatchDeletion('messages', messageIds);
+      }
+
+      await db.conversations.delete(id);
+      await db.messages.where('conversationId').equals(id).delete();
+      
+      if (get().currentConversationId === id) {
+        set({ currentConversationId: null });
+      }
+      
+      syncService.debouncedSync();
+      logger.info('useChatStore', 'Conversation deleted and sync triggered:', id);
+    } catch (e) {
+      logger.error('useChatStore', 'Failed to delete conversation:', e);
+    }
+  },
+
+  /**
    * 执行选定对话的批量删除
    */
   deleteBatchConversations: async () => {
@@ -178,7 +236,9 @@ export const useChatStore = create((set, get) => ({
     }
     
     await recordBatchDeletion('conversations', selectedConversations);
-    await recordBatchDeletion('messages', allMessageIds);
+    if (allMessageIds.length > 0) {
+      await recordBatchDeletion('messages', allMessageIds);
+    }
 
     for (const id of selectedConversations) {
       await db.conversations.delete(id);
@@ -252,6 +312,13 @@ export const useChatStore = create((set, get) => ({
    * @param {string} title 对话初始标题
    */
   createNewConversation: async (title) => {
+    const { currentConversationId, checkAndCleanupEmptyConversation } = get();
+    
+    // 在创建新对话前，检查并清理当前可能存在的空对话
+    if (currentConversationId && currentConversationId !== 'incognito') {
+      await checkAndCleanupEmptyConversation(currentConversationId);
+    }
+
     if (get().isIncognito) {
       set({ currentConversationId: 'incognito', incognitoMessages: [] });
       return 'incognito';
@@ -288,7 +355,7 @@ export const useChatStore = create((set, get) => ({
     }
     
     set({ currentConversationId: id });
-    syncService.debouncedSync();
+    // [优化] 创建新对话但不发送消息时，不触发同步
     return id;
   },
 

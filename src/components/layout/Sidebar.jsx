@@ -27,6 +27,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     setCurrentConversation, 
     selectedConversations, 
     toggleConversationSelection, 
+    deleteConversation,
     deleteBatchConversations, 
     clearAllHistory,
     markAsRead,
@@ -78,10 +79,8 @@ const Sidebar = ({ isOpen, onClose }) => {
   const handleDeleteConversation = async (id, e) => {
     e.stopPropagation();
     if (confirm(t('sidebar.deleteConversation'))) {
-      await db.conversations.delete(id);
-      await db.messages.where('conversationId').equals(id).delete();
+      await deleteConversation(id);
       if (currentConversationId === id) {
-        setCurrentConversation(null);
         navigate('/');
       }
     }

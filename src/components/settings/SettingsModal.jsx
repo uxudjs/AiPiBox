@@ -532,6 +532,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
 
       // 持久化配置
       await saveConfig(sessionPassword);
+      
+      // [同步优化] 保存设置后触发同步
+      syncService.debouncedSync();
+      
       return true;
     } catch (err) {
       logger.error('SettingsModal', 'Failed to apply changes', err);
