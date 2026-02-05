@@ -42,7 +42,7 @@ export const enUS = {
     cancelSelect: 'Cancel Selection',
     clearAll: 'Clear All',
     deleteSelected: 'Delete Selected',
-    deleteConfirm: 'Delete {count} selected conversations?',
+    deleteSelectedConfirm: 'Are you sure you want to delete the selected {count} conversations?',
     noConversations: 'No conversations yet',
     noMatches: 'No matching conversations',
     newConversation: 'New Chat',

@@ -139,11 +139,20 @@ class ErrorBoundary extends Component {
   // 渲染错误提示界面
   render() {
     if (this.state.hasError) {
+      let displayContent = this.props.content;
+      try {
+        if (typeof displayContent === 'object' && displayContent !== null) {
+          displayContent = JSON.stringify(displayContent, null, 2);
+        }
+      } catch (e) {
+        displayContent = String(displayContent);
+      }
+
       return (
         <div className="p-4 border border-red-200 bg-red-50 text-red-600 rounded-lg">
           <p className="font-bold">内容渲染出错</p>
           <pre className="text-xs mt-2 overflow-auto max-h-40 bg-white p-2 rounded border border-red-100">
-            {this.props.content}
+            {displayContent}
           </pre>
         </div>
       );
@@ -164,6 +173,13 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
   // 防御性检查：确保 content 有效
   if (content === null || content === undefined) {
     return null;
+  }
+
+  // 兼容性处理：处理非数组但具有 {type, text} 结构的对象（常见于同步数据不一致或特定模型输出）
+  if (!Array.isArray(content) && typeof content === 'object' && content !== null) {
+    if (content.type === 'text' && content.text !== undefined) {
+      return <MarkdownRendererContent content={content.text} isGenerating={isGenerating} />;
+    }
   }
 
   // 如果内容是数组（包含图片和文本），直接渲染对应组件

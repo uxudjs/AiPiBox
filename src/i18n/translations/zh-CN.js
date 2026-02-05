@@ -42,7 +42,7 @@ export const zhCN = {
     cancelSelect: '取消选择',
     clearAll: '清空全部',
     deleteSelected: '删除选中',
-    deleteConfirm: '确定要删除选中的 {count} 条对话吗？',
+    deleteSelectedConfirm: '确定要删除选中的 {count} 条对话吗？',
     noConversations: '暂无对话历史',
     noMatches: '未找到匹配对话',
     newConversation: '新对话',

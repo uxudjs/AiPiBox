@@ -80,6 +80,9 @@ class LoggerService {
    * 包含脱敏逻辑（API Key 过滤）与 Emoji 清理
    */
   log(level, module, ...args) {
+    // 屏蔽 INFO 与 DEBUG 日志以减轻性能负担
+    if (level === 'info' || level === 'debug') return;
+
     const timestamp = new Date().toISOString();
     const cleanArgs = args.map(arg => this.formatContent(arg));
     const content = this.stripEmojis(cleanArgs.join(' '));
@@ -100,11 +103,10 @@ class LoggerService {
 
   /**
    * 记录信息级别日志
-   * @param {string} module - 模块名称
-   * @param {...any} args - 日志内容
+   * 已禁用
    */
   info(module, ...args) {
-    this.log('info', module, ...args);
+    // 已禁用
   }
 
   /**
@@ -127,11 +129,10 @@ class LoggerService {
 
   /**
    * 记录调试级别日志
-   * @param {string} module - 模块名称
-   * @param {...any} args - 日志内容
+   * 已禁用
    */
   debug(module, ...args) {
-    this.log('debug', module, ...args);
+    // 已禁用
   }
   
   /**

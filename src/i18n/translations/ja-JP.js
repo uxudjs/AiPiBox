@@ -42,7 +42,7 @@ export const jaJP = {
     cancelSelect: '選択解除',
     clearAll: 'すべてクリア',
     deleteSelected: '選択項目を削除',
-    deleteConfirm: '選択した {count} 件の会話を削除しますか？',
+    deleteSelectedConfirm: '選択した {count} 件の会話を削除しますか？',
     noConversations: '会話履歴がありません',
     noMatches: '一致する会話が見つかりません',
     newConversation: '新しいチャット',

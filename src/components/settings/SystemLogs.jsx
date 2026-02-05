@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { logger } from '../../services/logger';
@@ -38,10 +39,10 @@ const LogDetailsModal = ({ log, onClose }) => {
     navigator.clipboard.writeText(JSON.stringify(log, null, 2));
   };
 
-  return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[10010] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="bg-background w-full max-w-3xl max-h-[95%] rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" 
+        className="bg-background w-full max-w-3xl max-h-[85vh] rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" 
         onClick={e => e.stopPropagation()}
       >
         <div className="px-4 py-3 border-b border-border flex justify-between items-center">
@@ -97,7 +98,8 @@ const LogDetailsModal = ({ log, onClose }) => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -117,8 +119,15 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
     if (!logs) return [];
     
     return logs.filter(log => {
+      const level = log.level.toUpperCase();
+      
+      // 强制过滤掉 INFO 和 DEBUG 日志
+      if (level === 'INFO' || level === 'DEBUG') {
+        return false;
+      }
+
       // Level filter
-      if (filterLevel !== 'ALL' && log.level.toUpperCase() !== filterLevel) {
+      if (filterLevel !== 'ALL' && level !== filterLevel) {
         return false;
       }
       
@@ -181,7 +190,7 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
       <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 border-b border-border shrink-0">
         {/* Left: Filters */}
         <div className="flex items-center gap-1">
-           {['ALL', 'ERROR', 'WARN', 'INFO', 'DEBUG'].map((level) => (
+           {['ALL', 'ERROR', 'WARN'].map((level) => (
              <button
                key={level}
                onClick={() => setFilterLevel(level)}

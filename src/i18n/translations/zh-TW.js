@@ -42,7 +42,7 @@ export const zhTW = {
     cancelSelect: '取消選擇',
     clearAll: '清空全部',
     deleteSelected: '刪除已選',
-    deleteConfirm: '確定要刪除已選的 {count} 條對話嗎？',
+    deleteSelectedConfirm: '確定要刪除已選的 {count} 條對話嗎？',
     noConversations: '暫無對話歷史',
     noMatches: '未找到符合的對話',
     newConversation: '新對話',

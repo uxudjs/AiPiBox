@@ -42,7 +42,7 @@ export const koKR = {
     cancelSelect: '선택 취소',
     clearAll: '모두 지우기',
     deleteSelected: '선택 항목 삭제',
-    deleteConfirm: '선택한 {count}개의 대화를 삭제하시겠습니까?',
+    deleteSelectedConfirm: '선택한 {count}개의 대화를 삭제하시겠습니까?',
     noConversations: '대화 내역이 없습니다',
     noMatches: '일치하는 대화가 없습니다',
     newConversation: '새 대화',

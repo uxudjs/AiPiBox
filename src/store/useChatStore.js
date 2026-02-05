@@ -227,6 +227,13 @@ export const useChatStore = create((set, get) => ({
    */
   deleteBatchConversations: async () => {
     const { selectedConversations, currentConversationId } = get();
+    if (selectedConversations.length === 0) return;
+
+    const { t } = useI18nStore.getState();
+    const confirmMessage = t('sidebar.deleteSelectedConfirm', { count: selectedConversations.length }) 
+      || t('sidebar.deleteConversation');
+
+    if (!confirm(confirmMessage)) return;
     
     // 记录对话和消息的删除墓碑
     const allMessageIds = [];
