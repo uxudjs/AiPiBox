@@ -69,7 +69,6 @@ const InputArea = () => {
   const [cameraInitialImage, setCameraInitialImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isCompressing, setIsCompressing] = useState(false);
-  const [isManualSyncing, setIsManualSyncing] = useState(false);
   const [isSyncSuccess, setIsSyncSuccess] = useState(false);
   const [isSyncError, setIsSyncError] = useState(false);
   const [modelSearchQuery, setModelSearchQuery] = useState('');
@@ -94,7 +93,7 @@ const InputArea = () => {
   const currentConversationId = useChatStore(state => state.currentConversationId);
   const currentModel = useChatStore(state => state.currentModel);
   const currentIsAIGenerating = useChatStore(state => state.conversationStates[state.currentConversationId]?.isAIGenerating || false);
-  const { providers, defaultModels, proxy } = useConfigStore();
+  const { providers, defaultModels, proxy, cloudSync } = useConfigStore();
   const { activeKnowledgeBase } = useKnowledgeBaseStore();
 
   const currentConversation = useLiveQuery(() => currentConversationId ? db.conversations.get(currentConversationId) : null, [currentConversationId]);
@@ -134,18 +133,41 @@ const InputArea = () => {
   useEffect(() => { if (showModelSelector) setTimeout(() => modelSearchInputRef.current?.focus(), 50); }, [showModelSelector]);
   useEffect(() => { if (currentView !== 'chat') { setShowModelSelector(false); setShowFileUpload(false); setShowConvSettings(false); setShowKBSelector(false); setShowCamera(false); setPreviewImage(null); } }, [currentView]);
 
+  // [同步优化] 监听全局同步状态变化，以触发按钮反馈
+  const prevSyncStatusRef = useRef(cloudSync?.syncStatus);
+  useEffect(() => {
+    if (!cloudSync) return;
+    
+    // 当状态从正在同步转为成功时
+    if (prevSyncStatusRef.current === 'syncing' && cloudSync.syncStatus === 'success') {
+      setIsSyncSuccess(true);
+      const timer = setTimeout(() => setIsSyncSuccess(false), CHAT_CONFIG.SYNC_FEEDBACK_DURATION);
+      return () => clearTimeout(timer);
+    } 
+    // 当状态从正在同步转为错误时
+    else if (prevSyncStatusRef.current === 'syncing' && cloudSync.syncStatus === 'error') {
+      setIsSyncError(true);
+      const timer = setTimeout(() => setIsSyncError(false), CHAT_CONFIG.SYNC_ERROR_DURATION);
+      return () => clearTimeout(timer);
+    }
+    
+    prevSyncStatusRef.current = cloudSync.syncStatus;
+  }, [cloudSync?.syncStatus]);
+
+  /**
+   * 手动触发同步逻辑
+   * 优化：状态完全交给全局 store 管理，此处仅负责调用服务
+   */
   const handleManualSync = async () => {
     const { sessionPassword } = useAuthStore.getState();
-    const { cloudSync } = useConfigStore.getState();
-    if (!cloudSync?.enabled || !sessionPassword || isManualSyncing) return;
-    setIsManualSyncing(true); setIsSyncSuccess(false); setIsSyncError(false);
+    if (!cloudSync?.enabled || !sessionPassword || cloudSync?.syncStatus === 'syncing') return;
+    
     try {
       await syncService.syncWithConflictResolution(sessionPassword);
-      setIsSyncSuccess(true); setTimeout(() => setIsSyncSuccess(false), CHAT_CONFIG.SYNC_FEEDBACK_DURATION);
     } catch (error) {
       logger.error('InputArea', 'Manual sync failed', error);
-      setIsSyncError(true); setTimeout(() => setIsSyncError(false), CHAT_CONFIG.SYNC_ERROR_DURATION);
-    } finally { setIsManualSyncing(false); }
+      // 错误已由 syncService 写入 store，useEffect 会捕捉并显示反馈
+    }
   };
 
   const handleManualCompress = async () => {
@@ -255,14 +277,14 @@ const InputArea = () => {
           
           <button 
             onClick={handleManualSync} 
-            disabled={isManualSyncing} 
+            disabled={cloudSync?.syncStatus === 'syncing'} 
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-border/30 rounded-full shadow-sm transition-all text-[11px] font-medium hover:bg-accent/50",
               isSyncSuccess ? "text-green-500" : isSyncError ? "text-destructive" : "text-muted-foreground hover:text-primary"
             )}
           >
-            {isSyncSuccess ? <Check className="w-3.5 h-3.5" /> : isSyncError ? <AlertCircle className="w-3.5 h-3.5" /> : <RefreshCw className={cn("w-3.5 h-3.5", isManualSyncing && "animate-spin")} />}
-            <span>{isManualSyncing ? t('settings.security.syncStatusSyncing') : isSyncSuccess ? t('settings.security.syncStatusSuccess') : isSyncError ? t('settings.security.syncStatusError') : t('inputArea.manualSync')}</span>
+            {isSyncSuccess ? <Check className="w-3.5 h-3.5" /> : isSyncError ? <AlertCircle className="w-3.5 h-3.5" /> : <RefreshCw className={cn("w-3.5 h-3.5", cloudSync?.syncStatus === 'syncing' && "animate-spin")} />}
+            <span>{cloudSync?.syncStatus === 'syncing' ? t('settings.security.syncStatusSyncing') : isSyncSuccess ? t('settings.security.syncStatusSuccess') : isSyncError ? t('settings.security.syncStatusError') : t('inputArea.manualSync')}</span>
           </button>
 
           <button 
