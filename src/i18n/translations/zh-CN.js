@@ -139,9 +139,9 @@ export const zhCN = {
     },
 
     region: {
-      china: '中国（北京）',
+      china: '华北2（北京）',
       singapore: '新加坡',
-      us: '美国（西部）'
+      us: '美国（弗吉尼亚）'
     },
 
     presets: {

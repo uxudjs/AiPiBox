@@ -103,9 +103,9 @@ export const zhTW = {
     },
 
     region: {
-      china: '中國（北京）',
+      china: '華北2（北京）',
       singapore: '新加坡',
-      us: '美國（西部）'
+      us: '美國（弗吉尼亞）'
     },
 
     presets: {

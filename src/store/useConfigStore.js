@@ -37,7 +37,7 @@ export const ALIYUN_REGIONS = {
   },
   us: {
     name: 'region.us',
-    url: 'https://dashscope.us-west-1.aliyuncs.com/compatible-mode/v1'
+    url: 'https://dashscope-us.aliyuncs.com/compatible-mode/v1'
   }
 };
 

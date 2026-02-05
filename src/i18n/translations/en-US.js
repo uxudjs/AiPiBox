@@ -139,9 +139,9 @@ export const enUS = {
     },
 
     region: {
-      china: 'China (Beijing)',
+      china: 'North China 2 (Beijing)',
       singapore: 'Singapore',
-      us: 'US (West)'
+      us: 'US (Virginia)'
     },
 
     presets: {

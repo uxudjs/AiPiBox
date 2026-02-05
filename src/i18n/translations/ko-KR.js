@@ -103,9 +103,9 @@ export const koKR = {
     },
 
     region: {
-      china: '중국 (베이징)',
+      china: '화베이 2 (베이징)',
       singapore: '싱가포르',
-      us: '미국 (서부)'
+      us: '미국 (버지니아)'
     },
 
     presets: {

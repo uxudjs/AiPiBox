@@ -103,9 +103,9 @@ export const jaJP = {
     },
 
     region: {
-      china: '中国（北京）',
+      china: '華北2（北京）',
       singapore: 'シンガポール',
-      us: 'アメリカ（西部）'
+      us: 'アメリカ（バージニア）'
     },
 
     presets: {
