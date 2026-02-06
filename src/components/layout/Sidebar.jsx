@@ -1,8 +1,14 @@
+/**
+ * 侧边导航栏组件
+ * 负责管理对话历史列表、搜索过滤、批量操作、视图切换（聊天/图像工厂）以及全局设置入口。
+ * 支持响应式折叠状态管理。
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Plus, Settings, Search, X, MessageSquare, Trash2, Edit2, Check, 
-  Image as ImageIcon, Info, CheckCircle2, Circle, ChevronLeft, ChevronRight, Menu
+  Image as ImageIcon, Info, CheckCircle2, Circle, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useChatStore } from '../../store/useChatStore';
 import { useUIStore } from '../../store/useViewStore';
@@ -13,9 +19,10 @@ import SettingsModal from '../settings/SettingsModal';
 import { useTranslation } from '../../i18n';
 
 /**
- * 侧边导航栏组件
- * 管理对话列表展示、历史搜索、视图切换及全局设置入口
- * 支持桌面端折叠与移动端抽屉模式
+ * 侧边栏组件
+ * @param {object} props - 组件属性
+ * @param {boolean} props.isOpen - 移动端模式下是否开启
+ * @param {Function} props.onClose - 移动端关闭回调
  */
 const Sidebar = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
@@ -48,7 +55,9 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
 
-  // 监听外部设置打开事件
+  /**
+   * 监听全局设置面板打开请求
+   */
   useEffect(() => {
     const handleOpenSettings = (event) => {
       const { tab } = event.detail || {};
@@ -59,11 +68,13 @@ const Sidebar = ({ isOpen, onClose }) => {
     return () => window.removeEventListener('open-settings', handleOpenSettings);
   }, []);
   
-  // 切换页面时关闭设置与移动端侧边栏
+  /**
+   * 切换路由时自动关闭弹出层
+   */
   useEffect(() => {
     setSettingsOpen(false);
     setMobileSidebarOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, setMobileSidebarOpen]);
   
   const conversations = useLiveQuery(
     () => {
@@ -76,6 +87,9 @@ const Sidebar = ({ isOpen, onClose }) => {
     [searchQuery]
   ) || [];
 
+  /**
+   * 删除选中的对话项
+   */
   const handleDeleteConversation = async (id, e) => {
     e.stopPropagation();
     if (confirm(t('sidebar.deleteConversation'))) {
@@ -86,12 +100,18 @@ const Sidebar = ({ isOpen, onClose }) => {
     }
   };
 
+  /**
+   * 开启标题编辑模式
+   */
   const handleStartEdit = (conv, e) => {
     e.stopPropagation();
     setEditingId(conv.id);
     setEditTitle(conv.title);
   };
 
+  /**
+   * 保存修改后的对话标题
+   */
   const handleSaveEdit = async (e) => {
     e.stopPropagation();
     if (editingId && editTitle.trim()) {
@@ -111,7 +131,6 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* 移动端遮罩 */}
       <div 
         className={cn(
           "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity lg:hidden",
@@ -125,7 +144,6 @@ const Sidebar = ({ isOpen, onClose }) => {
         isOpen ? "translate-x-0" : "-translate-x-full",
         sidebarCollapsed ? "lg:w-20" : "w-80"
       )}>
-        {/* 顶部 Logo 区 */}
         <div className={cn(
           "p-6 flex items-center justify-between border-b bg-accent/10 min-h-[81px]",
           sidebarCollapsed && "px-0 justify-center"
@@ -147,7 +165,6 @@ const Sidebar = ({ isOpen, onClose }) => {
             <X className="w-5 h-5" />
           </button>
           
-          {/* 桌面端折叠切换按钮 */}
           <button 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="hidden lg:flex p-2 hover:bg-accent rounded-xl text-muted-foreground transition-colors ml-2"
@@ -156,7 +173,6 @@ const Sidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* 搜索区：仅在展开时显示 */}
         {!sidebarCollapsed && (
           <div className="px-4 py-4">
             <div className="relative group">
@@ -172,7 +188,6 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {/* 对话列表区 */}
         <div className={cn(
           "flex-1 overflow-y-auto px-3 space-y-1 custom-scrollbar pb-4",
           sidebarCollapsed && "px-2 items-center"
@@ -265,7 +280,6 @@ const Sidebar = ({ isOpen, onClose }) => {
                     )
                   )}
                   
-                  {/* 状态点 */}
                   {!isMultiSelect && currentConversationId !== conv.id && (
                     <>
                       {conv.isGenerating && (
@@ -289,10 +303,8 @@ const Sidebar = ({ isOpen, onClose }) => {
           )}
         </div>
 
-        {/* 底部操作区 */}
         <div className={cn("p-4 border-t bg-accent/5 space-y-3", sidebarCollapsed && "px-2 py-4")}>
           <div className={cn("flex gap-2", sidebarCollapsed && "flex-col")}>
-            {/* 图片工厂 */}
             <button 
               onClick={() => { navigate('/image'); onClose(); }}
               className={cn(
@@ -308,7 +320,6 @@ const Sidebar = ({ isOpen, onClose }) => {
               {!sidebarCollapsed && <span className="text-[10px]">{t('imageFactory.title')}</span>}
             </button>
 
-            {/* 开启新对话 */}
             <button 
               onClick={() => { createNewConversation(); navigate('/'); onClose(); }}
               className={cn(
@@ -325,7 +336,6 @@ const Sidebar = ({ isOpen, onClose }) => {
             </button>
           </div>
           
-          {/* 设置 */}
           <button 
             onClick={() => setSettingsOpen(true)}
             className={cn(
@@ -338,7 +348,6 @@ const Sidebar = ({ isOpen, onClose }) => {
             {!sidebarCollapsed && <span>{t('common.settings')}</span>}
           </button>
           
-          {/* 版本信息：仅在展开时显示 */}
           {!sidebarCollapsed && (
             <div className="flex items-center justify-between px-2 pt-2">
               <span className="text-[10px] font-bold text-muted-foreground opacity-30 flex items-center gap-1 uppercase tracking-tighter">

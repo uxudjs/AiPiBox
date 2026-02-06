@@ -1,3 +1,8 @@
+/**
+ * 知识库选择器组件
+ * 允许用户在对话中快速切换或选择已建立的本地知识库进行检索。
+ */
+
 import React, { useState } from 'react';
 import { X, Check, BookOpen, FileText, ChevronRight, Search, Settings } from 'lucide-react';
 import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
@@ -5,8 +10,8 @@ import { cn } from '../../utils/cn';
 import { useTranslation } from '../../i18n';
 
 /**
- * 知识库选择器组件
- * 在对话界面显示，用户可以选择要使用的知识库
+ * 知识库选择界面组件
+ * @param {object} props - 组件属性
  */
 const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false }) => {
   const { t } = useTranslation();
@@ -20,7 +25,10 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
   const [selectedKB, setSelectedKB] = useState(activeKnowledgeBase);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 处理知识库选择
+  /**
+   * 处理单项选择逻辑
+   * @param {string} kbId - 知识库 ID
+   */
   const handleSelect = (kbId) => {
     const targetKBId = kbId === activeKnowledgeBase ? null : kbId;
     setActiveKnowledgeBase(targetKBId);
@@ -31,7 +39,9 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
     onClose();
   };
 
-  // 取消选择（清空激活的知识库）
+  /**
+   * 清除当前选中的知识库
+   */
   const handleClear = () => {
     setActiveKnowledgeBase(null);
     setSelectedKB(null);
@@ -41,13 +51,14 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
     onClose();
   };
 
-  // 跳转到设置
+  /**
+   * 引导至知识库设置页面
+   */
   const handleOpenSettings = () => {
     onClose();
     window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'knowledge-base' } }));
   };
 
-  // 过滤知识库
   const filteredKBs = knowledgeBases.filter(kb => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -56,11 +67,9 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
   });
 
   return inline ? (
-    // Inline模式：用于InputArea中的弹窗
     <div className="bg-card rounded-3xl shadow-2xl max-w-full w-full max-h-[70vh] flex flex-col border overflow-hidden" onClick={(e) => e.stopPropagation()}>
-      {/* 头部 */}
       <div className="flex items-center justify-between p-2 border-b bg-accent/20">
-        <div className="w-8" /> {/* 占位以居中标题 */}
+        <div className="w-8" />
         <span className="text-xs font-black text-primary uppercase tracking-widest">{t('inputArea.selectKB')}</span>
         <button
           onClick={onClose}
@@ -70,7 +79,6 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
         </button>
       </div>
 
-      {/* 搜索框 */}
       <div className="p-2 border-b">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -92,7 +100,6 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
         </div>
       </div>
 
-      {/* 清除选择按钮 */}
       <div className="p-1 border-b bg-accent/10">
         <button
           type="button"
@@ -104,7 +111,6 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
         </button>
       </div>
 
-      {/* 知识库列表 */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
         {knowledgeBases.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
@@ -174,7 +180,6 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
         )}
       </div>
 
-      {/* 管理按钮 */}
       <div className="p-1 border-t bg-accent/5">
         <button
           onClick={handleOpenSettings}
@@ -186,10 +191,8 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
       </div>
     </div>
   ) : (
-    // 全屏模式：用于独立弹窗
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={onClose}>
       <div className="bg-card rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col border animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-        {/* 头部 */}
         <div className="flex items-center justify-end p-2 border-b">
           <button
             onClick={onClose}
@@ -199,7 +202,6 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
           </button>
         </div>
 
-        {/* 搜索框 */}
         {knowledgeBases.length > 3 && (
           <div className="p-4 border-b">
             <div className="relative">
@@ -215,7 +217,6 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
           </div>
         )}
 
-        {/* 知识库列表 */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
           {knowledgeBases.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -296,7 +297,6 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
           )}
         </div>
 
-        {/* 底部操作按钮 */}
         <div className="flex gap-3 p-4 border-t bg-accent/5">
           {activeKnowledgeBase && (
             <button
@@ -314,7 +314,7 @@ const KnowledgeBaseSelector = ({ onClose, onSelectKnowledgeBase, inline = false 
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
-            onClick={handleSelect}
+            onClick={() => handleSelect(selectedKB)}
             disabled={!selectedKB}
             className={cn(
               "flex-1 py-2.5 rounded-xl transition-colors text-sm font-medium",

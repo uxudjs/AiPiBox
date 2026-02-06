@@ -1,3 +1,8 @@
+/**
+ * AI 图像工厂主组件
+ * 提供文生图、图生图的参数设置、模型切换及历史生成记录展示。
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../../i18n';
 import { useImageGenStore } from '../../store/useImageGenStore';
@@ -7,8 +12,6 @@ import { generateImage } from '../../services/aiService';
 import { logger } from '../../services/logger';
 import { cn } from '../../utils/cn';
 import { 
-  Image as ImageIcon, 
-  Send, 
   Loader2, 
   Settings2, 
   History, 
@@ -23,6 +26,9 @@ import ParameterPanel from './ParameterPanel';
 import ImageGallery from './ImageGallery';
 import ModeTabs from './ModeTabs';
 
+/**
+ * 图像工厂核心视图组件
+ */
 const ImageFactory = () => {
   const { t } = useTranslation();
   const { 
@@ -45,15 +51,16 @@ const ImageFactory = () => {
     loadHistory();
   }, []);
 
-  // 监听页面切换，自动关闭参数面板抽屉（移动端）
   const currentView = useViewStore(state => state.currentView);
   useEffect(() => {
     if (currentView !== 'image-factory') {
-      // 切换到非图片工厂页面时，关闭参数面板抽屉
       setShowParams(false);
     }
   }, [currentView]);
 
+  /**
+   * 触发图像生成请求并持久化结果
+   */
   const handleGenerate = async () => {
     if (!params.prompt.trim()) return;
     
@@ -105,9 +112,7 @@ const ImageFactory = () => {
   return (
     <div className="h-full flex flex-col bg-background animate-in fade-in duration-500">
       <div className="flex-1 flex overflow-hidden">
-        {/* 左侧主要区域 */}
         <div className="flex-1 flex flex-col overflow-hidden border-r relative">
-          {/* 模式切换与模型选择 */}
           <div className="p-4 border-b bg-card flex flex-col sm:flex-row items-center justify-between gap-4 z-20">
             <ModeTabs />
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -128,12 +133,9 @@ const ImageFactory = () => {
             </div>
           </div>
 
-          {/* 内容输入与生成区 */}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
             <div className="max-w-4xl mx-auto space-y-6">
-              {/* 输入框 */}
               <div className="space-y-4">
-                {/* 图生图上传区域 */}
                 {mode === 'image-to-image' && (
                   <div className="space-y-2 animate-in slide-in-from-top-2">
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">
@@ -196,7 +198,6 @@ const ImageFactory = () => {
                   </div>
                 </div>
 
-                {/* 反向提示词 */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">
                     {t('imageFactory.negativePrompt')}
@@ -211,7 +212,6 @@ const ImageFactory = () => {
                 </div>
               </div>
 
-              {/* 错误显示 */}
               {error && (
                 <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-start gap-3 text-destructive animate-in slide-in-from-top-2">
                   <AlertCircle className="w-5 h-5 mt-0.5" />
@@ -219,7 +219,6 @@ const ImageFactory = () => {
                 </div>
               )}
 
-              {/* 历史记录/库 */}
               <div className="pt-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="flex items-center gap-2 font-bold opacity-70">
@@ -233,7 +232,6 @@ const ImageFactory = () => {
           </div>
         </div>
 
-        {/* 右侧参数面板 (桌面端) */}
         {showParams && (
           <div className="hidden lg:block w-80 border-l bg-card/30 backdrop-blur-sm overflow-y-auto custom-scrollbar p-6">
             <ParameterPanel />
@@ -241,7 +239,6 @@ const ImageFactory = () => {
         )}
       </div>
 
-      {/* 移动端参数面板遮罩/抽屉 */}
       {showParams && (
         <div className="lg:hidden fixed inset-0 z-50 animate-in fade-in">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowParams(false)} />

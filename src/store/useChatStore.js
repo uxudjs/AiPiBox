@@ -1,3 +1,8 @@
+/**
+ * 聊天业务 Store
+ * 处理对话生命周期、消息树管理、AI 生成状态及自动命名等核心逻辑。
+ */
+
 import { create } from 'zustand';
 import { db, recordDeletion, recordBatchDeletion } from '../db';
 import { chatCompletion, resumeTask } from '../services/aiService';
@@ -6,25 +11,17 @@ import { logger } from '../services/logger';
 import { syncService } from '../services/syncService';
 import { useI18nStore } from '../i18n';
 
-/**
- * 聊天业务 Store
- * 处理对话生命周期、消息树管理、AI 生成状态及自动命名等核心逻辑
- */
 export const useChatStore = create((set, get) => ({
-  // 基础状态
-  currentConversationId: null,      // 当前激活的对话 ID
-  isIncognito: false,               // 是否处于隐身模式（不持久化数据）
-  incognitoMessages: [],            // 隐身模式下的临时消息列表
-  currentModel: null,               // 当前选中的 AI 模型配置
+  currentConversationId: null,
+  isIncognito: false,
+  incognitoMessages: [],
+  currentModel: null,
   
-  // 多对话并发状态管理（Key 为 conversationId）
   conversationStates: {}, 
-  selectedConversations: [],        // 批量操作选中的对话 ID 列表
+  selectedConversations: [],
   
-  // 对话创建前的预设配置
   pendingConversationSettings: null,
   
-  // 废弃状态字段（仅用于向后兼容）
   isReasoning: false,
   reasoningContent: '',
   isAIGenerating: false,
@@ -32,16 +29,17 @@ export const useChatStore = create((set, get) => ({
   abortController: null,
 
   /**
-   * 切换隐身模式
+   * 切换隐身模式状态
+   * @param {boolean} val - 是否开启隐身模式
    */
   setIncognito: (val) => set({ isIncognito: val, incognitoMessages: [] }),
   
   /**
-   * 设置当前对话 ID，并清理之前的空对话
+   * 设置当前活跃对话并清理空对话
+   * @param {string} id - 对话 ID
    */
   setCurrentConversation: async (id) => {
     const { currentConversationId, checkAndCleanupEmptyConversation } = get();
-    // 如果切换到了不同的对话，尝试清理旧对话
     if (currentConversationId && currentConversationId !== id && currentConversationId !== 'incognito') {
       await checkAndCleanupEmptyConversation(currentConversationId);
     }
@@ -49,8 +47,9 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 检查并清理空对话（没有消息的对话）
-   * 用于自动删除用户创建但未使用的“新对话”
+   * 检查并删除没有消息的对话
+   * @param {string} id - 待检查对话 ID
+   * @returns {Promise<boolean>} 是否执行了清理
    */
   checkAndCleanupEmptyConversation: async (id) => {
     if (!id || id === 'incognito') return;
@@ -58,7 +57,6 @@ export const useChatStore = create((set, get) => ({
       const messageCount = await db.messages.where('conversationId').equals(id).count();
       if (messageCount === 0) {
         logger.info('useChatStore', 'Cleaning up empty conversation:', id);
-        // 物理删除，不记录墓碑，不同步（因为它从未同步过）
         await db.conversations.delete(id);
         return true;
       }
@@ -69,13 +67,15 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 更新当前使用的模型
+   * 更新当前对话使用的模型配置
+   * @param {object} model - 模型配置对象
    */
   setCurrentModel: (model) => set({ currentModel: model }),
 
   /**
-   * 获取指定对话的运行时状态
-   * @param {string} conversationId 对话 ID，缺省为当前对话
+   * 获取对话的运行时状态
+   * @param {string} [conversationId] - 对话 ID
+   * @returns {object} 运行时状态
    */
   getConversationState: (conversationId) => {
     const { conversationStates, currentConversationId } = get();
@@ -92,7 +92,9 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 更新对话运行时状态并同步全局状态位
+   * 更新对话运行时状态
+   * @param {string} conversationId - 对话 ID
+   * @param {object} updates - 待更新字段
    */
   setConversationState: (conversationId, updates) => {
     set((state) => ({
@@ -113,7 +115,10 @@ export const useChatStore = create((set, get) => ({
     }));
   },
 
-  // 清除指定对话的状态
+  /**
+   * 清除指定对话的状态信息
+   * @param {string} conversationId - 对话 ID
+   */
   clearConversationState: (conversationId) => {
     set((state) => {
       const newStates = { ...state.conversationStates };
@@ -132,7 +137,9 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 设置 AI 深度思考状态
+   * 更新 AI 深度思考状态
+   * @param {boolean} isReasoning - 是否正在思考
+   * @param {string} content - 思考内容
    */
   setReasoning: (isReasoning, content = '') => {
     const { currentConversationId } = get();
@@ -142,7 +149,8 @@ export const useChatStore = create((set, get) => ({
   },
   
   /**
-   * 设置 AI 正在回复状态
+   * 更新 AI 生成状态
+   * @param {boolean} isGenerating - 是否正在生成
    */
   setAIGenerating: (isGenerating) => {
     const { currentConversationId } = get();
@@ -153,6 +161,7 @@ export const useChatStore = create((set, get) => ({
 
   /**
    * 设置当前流式输出的消息对象
+   * @param {object} msg - 消息对象
    */
   setStreamingMessage: (msg) => {
     const { currentConversationId } = get();
@@ -162,7 +171,8 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 增量追加流式文本内容
+   * 追加流式内容
+   * @param {string} content - 新增文本块
    */
   updateStreamingContent: (content) => {
     const { currentConversationId, conversationStates } = get();
@@ -181,25 +191,29 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // 切换对话选中状态（批量操作）
+  /**
+   * 切换对话选中状态（批量操作用）
+   * @param {string} id - 对话 ID
+   */
   toggleConversationSelection: (id) => set((state) => ({
     selectedConversations: state.selectedConversations.includes(id)
       ? state.selectedConversations.filter(c => c !== id)
       : [...state.selectedConversations, id]
   })),
 
-  // 清除选中的对话
+  /**
+   * 清除所有对话选中状态
+   */
   clearSelection: () => set({ selectedConversations: [] }),
 
   /**
-   * 删除单个对话
-   * 包含记录墓碑与触发同步
+   * 删除单个对话及其消息
+   * @param {string} id - 对话 ID
    */
   deleteConversation: async (id) => {
     if (!id || id === 'incognito') return;
     
     try {
-      // 记录对话和消息的删除墓碑
       const msgs = await db.messages.where('conversationId').equals(id).toArray();
       const messageIds = msgs.map(m => m.id);
       
@@ -223,7 +237,7 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 执行选定对话的批量删除
+   * 批量删除已选中的对话
    */
   deleteBatchConversations: async () => {
     const { selectedConversations, currentConversationId } = get();
@@ -235,7 +249,6 @@ export const useChatStore = create((set, get) => ({
 
     if (!confirm(confirmMessage)) return;
     
-    // 记录对话和消息的删除墓碑
     const allMessageIds = [];
     for (const id of selectedConversations) {
       const msgs = await db.messages.where('conversationId').equals(id).toArray();
@@ -259,12 +272,11 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 危险操作：清空本地数据库中的所有对话与消息
+   * 清空所有历史对话
    */
   clearAllHistory: async () => {
     const { t } = useI18nStore.getState();
     if (confirm(t('sidebar.clearAllConfirm'))) {
-      // 记录所有对话和消息的删除墓碑
       const allConvIds = (await db.conversations.toArray()).map(c => c.id);
       const allMsgIds = (await db.messages.toArray()).map(m => m.id);
       
@@ -279,7 +291,9 @@ export const useChatStore = create((set, get) => ({
   },
   
   /**
-   * 读取对话特定的个性化配置（如 Temperature, 系统提示词等）
+   * 获取对话特定的本地设置
+   * @param {string} conversationId - 对话 ID
+   * @returns {Promise<object|null>} 配置对象
    */
   getConversationSettings: async (conversationId) => {
     if (!conversationId || conversationId === 'incognito') {
@@ -290,7 +304,11 @@ export const useChatStore = create((set, get) => ({
     return conv?.localSettings || null;
   },
   
-  // 更新对话的本地设置
+  /**
+   * 更新对话特定的本地设置
+   * @param {string} conversationId - 对话 ID
+   * @param {object} settings - 设置项
+   */
   updateConversationSettings: async (conversationId, settings) => {
     if (!conversationId || conversationId === 'incognito') {
       set({ pendingConversationSettings: settings });
@@ -304,7 +322,10 @@ export const useChatStore = create((set, get) => ({
     logger.info('useChatStore', 'Conversation settings updated:', { conversationId, settings });
   },
   
-  // 重置对话设置为默认值
+  /**
+   * 重置对话设置为默认值
+   * @param {string} conversationId - 对话 ID
+   */
   resetConversationSettings: async (conversationId) => {
     if (!conversationId || conversationId === 'incognito') return;
     await db.conversations.update(conversationId, { 
@@ -315,13 +336,13 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 创建新会话并持久化
-   * @param {string} title 对话初始标题
+   * 创建新对话会话
+   * @param {string} [title] - 对话标题
+   * @returns {Promise<string>} 新创建的对话 ID
    */
   createNewConversation: async (title) => {
     const { currentConversationId, checkAndCleanupEmptyConversation } = get();
     
-    // 在创建新对话前，检查并清理当前可能存在的空对话
     if (currentConversationId && currentConversationId !== 'incognito') {
       await checkAndCleanupEmptyConversation(currentConversationId);
     }
@@ -331,7 +352,6 @@ export const useChatStore = create((set, get) => ({
       return 'incognito';
     }
     
-    // 使用翻译的默认标题
     const defaultTitle = title || useI18nStore.getState().t('sidebar.newConversation');
     
     const { pendingConversationSettings } = get();
@@ -349,7 +369,6 @@ export const useChatStore = create((set, get) => ({
       set({ pendingConversationSettings: null });
     }
     
-    // [逻辑优化] 每次新建对话时强制使用全局默认模型，而不是保持上一次使用的模型
     const { getEffectiveModel } = useConfigStore.getState();
     const defaultModel = getEffectiveModel('chat');
     if (defaultModel) {
@@ -362,30 +381,27 @@ export const useChatStore = create((set, get) => ({
     }
     
     set({ currentConversationId: id });
-    // [优化] 创建新对话但不发送消息时，不触发同步
     return id;
   },
 
   /**
-   * AI 自动对话命名
-   * 基于首条消息内容异步请求 AI 生成简短标题
+   * AI 自动根据首条消息生成对话标题
+   * @param {string} id - 对话 ID
+   * @param {string} firstMessage - 首条消息内容
+   * @param {object} config - 配置对象
    */
   autoRenameConversation: async (id, firstMessage, config) => {
     if (id === 'incognito') return;
     
     try {
       const conversation = await db.conversations.get(id);
-      // 如果用户已经手动编辑过标题，则不再自动重命名
       if (conversation?.manualTitle) {
-        logger.debug('useChatStore', 'Skipping auto-rename for manual title conversation:', id);
         return;
       }
 
-      logger.debug('useChatStore', 'Starting background auto-rename task:', id);
       const currentModel = get().currentModel;
       let effectiveModel = useConfigStore.getState().getEffectiveModel('naming', currentModel);
       
-      // 自动寻找可用模型进行命名请求
       if (!effectiveModel && config?.providers) {
         const activeProvider = config.providers.find(p => p.apiKey && p.models && p.models.length > 0);
         if (activeProvider) {
@@ -403,7 +419,6 @@ export const useChatStore = create((set, get) => ({
 
       if (!effectiveModel) return;
 
-      // 发起非流式请求生成标题
       const { getAliyunRegionUrl } = await import('./useConfigStore');
       const actualBaseUrl = getAliyunRegionUrl(effectiveModel.provider);
       const titleResponse = await chatCompletion({
@@ -414,7 +429,7 @@ export const useChatStore = create((set, get) => ({
         messages: [
           { 
             role: 'system', 
-            content: '你是一个专业的对话命名助手。你的任务是阅读用户的输入，并生成一个简短、精准的标题（不超过10个字）。\n\n规则：\n1. 直接输出标题，不要包含任何标点符号、引号或解释性文字。\n2. 标题应概括对话的核心主题。\n3. 如果无法概括，请输出"新对话"。' 
+            content: '你是一个专业的对话命名助手。你的任务是阅读用户的输入，并生成一个简短、精准的标题（不超过10个字）。\n\n规则：\n1. 直接输出标题，不要包含任何标点符号、引号或解释性文字。\n2. 标题应概括对话的核心主题。\n3. 如果无法概括，请输出"新对话"।' 
           },
           { role: 'user', content: `用户输入：${firstMessage}\n\n请生成标题：` }
         ],
@@ -424,12 +439,10 @@ export const useChatStore = create((set, get) => ({
         stream: false
       });
       
-      // 处理 Gemini 等模型返回的对象格式
       let title = '';
       if (typeof titleResponse === 'string') {
         title = titleResponse;
       } else if (titleResponse && typeof titleResponse === 'object') {
-        // 兼容 aiService.js 中非流式请求可能返回的结果
         title = titleResponse.content || titleResponse.text || '';
       }
 
@@ -442,12 +455,9 @@ export const useChatStore = create((set, get) => ({
 
       await db.conversations.update(id, { 
         title: cleanTitle,
-        // 如果不是当前正在查看的对话，标记为未读
         hasUnread: !isCurrentConversation
       });
       syncService.debouncedSync();
-      
-      logger.debug('useChatStore', `Conversation ${id} title updated, hasUnread: ${!isCurrentConversation}`);
       
     } catch (e) {
       logger.error('useChatStore', 'Auto rename failed', e);
@@ -455,8 +465,10 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 核心逻辑：获取当前路径下的消息序列
-   * 遍历多分支消息树，仅返回当前被选中（selectedChildId 链接）的分支路径
+   * 获取当前对话路径下的有序消息序列
+   * 遍历多分支树并根据选中标识仅返回当前选中的路径分支。
+   * @param {string} conversationId - 对话 ID
+   * @returns {Promise<Array>} 消息路径数组
    */
   getMessages: async (conversationId) => {
     try {
@@ -466,7 +478,6 @@ export const useChatStore = create((set, get) => ({
       }
       if (!conversationId) return [];
 
-      // 获取当前对话的消息（添加安全上限，防止超大对话导致崩溃）
       const MESSAGE_FETCH_LIMIT = 5000;
       const allMessages = await db.messages
         .where('conversationId')
@@ -474,20 +485,11 @@ export const useChatStore = create((set, get) => ({
         .limit(MESSAGE_FETCH_LIMIT)
         .sortBy('timestamp');
         
-      if (allMessages.length >= MESSAGE_FETCH_LIMIT) {
-        logger.warn('useChatStore', `Conversation ${conversationId} exceeds message fetch limit (${MESSAGE_FETCH_LIMIT}). Some history may be inaccessible.`);
-      }
-
       if (!allMessages || allMessages.length === 0) return [];
 
-      // 构建消息树的索引结构
       const msgMap = new Map();
       const childrenMap = new Map();
       
-      /**
-       * ID 归一化处理：由于同步可能导致主键类型不一致（数字 vs 字符串）
-       * 统一使用字符串作为 Map 的键以确保匹配逻辑正确
-       */
       const normalizeId = (id) => (id === undefined || id === null) ? 'root' : String(id);
 
       allMessages.forEach(m => {
@@ -501,42 +503,32 @@ export const useChatStore = create((set, get) => ({
         }
       });
       
-      // 按时间戳排序子消息
       childrenMap.forEach(children => children.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)));
 
       const path = [];
       
-      // 从根节点开始遍历
       let roots = childrenMap.get('root') || [];
       if (roots.length === 0) {
-        // [容错处理] 如果没有明确标记为 root 的消息，则视第一条消息为起点（防止数据迁移/同步导致的根节点标记丢失）
         const firstMsg = allMessages[0];
         if (firstMsg) {
-          logger.warn('useChatStore', 'No explicit root messages found, falling back to first message in sequence', { conversationId });
           roots = [firstMsg];
         } else {
           return [];
         }
       }
       
-      // 处理多根节点情况：选择第一个根节点
       let currentMsg = roots[0];
       const visited = new Set();
-      const MAX_ITERATIONS = 5000; // 安全上限
+      const MAX_ITERATIONS = 5000;
       let iterations = 0;
       
       while (currentMsg && iterations < MAX_ITERATIONS) {
          const currentMid = normalizeId(currentMsg.id);
          
-         // 循环检测
-         if (visited.has(currentMid)) {
-           logger.error('useChatStore', 'Circular reference detected in message tree at ID:', currentMid);
-           break;
-         }
+         if (visited.has(currentMid)) break;
          visited.add(currentMid);
          iterations++;
 
-         // 为消息添加兄弟节点信息
          const pid = normalizeId(currentMsg.parentId);
          const siblings = childrenMap.get(pid) || [];
          
@@ -553,44 +545,36 @@ export const useChatStore = create((set, get) => ({
          let nextId = currentMsg.selectedChildId;
          let nextMsg = nextId ? msgMap.get(normalizeId(nextId)) : null;
          
-         // 如果没有选中子节点或选中节点无效，默认选择第一个子节点（有序历史）
-         // 容错逻辑：必须确保 nextMsg 的父节点确实是当前节点
          if (!nextMsg || normalizeId(nextMsg.parentId) !== currentMid) {
-           nextMsg = children[0]; // 默认选择分支中的第一条（通常是第一个生成的）
+           nextMsg = children[0];
          }
          currentMsg = nextMsg;
       }
 
-      if (iterations >= MAX_ITERATIONS) {
-        logger.error('useChatStore', 'Maximum message depth reached, possible infinite loop or extremely long conversation');
-      }
-      
-      // 性能防御：如果消息过多，仅返回最近的 200 条。
-      // 将原有的 100 限制放宽至 200，权衡性能与用户体验
       if (path.length > 200) {
-        logger.warn('useChatStore', `Conversation ${conversationId} has ${path.length} messages, limiting UI to last 200`);
         return path.slice(-200);
       }
       
       return path;
     } catch (error) {
       logger.error('useChatStore', 'Failed to get messages:', error);
-      return []; // 发生错误时返回空，防止 UI 崩溃
+      return [];
     }
   },
 
   /**
-   * 在当前对话的分支末尾追加新消息
+   * 追加新消息到消息树
+   * @param {object} msg - 消息内容对象
+   * @param {string} [conversationId] - 对话 ID
+   * @param {string} [parentId] - 父消息 ID
    */
   addMessage: async (msg, conversationId = null, parentId = null) => {
     const { isIncognito, currentConversationId, incognitoMessages, getMessages } = get();
     const targetId = conversationId || currentConversationId;
     
-    // 确定父消息ID（如果未提供）
     let finalParentId = parentId;
     
     if (!isIncognito && targetId !== 'incognito' && finalParentId === null) {
-      // 查找当前视图的叶子节点
       const currentPath = await getMessages(targetId);
       if (currentPath.length > 0) {
         finalParentId = currentPath[currentPath.length - 1].id;
@@ -613,7 +597,6 @@ export const useChatStore = create((set, get) => ({
     } else if (targetId) {
       const id = await db.messages.add(newMsg);
       
-      // 更新父消息的selectedChildId，自动切换到新分支
       if (finalParentId) {
         await db.messages.update(finalParentId, { selectedChildId: id });
       }
@@ -625,8 +608,7 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 恢复中断的任务
-   * 扫描数据库中状态为 generating 的消息，并尝试从代理恢复
+   * 恢复中断中的 AI 生成任务
    */
   resumePendingTasks: async () => {
     const generatingMessages = await db.messages
@@ -642,7 +624,6 @@ export const useChatStore = create((set, get) => ({
 
     for (const msg of generatingMessages) {
       if (!msg.taskId) {
-        // 如果没有 taskId，标记为失败（无法恢复）
         await get().updateMessageById(msg.id, { status: 'failed' });
         continue;
       }
@@ -657,22 +638,17 @@ export const useChatStore = create((set, get) => ({
             error: taskData.error
           });
           
-          // 更新对话的生成状态
           await get().setConversationGenerating(msg.conversationId, false);
 
-          // 如果生成结束且不在当前会话，标记未读（橙点）
           if (msg.conversationId !== get().currentConversationId) {
             await get().markAsUnread(msg.conversationId);
           }
         } else if (taskData.status === 'generating') {
-          // 如果还在生成，确保对话处于正在生成状态（显示蓝点）
           await get().setConversationGenerating(msg.conversationId, true);
 
-          // 更新内容并保持 generating 状态
           await get().updateMessageById(msg.id, {
             content: taskData.content
           });
-          // 开启轮询（简单处理）
           setTimeout(() => get().resumePendingTasks(), 3000);
         }
       } catch (e) {
@@ -682,8 +658,9 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 切换消息树分支
-   * 通过更新父节点的 selectedChildId 实现视图路径的切换
+   * 在分支树节点中进行分支切换
+   * @param {string} messageId - 消息 ID
+   * @param {string} targetSiblingId - 目标兄弟节点 ID
    */
   switchBranch: async (messageId, targetSiblingId) => {
      const { isIncognito } = get();
@@ -692,14 +669,17 @@ export const useChatStore = create((set, get) => ({
      const msg = await db.messages.get(messageId);
      if (!msg || !msg.parentId) return;
      
-     // Update parent to point to the target sibling
      await db.messages.update(msg.parentId, { selectedChildId: targetSiblingId });
-     
-     // 触发UI更新（useLiveQuery会监听此变化）
      await db.conversations.update(msg.conversationId, { lastUpdatedAt: Date.now() });
   },
 
-  // 更新消息内容（兼容消息树结构）
+  /**
+   * 更新特定位置的消息内容
+   * @param {string} conversationId - 对话 ID
+   * @param {number} messageIndex - 消息在路径中的索引
+   * @param {string} newContent - 新内容
+   * @param {object} [extraFields] - 额外待更新字段
+   */
   updateMessage: async (conversationId, messageIndex, newContent, extraFields = {}) => {
     const { isIncognito, incognitoMessages, getMessages } = get();
     
@@ -715,7 +695,6 @@ export const useChatStore = create((set, get) => ({
         set({ incognitoMessages: updatedMessages });
       }
     } else {
-      // 使用路径索引查找消息ID
       const path = await getMessages(conversationId);
       const msg = path[messageIndex];
       
@@ -731,7 +710,11 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // 通过ID直接更新消息
+  /**
+   * 通过消息 ID 直接更新消息内容
+   * @param {string} messageId - 消息 ID
+   * @param {object} updates - 更新对象
+   */
   updateMessageById: async (messageId, updates) => {
     const { isIncognito, incognitoMessages } = get();
     
@@ -746,7 +729,6 @@ export const useChatStore = create((set, get) => ({
       await db.messages.update(messageId, {
         ...updates
       });
-      // 获取消息所属的对话ID并更新
       const msg = await db.messages.get(messageId);
       if (msg && msg.conversationId) {
         await db.conversations.update(msg.conversationId, { lastUpdatedAt: Date.now() });
@@ -755,7 +737,11 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // 删除消息
+  /**
+   * 删除指定位置的消息
+   * @param {string} conversationId - 对话 ID
+   * @param {number} messageIndex - 消息在路径中的索引
+   */
   deleteMessage: async (conversationId, messageIndex) => {
     const { isIncognito, incognitoMessages, getMessages } = get();
     
@@ -767,18 +753,13 @@ export const useChatStore = create((set, get) => ({
       const msg = path[messageIndex];
       
       if (msg) {
-        // 记录删除墓碑
         await recordDeletion('messages', msg.id);
 
-        // 删除消息树中的节点较为复杂，直接删除消息
-        // 树遍历会处理缺失节点（中断链）
         await db.messages.delete(msg.id);
         
-        // 清除父消息的引用关系
         if (msg.parentId) {
            const parent = await db.messages.get(msg.parentId);
            if (parent && parent.selectedChildId === msg.id) {
-               // 取消选中状态，getMessages将自动选择默认子节点
                await db.messages.update(msg.parentId, { selectedChildId: null });
            }
         }
@@ -789,39 +770,37 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // 设置对话的生成状态
+  /**
+   * 设置对话是否正在进行 AI 生成
+   * @param {string} id - 对话 ID
+   * @param {boolean} isGenerating - 状态值
+   */
   setConversationGenerating: async (id, isGenerating) => {
     if (id === 'incognito') return;
     try {
       await db.conversations.update(id, { isGenerating });
-      logger.debug('useChatStore', `Conversation ${id} generating status set to:`, isGenerating);
     } catch (e) {
       logger.error('useChatStore', 'Failed to set generating status:', e);
     }
   },
 
   /**
-   * 强制终止 AI 响应生成
-   * 发送 Abort 信号并清理运行时状态
+   * 强制停止 AI 生成并清理状态
+   * @param {string} [conversationId] - 对话 ID
    */
   stopAIGeneration: async (conversationId = null) => {
     const { currentConversationId, conversationStates } = get();
     const targetId = conversationId || currentConversationId;
     
-    if (!targetId) {
-      logger.warn('useChatStore', 'Cannot stop: No conversation ID specified');
-      return;
-    }
+    if (!targetId) return;
     
     const state = conversationStates[targetId];
     const abortController = state?.abortController;
     
     if (abortController) {
-      logger.info('useChatStore', 'Stopping AI generation...', { conversationId: targetId });
       abortController.abort();
     }
     
-    // 无论 abortController 是否存在，都强制重置状态，防止 UI 卡死
     get().setConversationState(targetId, {
       abortController: null,
       isAIGenerating: false,
@@ -830,57 +809,67 @@ export const useChatStore = create((set, get) => ({
       reasoningContent: ''
     });
     
-    // 同步更新数据库状态
     if (targetId !== 'incognito') {
       await db.conversations.update(targetId, { isGenerating: false });
     }
-    
-    logger.info('useChatStore', 'AI generation stopped and state reset', { conversationId: targetId });
   },
 
-  // 设置取消控制器
+  /**
+   * 为对话配置终止控制器
+   * @param {AbortController} controller - 控制器实例
+   * @param {string} [conversationId] - 对话 ID
+   */
   setAbortController: (controller, conversationId = null) => {
     const { currentConversationId } = get();
     const targetId = conversationId || currentConversationId;
     if (targetId) {
       get().setConversationState(targetId, { abortController: controller });
-      logger.debug('useChatStore', 'AbortController set', { conversationId: targetId });
     }
   },
 
-  // 清除取消控制器
+  /**
+   * 清除终止控制器
+   * @param {string} [conversationId] - 对话 ID
+   */
   clearAbortController: (conversationId = null) => {
     const { currentConversationId } = get();
     const targetId = conversationId || currentConversationId;
     if (targetId) {
       get().setConversationState(targetId, { abortController: null });
-      logger.debug('useChatStore', 'AbortController cleared', { conversationId: targetId });
     }
   },
 
-  // 标记对话为已读
+  /**
+   * 将对话标记为已读
+   * @param {string} id - 对话 ID
+   */
   markAsRead: async (id) => {
     if (id === 'incognito') return;
     try {
       await db.conversations.update(id, { hasUnread: false });
-      logger.debug('useChatStore', `Conversation ${id} marked as read`);
     } catch (e) {
       logger.error('useChatStore', 'Failed to mark as read:', e);
     }
   },
 
-  // 标记对话为未读
+  /**
+   * 将对话标记为未读（橙点提醒）
+   * @param {string} id - 对话 ID
+   */
   markAsUnread: async (id) => {
     if (id === 'incognito') return;
     try {
       await db.conversations.update(id, { hasUnread: true });
-      logger.debug('useChatStore', `Conversation ${id} marked as unread`);
     } catch (e) {
       logger.error('useChatStore', 'Failed to mark as unread:', e);
     }
   },
 
-  // 更新对话标题
+  /**
+   * 手动更新对话标题
+   * @param {string} id - 对话 ID
+   * @param {string} newTitle - 新标题
+   */
   updateConversationTitle: async (id, newTitle) => {
     if (id === 'incognito' || !newTitle) return;
     try {
@@ -890,15 +879,15 @@ export const useChatStore = create((set, get) => ({
         lastUpdatedAt: Date.now()
       });
       syncService.debouncedSync();
-      logger.info('useChatStore', 'Conversation title updated manually:', { id, newTitle });
     } catch (e) {
       logger.error('useChatStore', 'Failed to update conversation title:', e);
     }
   },
 
   /**
-   * 对话压缩准备
-   * 收集需要发送给 AI 进行摘要压缩的消息上下文
+   * 对话摘要压缩：准备阶段
+   * @param {string} conversationId - 对话 ID
+   * @returns {Promise<object>} 待压缩内容信息
    */
   compressConversation: async (conversationId, options = {}) => {
     const { isIncognito, getMessages } = get();
@@ -910,17 +899,12 @@ export const useChatStore = create((set, get) => ({
       throw new Error('未指定对话ID');
     }
     
-    logger.info('useChatStore', 'Starting manual compression for conversation:', conversationId);
-    
     try {
-      // 获取对话的所有消息
       const messages = await getMessages(conversationId);
-      
       if (messages.length === 0) {
         throw new Error('对话为空，无需压缩');
       }
       
-      // 返回消息列表和元数据，由调用者执行压缩
       return {
         conversationId,
         messages,
@@ -933,8 +917,10 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 应用压缩结果
-   * 在消息树中插入特殊的摘要节点，并将选定消息标记为“已压缩”以节省 Token
+   * 对话摘要压缩：应用阶段
+   * @param {string} conversationId - 对话 ID
+   * @param {string} compressedContent - AI 生成的摘要内容
+   * @param {Array} compressedMessageIds - 被压缩的消息 ID 列表
    */
   applyCompression: async (conversationId, compressedContent, compressedMessageIds) => {
     if (!conversationId || conversationId === 'incognito') {
@@ -942,23 +928,14 @@ export const useChatStore = create((set, get) => ({
     }
     
     try {
-      logger.info('useChatStore', 'Applying compression:', {
-        conversationId,
-        compressedCount: compressedMessageIds.length
-      });
-      
-      // 1. 使用事务确保操作原子性
       await db.transaction('rw', db.messages, db.conversations, async () => {
-        // 标记消息为已压缩（不删除）
         await db.messages.where('id').anyOf(compressedMessageIds).modify({ isCompressed: true });
         
-        // 获取所有消息，找到最后一个被压缩的消息
         const messages = await db.messages
           .where('conversationId')
           .equals(conversationId)
           .sortBy('timestamp');
         
-        // 找到最后一个被压缩的消息
         const lastCompressedMsg = messages.find(m => 
           m.id === compressedMessageIds[compressedMessageIds.length - 1]
         );
@@ -967,7 +944,6 @@ export const useChatStore = create((set, get) => ({
           throw new Error('找不到最后一个被压缩的消息');
         }
         
-        // 2. 检查是否已经存在该父节点的摘要消息，避免重复创建
         const existingSummary = await db.messages
           .where({ parentId: lastCompressedMsg.id, isCompressionSummary: true })
           .first();
@@ -980,7 +956,6 @@ export const useChatStore = create((set, get) => ({
             timestamp: lastCompressedMsg.timestamp + 1
           });
         } else {
-          // 插入压缩摘要消息，作为最后一个被压缩消息的子节点
           summaryMsgId = await db.messages.add({
             conversationId,
             role: 'assistant',
@@ -992,29 +967,25 @@ export const useChatStore = create((set, get) => ({
           });
         }
         
-        // 更新最后一个被压缩消息的selectedChildId指向摘要
         await db.messages.update(lastCompressedMsg.id, {
           selectedChildId: summaryMsgId
         });
         
-        // 3. 维护压缩历史，支持多次压缩
         const conv = await db.conversations.get(conversationId);
         const oldCompressedIds = conv?.compressionData?.compressedMessageIds || [];
         const combinedCompressedIds = Array.from(new Set([...oldCompressedIds, ...compressedMessageIds]));
 
-        // 保存压缩数据到对话
         await db.conversations.update(conversationId, {
           compressionData: {
             summaryMessageId: summaryMsgId,
             compressedMessageIds: combinedCompressedIds,
-            compressedContent, // 记录最近一次的摘要
+            compressedContent,
             timestamp: Date.now()
           },
           lastUpdatedAt: Date.now()
         });
       });
       
-      logger.info('useChatStore', 'Compression applied successfully');
       syncService.debouncedSync();
       return true;
     } catch (e) {
@@ -1024,8 +995,10 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 构建发送给 AI 的 Payload
-   * 自动整合已压缩的摘要内容与最新的未压缩消息，平衡上下文长度与 Token 消耗
+   * 获取发送给 AI 的消息负载
+   * 自动过滤已压缩消息并注入最新的摘要节点。
+   * @param {string} conversationId - 对话 ID
+   * @returns {Promise<Array>} 处理后的消息列表
    */
   getMessagesForAI: async (conversationId) => {
     try {
@@ -1035,33 +1008,28 @@ export const useChatStore = create((set, get) => ({
         .equals(conversationId)
         .sortBy('timestamp');
       
-      // 如果没有压缩数据，返回所有未压缩的消息
       if (!conversation?.compressionData) {
         return messages.filter(m => !m.isCompressed && !m.isCompressionSummary);
       }
       
       const { compressedContent, compressedMessageIds } = conversation.compressionData;
       
-      // 过滤掉已压缩的消息和压缩摘要消息
       const uncompressedMessages = messages.filter(
         m => !compressedMessageIds.includes(m.id) && !m.isCompressionSummary && !m.isCompressed
       );
       
-      // 找到压缩消息中最早的一个时间戳作为虚拟消息的时间戳
       let virtualTimestamp = Date.now();
       if (compressedMessageIds.length > 0) {
         const firstCompressed = messages.find(m => m.id === compressedMessageIds[0]);
         if (firstCompressed) virtualTimestamp = firstCompressed.timestamp;
       }
       
-      // 构造虚拟压缩消息
       const virtualCompressedMessage = {
         role: 'assistant',
         content: compressedContent,
         timestamp: virtualTimestamp
       };
       
-      // 合并：压缩内容 + 未压缩的消息
       return [virtualCompressedMessage, ...uncompressedMessages];
     } catch (e) {
       logger.error('useChatStore', 'Failed to get messages for AI:', e);

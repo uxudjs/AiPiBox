@@ -1,12 +1,16 @@
+/**
+ * 模型选择弹出层组件
+ * 使用虚拟滚动（VirtualList）高性能渲染大型模型列表，支持搜索、提供商分组折叠及模型功能标识展示。
+ */
+
 import React from 'react';
 import { Search, X, Cpu, ChevronDown, Check, Brain, Camera, Image as ImageIcon, Sparkles } from 'lucide-react';
 import VirtualList from '../ui/VirtualList';
 import { cn } from '../../utils/cn';
-import { useTranslation } from '../../i18n';
 
 /**
- * ModelSelectorPopup - 模型选择弹出层组件
- * 使用 VirtualList 渲染大型模型列表，支持搜索与分组折叠
+ * 模型选择弹窗组件
+ * @param {object} props - 组件属性
  */
 const ModelSelectorPopup = ({
   onClose,

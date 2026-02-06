@@ -1,6 +1,6 @@
 /**
  * 云端同步数据库初始化脚本
- * 负责在目标数据库中自动创建所需的表结构与索引
+ * 负责在目标数据库中自动创建所需的表结构与索引。
  */
 
 const { getPool, DB_CONFIG } = require('../api/db-config');
@@ -49,7 +49,9 @@ CREATE TABLE IF NOT EXISTS sync_history (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `;
 
-// PostgreSQL Schema
+/**
+ * PostgreSQL Schema 脚本
+ */
 const POSTGRES_SCHEMA = `
 -- 用户表
 CREATE TABLE IF NOT EXISTS users (
@@ -115,7 +117,6 @@ async function initDatabase() {
     const pool = await getPool();
     const schema = DB_CONFIG.type === 'mysql' ? MYSQL_SCHEMA : POSTGRES_SCHEMA;
 
-    // 分割SQL语句并执行
     const statements = schema
       .split(';')
       .map(s => s.trim())
@@ -128,13 +129,8 @@ async function initDatabase() {
       if (!statement) continue;
 
       try {
-        if (DB_CONFIG.type === 'mysql') {
-          await pool.query(statement);
-        } else {
-          await pool.query(statement);
-        }
+        await pool.query(statement);
         
-        // 提取表名或操作类型用于显示
         const match = statement.match(/CREATE TABLE IF NOT EXISTS (\w+)|CREATE INDEX IF NOT EXISTS (\w+)|CREATE (?:OR REPLACE )?(?:FUNCTION|TRIGGER) (\w+)/i);
         const objectName = match ? (match[1] || match[2] || match[3]) : `Statement ${i + 1}`;
         console.log(`[DONE] ${objectName}`);
@@ -151,7 +147,6 @@ async function initDatabase() {
     console.log('  - sync_history (同步历史表)');
     console.log('');
 
-    // 验证表是否创建成功
     await verifyTables(pool);
 
     process.exit(0);
@@ -164,6 +159,7 @@ async function initDatabase() {
 
 /**
  * 验证表是否创建成功
+ * @param {object} pool - 数据库连接池
  */
 async function verifyTables(pool) {
   console.log('验证表结构...\n');
@@ -200,7 +196,6 @@ async function verifyTables(pool) {
   }
 }
 
-// 如果直接运行此脚本,则执行初始化
 if (require.main === module) {
   initDatabase();
 }

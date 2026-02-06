@@ -1,8 +1,13 @@
 /**
- * 健康检查接口 (Cloudflare Workers / Pages Functions)
- * 用于监控服务在线状态及所在边缘节点
+ * 健康检查接口
+ * 用于监控服务在线状态及所在边缘节点，支持跨域访问。
  */
 
+/**
+ * 请求处理程序
+ * @param {object} context - 请求上下文
+ * @returns {Response} HTTP 响应
+ */
 export async function onRequest(context) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',

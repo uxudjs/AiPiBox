@@ -1,3 +1,8 @@
+/**
+ * 图像详情查看弹窗
+ * 提供生成图像的大图预览、参数详情（Prompt, Seed, 步数等）展示，以及下载与删除功能。
+ */
+
 import React from 'react';
 import { useTranslation } from '../../i18n';
 import { useImageGenStore } from '../../store/useImageGenStore';
@@ -5,13 +10,16 @@ import {
   X, 
   Download, 
   Trash2, 
-  Info,
-  ExternalLink,
   Copy,
   Check
 } from 'lucide-react';
-import { cn } from '../../utils/cn';
 
+/**
+ * 图像详情模态框组件
+ * @param {object} props - 组件属性
+ * @param {object} props.image - 图像数据对象
+ * @param {Function} props.onClose - 关闭弹窗回调
+ */
 const ImageDetailModal = ({ image, onClose }) => {
   const { t } = useTranslation();
   const { deleteImage } = useImageGenStore();
@@ -19,12 +27,18 @@ const ImageDetailModal = ({ image, onClose }) => {
 
   if (!image) return null;
 
+  /**
+   * 复制提示词到剪贴板
+   */
   const handleCopyPrompt = () => {
     navigator.clipboard.writeText(image.prompt);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  /**
+   * 下载当前查看的图像
+   */
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = image.imageUrl;
@@ -32,6 +46,9 @@ const ImageDetailModal = ({ image, onClose }) => {
     link.click();
   };
 
+  /**
+   * 删除当前图像
+   */
   const handleDelete = () => {
     if (confirm(t('common.deleteConfirm'))) {
       deleteImage(image.id);
@@ -44,7 +61,6 @@ const ImageDetailModal = ({ image, onClose }) => {
       <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
       
       <div className="relative w-full max-w-6xl max-h-full bg-card rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row animate-in zoom-in-95 duration-300">
-        {/* 关闭按钮 */}
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors"
@@ -52,7 +68,6 @@ const ImageDetailModal = ({ image, onClose }) => {
           <X className="w-6 h-6" />
         </button>
 
-        {/* 图片显示区 */}
         <div className="flex-1 bg-black flex items-center justify-center overflow-hidden">
           <img 
             src={image.imageUrl} 
@@ -61,7 +76,6 @@ const ImageDetailModal = ({ image, onClose }) => {
           />
         </div>
 
-        {/* 信息详情区 */}
         <div className="w-full lg:w-96 p-8 overflow-y-auto custom-scrollbar flex flex-col gap-6">
           <div className="space-y-2">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">

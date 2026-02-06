@@ -1,12 +1,12 @@
 /**
  * 运行时环境探测工具
- * 自动识别部署平台并动态调整 API 端点路由
+ * 自动识别部署平台并动态调整 API 端点路由。
  */
 
 import { logger } from '../services/logger';
 
 /**
- * 支持的部署平台类型
+ * 部署平台枚举
  */
 export const Platform = {
   VERCEL: 'vercel',
@@ -18,7 +18,8 @@ export const Platform = {
 };
 
 /**
- * 执行环境嗅探
+ * 识别当前部署平台
+ * @returns {string} 平台标识符
  */
 export function detectPlatform() {
   if (typeof window === 'undefined') {
@@ -27,57 +28,50 @@ export function detectPlatform() {
 
   const hostname = window.location.hostname;
 
-  // 1. 本地开发
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
     return Platform.LOCAL;
   }
 
-  // 2. GitHub Pages (特指 *.github.io)
   if (hostname.endsWith('.github.io')) {
     return Platform.GITHUB_PAGES;
   }
 
-  // 3. Cloudflare Pages
   if (hostname.endsWith('.pages.dev') || window.__CF_PAGES__) {
     return Platform.CLOUDFLARE;
   }
 
-  // 4. Vercel
   if (hostname.endsWith('.vercel.app') || hostname.endsWith('.vercel.sh')) {
     return Platform.VERCEL;
   }
 
-  // 5. Netlify
   if (hostname.endsWith('.netlify.app') || hostname.endsWith('.netlify.com')) {
     return Platform.NETLIFY;
   }
 
-  // 6. 默认判定为通用生产环境（包括自定义域名）
   return Platform.UNKNOWN;
 }
 
 /**
- * 自动路由：获取 AI 代理端点地址
- * 采用相对路径策略，实现自动域名识别
+ * 获取 AI 代理端点地址
+ * @param {string} [platform] - 平台标识
+ * @returns {string} 代理接口路径
  */
 export function getProxyApiUrl(platform = null) {
   const detectedPlatform = platform || detectPlatform();
 
-  // GitHub Pages 特殊处理：因为它是纯静态的，通常需要指向外部 API
   if (detectedPlatform === Platform.GITHUB_PAGES) {
     const externalProxy = window.EXTERNAL_PROXY_URL;
     if (externalProxy) return externalProxy;
     logger.warn('envDetect', 'GitHub Pages detected but no external proxy configured');
   }
 
-  // 通用策略：使用相对路径
-  // 1. 本地开发：通过 Vite Proxy 转发到 5000 端口
-  // 2. 生产环境：无论是 Cloudflare/Vercel/Netlify 还是自定义域名，均统一使用 /api/ 路径
   return '/api/ai-proxy';
 }
 
 /**
- * 自动路由：获取云同步后端端点地址
+ * 获取云同步后端端点地址
+ * @param {string} [platform] - 平台标识
+ * @returns {string} 同步接口路径
  */
 export function getSyncApiUrl(platform = null) {
   const detectedPlatform = platform || detectPlatform();
@@ -92,13 +86,16 @@ export function getSyncApiUrl(platform = null) {
 
 /**
  * 检测是否为生产环境
+ * @returns {boolean} 是否为生产环境
  */
 export function isProduction() {
   return detectPlatform() !== Platform.LOCAL;
 }
 
 /**
- * 获取平台特定配置
+ * 获取平台特定配置报告
+ * @param {string} [platform] - 平台标识
+ * @returns {object} 配置对象
  */
 export function getPlatformConfig(platform = null) {
   const detectedPlatform = platform || detectPlatform();
@@ -116,7 +113,6 @@ export function getPlatformConfig(platform = null) {
     }
   };
 
-  // 针对已知平台的微调
   if (detectedPlatform === Platform.GITHUB_PAGES) {
     baseConfig.timeout = 60;
     baseConfig.features.serverlessFunctions = false;
@@ -127,7 +123,8 @@ export function getPlatformConfig(platform = null) {
 }
 
 /**
- * 环境感知初始化
+ * 环境感知初始化并缓存配置
+ * @returns {object} 初始化的平台配置
  */
 export function initializeEnvironment() {
   const config = getPlatformConfig();
@@ -147,7 +144,8 @@ export function initializeEnvironment() {
 }
 
 /**
- * 获取当前环境配置
+ * 获取当前缓存的环境配置
+ * @returns {object} 平台配置
  */
 export function getEnvironmentConfig() {
   if (typeof window !== 'undefined' && window.__PLATFORM_CONFIG__) {
@@ -158,6 +156,7 @@ export function getEnvironmentConfig() {
 
 /**
  * 检测是否为移动设备
+ * @returns {boolean} 是否为移动端
  */
 export function isMobileDevice() {
   if (typeof window === 'undefined') return false;

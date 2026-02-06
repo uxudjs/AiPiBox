@@ -1,12 +1,13 @@
+/**
+ * 全局错误边界组件
+ * 捕获组件树中的运行时错误，防止应用崩溃并提供恢复选项。
+ */
+
 import React from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { logger } from '../services/logger';
 import { useI18nStore } from '../i18n';
 
-/**
- * 全局错误边界组件
- * 捕获React组件树中的错误，防止整个应用崩溃
- */
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -18,14 +19,23 @@ class ErrorBoundary extends React.Component {
     };
   }
 
+  /**
+   * 捕获错误并更新状态
+   * @param {Error} error - 错误对象
+   * @returns {object} 状态更新
+   */
   static getDerivedStateFromError(error) {
     return { hasError: true };
   }
 
+  /**
+   * 执行错误日志记录
+   * @param {Error} error - 错误对象
+   * @param {object} errorInfo - 错误详情
+   */
   componentDidCatch(error, errorInfo) {
     const { errorCount } = this.state;
     
-    // 记录错误
     logger.error('ErrorBoundary', 'Application error caught:', {
       error: error.toString(),
       componentStack: errorInfo.componentStack
@@ -37,16 +47,21 @@ class ErrorBoundary extends React.Component {
       errorCount: errorCount + 1
     });
 
-    // 如果错误频繁发生（5秒内超过3次），可能是循环错误
     if (errorCount > 2) {
       logger.error('ErrorBoundary', 'Too many errors detected, possible infinite loop');
     }
   }
 
+  /**
+   * 重新加载页面
+   */
   handleReload = () => {
     window.location.reload();
   };
 
+  /**
+   * 重置错误状态尝试继续
+   */
   handleReset = () => {
     this.setState({
       hasError: false,
@@ -55,14 +70,14 @@ class ErrorBoundary extends React.Component {
     });
   };
 
+  /**
+   * 危险操作：清空所有应用数据并重置
+   */
   handleClearData = () => {
     const { t } = useI18nStore.getState();
     if (window.confirm(t ? t('error.clearDataConfirm') : '确定要清除所有数据并重置应用吗？此操作不可恢复。')) {
-      // 清除所有localStorage数据
       localStorage.clear();
-      // 清除所有sessionStorage数据
       sessionStorage.clear();
-      // 清除IndexedDB（需要重新加载页面才能完全清除）
       if (window.indexedDB && window.indexedDB.databases) {
         window.indexedDB.databases().then(databases => {
           databases.forEach(db => {
@@ -96,7 +111,6 @@ class ErrorBoundary extends React.Component {
               </p>
             </div>
 
-            {/* 错误详情 */}
             <div className="bg-accent/50 p-4 rounded-lg border border-border">
               <h3 className="text-sm font-semibold mb-2 text-foreground">{t('app.errorDetails')}</h3>
               <div className="text-xs font-mono text-muted-foreground overflow-auto custom-scrollbar max-h-32">
@@ -114,16 +128,14 @@ class ErrorBoundary extends React.Component {
               )}
             </div>
 
-            {/* 错误频率警告 */}
             {errorCount > 2 && (
               <div className="bg-destructive/10 border border-destructive/30 p-3 rounded-lg">
                 <p className="text-xs text-destructive font-medium">
-                  ⚠️ 检测到频繁错误，可能需要清除数据才能恢复正常
+                  检测到频繁错误，可能需要清除数据才能恢复正常
                 </p>
               </div>
             )}
 
-            {/* 操作按钮 */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
                 onClick={this.handleReset}
@@ -150,7 +162,6 @@ class ErrorBoundary extends React.Component {
               </button>
             </div>
 
-            {/* 帮助信息 */}
             <div className="text-center pt-4 border-t">
               <p className="text-xs text-muted-foreground">
                 如果问题持续存在，请尝试清除浏览器缓存或使用无痕模式访问

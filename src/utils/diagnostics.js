@@ -1,10 +1,11 @@
 /**
  * 应用诊断工具
- * 用于调试和排查白屏问题
+ * 用于系统状态检查、依赖验证及故障排查。
  */
 
 /**
  * 检查关键依赖是否正常加载
+ * @returns {object} 依赖检查结果
  */
 export const checkDependencies = () => {
   const results = {
@@ -19,27 +20,25 @@ export const checkDependencies = () => {
 };
 
 /**
- * 检查数据库状态
+ * 检查数据库连通性及状态
+ * @returns {Promise<object>} 数据库状态报告
  */
 export const checkDatabase = async () => {
   try {
     const { db } = await import('../db');
     
-    // 尝试访问数据库
     const settingsCount = await db.settings.count();
     const conversationsCount = await db.conversations.count();
     
-    // Database accessible
-    
     return { success: true, settingsCount, conversationsCount };
   } catch (error) {
-    // Database error
     return { success: false, error: error.message };
   }
 };
 
 /**
- * 检查Store状态
+ * 检查全局 Store 状态
+ * @returns {Promise<object>} Store 状态报告
  */
 export const checkStores = async () => {
   try {
@@ -47,54 +46,44 @@ export const checkStores = async () => {
     const { useConfigStore } = await import('../store/useConfigStore');
     const { useAuthStore } = await import('../store/useAuthStore');
 
-    const i18nState = useI18nStore.getState();
-    const configState = useConfigStore.getState();
-    const authState = useAuthStore.getState();
-
-    // Store states checked
+    useI18nStore.getState();
+    useConfigStore.getState();
+    useAuthStore.getState();
 
     return { success: true };
   } catch (error) {
-    // Store error
     return { success: false, error: error.message };
   }
 };
 
 /**
- * 检查翻译系统
+ * 检查 i18n 翻译系统
+ * @returns {Promise<object>} 翻译系统状态报告
  */
 export const checkTranslations = async () => {
   try {
     const { translations } = await import('../i18n/translations');
-    const { SUPPORTED_LANGUAGES } = await import('../i18n');
+    Object.keys(translations);
 
-    const availableLanguages = Object.keys(translations);
-    const configuredLanguages = SUPPORTED_LANGUAGES.map(l => l.value);
-
-    // Translation system checked
-
-    return { success: true, availableLanguages };
+    return { success: true };
   } catch (error) {
-    // Translation error
     return { success: false, error: error.message };
   }
 };
 
 /**
- * 运行完整诊断
+ * 运行全量系统诊断
+ * @returns {Promise<object>} 完整诊断报告
  */
 export const runDiagnostics = async () => {
-  const results = {
+  return {
     dependencies: checkDependencies(),
     database: await checkDatabase(),
     stores: await checkStores(),
     translations: await checkTranslations()
   };
-
-  return results;
 };
 
-// 在开发环境下暴露到window对象
 if (typeof window !== 'undefined' && import.meta.env.DEV) {
   window.__AiPiBoxDiagnostics = {
     checkDependencies,
@@ -103,6 +92,4 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
     checkTranslations,
     runDiagnostics
   };
-  
-  // Diagnostics available via window.__AiPiBoxDiagnostics
 }

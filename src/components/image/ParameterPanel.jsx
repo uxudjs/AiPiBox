@@ -1,3 +1,8 @@
+/**
+ * þÏÂpMnb
+ * Ð›¨‡	éz/Î<bÊ{Âp‚epÐ:ÍüûpI	„‚Ÿý
+ */
+
 import React, { useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useImageGenStore } from '../../store/useImageGenStore';
@@ -9,6 +14,9 @@ import {
   Check
 } from 'lucide-react';
 
+/**
+ * þÏÂpbÄö
+ */
 const ParameterPanel = () => {
   const { t } = useTranslation();
   const { params, updateParams } = useImageGenStore();
@@ -34,6 +42,9 @@ const ParameterPanel = () => {
     { id: '3d-model', label: t('imageFactory.styles.3d-model') },
   ];
 
+  /**
+   * 2Ó&þ„	éÉF
+   */
   const renderDropdown = (id, label, options, currentValue, onSelect, Icon) => {
     const isOpen = openDropdown === id;
     const currentOption = options.find(o => {
@@ -94,6 +105,9 @@ const ParameterPanel = () => {
     );
   };
 
+  /**
+   * 2ÓÑ¨a‚h
+   */
   const Slider = ({ label, icon: Icon, value, min, max, step, onChange, unit = '' }) => (
     <div className="space-y-3 select-none">
       <div className="flex items-center justify-between">

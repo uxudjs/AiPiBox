@@ -1,3 +1,8 @@
+/**
+ * 消息列表管理组件
+ * 负责对话消息的渲染、流式响应展示、推理过程呈现、消息编辑及多分支切换。
+ */
+
 import React, { useRef, useEffect, useState, useCallback, useLayoutEffect, useMemo } from 'react';
 import { useChatStore } from '../../store/useChatStore';
 import { useConfigStore, getAliyunRegionUrl } from '../../store/useConfigStore';
@@ -15,17 +20,19 @@ import { useTranslation } from '../../i18n';
 
 /**
  * 推理过程展示组件
- * 用于渲染 AI 的深度思考逻辑，支持计时显示与折叠交互
+ * @param {object} props - 组件属性
+ * @param {string} props.content - 推理内容文本
+ * @param {boolean} props.isActive - 是否正处于推理中
+ * @param {number} props.startTime - 推理开始的时间戳
+ * @param {number} props.time - 最终推理耗时
  */
 const ReasoningBlock = ({ content, isActive = false, model = null, tokens = null, time = null, startTime = null }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [elapsedTime, setElapsedTime] = React.useState(0);
   
-  // 实时计时逻辑：思考过程中动态显示耗时
   useEffect(() => {
     if (isActive && startTime) {
-      // 思考中：每100ms更新一次耗时
       const timer = setInterval(() => {
         const elapsed = (Date.now() - startTime) / 1000;
         setElapsedTime(parseFloat(elapsed.toFixed(1)));
@@ -33,12 +40,10 @@ const ReasoningBlock = ({ content, isActive = false, model = null, tokens = null
       
       return () => clearInterval(timer);
     } else if (time) {
-      // 思考完成：显示最终时间
       setElapsedTime(parseFloat(parseFloat(time).toFixed(1)));
     }
   }, [isActive, startTime, time]);
   
-  // 格式化显示时间为字符串
   const displayTime = isActive && !time ? `${elapsedTime.toFixed(1)}s` : (time ? `${parseFloat(time).toFixed(1)}s` : null);
   
   return (
@@ -81,8 +86,8 @@ const ReasoningBlock = ({ content, isActive = false, model = null, tokens = null
 };
 
 /**
- * 单条消息渲染单元
- * 封装了消息显示、编辑模式切换、分支导航及工具栏交互
+ * 单条消息项组件
+ * @param {object} props - 组件属性
  */
 const MessageItem = React.memo(({ 
   msg, 
@@ -101,7 +106,6 @@ const MessageItem = React.memo(({
   copySuccessIndex,
   isGenerating,
   getModelDisplayName,
-  // 实时生成相关的属性
   isMsgGenerating = false,
   reasoningContent = null,
   reasoningStartTime = null,
@@ -109,12 +113,10 @@ const MessageItem = React.memo(({
   reasoningEndTime = null
 }) => {
   const { t } = useTranslation();
-  // 聚合推理内容：优先使用实时生成的内容
   const displayReasoning = isMsgGenerating ? (reasoningContent || msg.reasoning) : msg.reasoning;
 
   return (
     <div className="flex gap-3 max-w-5xl mx-auto w-full mb-6">
-      {/* 消息发送者头像 */}
       <div className={cn(
         "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
         msg.role === 'user' ? "bg-muted" : "bg-blue-500"
@@ -126,10 +128,8 @@ const MessageItem = React.memo(({
         )}
       </div>
       
-      {/* 消息正文内容区域 */}
       <div className="flex-1 min-w-0">
         {msg.role === 'user' ? (
-          /* 用户消息显示和编辑 */
           isEditing ? (
             <div className="space-y-2">
               <textarea
@@ -167,7 +167,6 @@ const MessageItem = React.memo(({
               <div className="inline-block px-4 py-2.5 rounded-2xl bg-muted max-w-[80%]">
                 <div className="text-sm leading-relaxed">
                   <MarkdownRenderer content={msg.content} />
-                  {/* 文件附件显示 */}
                   {msg.files && msg.files.length > 0 && (
                     <div className="flex gap-2 mt-2 overflow-x-auto custom-scrollbar pb-1 max-w-full">
                       {msg.files.map((file) => (
@@ -188,9 +187,7 @@ const MessageItem = React.memo(({
             </div>
           )
         ) : (
-          /* AI回复消息 */
           <div className="space-y-2">
-            {/* AI深度思考过程展示 */}
             {displayReasoning && (
               <ReasoningBlock 
                 content={displayReasoning} 
@@ -201,7 +198,6 @@ const MessageItem = React.memo(({
               />
             )}
                         
-            {/* AI消息编辑模式 */}
             {isEditing ? (
               <div className="space-y-2">
                 <textarea
@@ -233,7 +229,6 @@ const MessageItem = React.memo(({
               </div>
             )}
             
-            {/* 消息操作按钮组 - 压缩摘要不显示操作按钮 */}
             {!msg.isCompressionSummary && (
               <div className="flex items-center gap-1 mt-2 opacity-60 hover:opacity-100 transition-opacity">
                 <button 
@@ -264,7 +259,6 @@ const MessageItem = React.memo(({
                   <Edit2 className="w-4 h-4" />
                 </button>
 
-                {/* 多分支消息切换控件 */}
                 {msg.siblingCount > 1 && (
                   <div className="flex items-center gap-1 ml-1 bg-accent/30 rounded-lg px-1">
                     <button 
@@ -293,7 +287,6 @@ const MessageItem = React.memo(({
           </div>
         )}
         
-        {/* 用户消息操作按钮组 */}
         {msg.role === 'user' && !isEditing && (
           <div className="flex items-center gap-1 mt-2 opacity-60 hover:opacity-100 transition-opacity">
             <button 
@@ -330,12 +323,11 @@ const MessageItem = React.memo(({
 });
 
 /**
- * 消息流容器组件
- * 负责监听 IndexedDB 数据变更、驱动滚动逻辑并协调流式响应的展示过程
+ * 消息流列表组件
+ * 驱动自动滚动、IndexedDB 同步、流式交互及各类消息操作逻辑。
  */
 const MessageList = () => {
   const { t } = useTranslation();
-  // 从状态管理中获取操作函数
   const { 
     addMessage,
     getMessages,
@@ -367,13 +359,11 @@ const MessageList = () => {
     shallow
   );
 
-  // 订阅状态变化
   const currentConversationId = useChatStore(state => state.currentConversationId);
   const isIncognito = useChatStore(state => state.isIncognito);
   const incognitoMessages = useChatStore(state => state.incognitoMessages);
   const currentModel = useChatStore(state => state.currentModel);
 
-  // 精准订阅当前对话的生成状态
   const { 
     isAIGenerating, 
     streamingMessage, 
@@ -401,7 +391,6 @@ const MessageList = () => {
   const [copySuccessIndex, setCopySuccessIndex] = React.useState(null);
   const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true);
   
-  // 使用 useMemo 缓存模型名称映射表，避免在渲染循环中进行查找
   const modelNameMap = useMemo(() => {
     const map = {};
     providers.forEach(p => {
@@ -412,12 +401,10 @@ const MessageList = () => {
     return map;
   }, [providers]);
 
-  // 获取模型显示名称的辅助函数
   const getModelDisplayName = useCallback((modelId) => {
     return modelNameMap[modelId] || modelId;
   }, [modelNameMap]);
 
-  // 使用useLiveQuery监听数据库变化，自动更新消息列表
   const messages = useLiveQuery(
     async () => {
       try {
@@ -432,7 +419,6 @@ const MessageList = () => {
     [currentConversationId, getMessages]
   ) || (isIncognito ? incognitoMessages : []);
 
-  // 使用 useLiveQuery 监听对话设置更新，替代 setInterval 轮询
   const dbSettings = useLiveQuery(
     async () => {
       if (!currentConversationId || currentConversationId === 'incognito') return null;
@@ -442,11 +428,9 @@ const MessageList = () => {
     [currentConversationId]
   );
 
-  // 监听设置更新
   useEffect(() => {
     const globalDisplay = useConfigStore.getState().conversationSettings.display;
     
-    // 合并逻辑：如果对话设置中为 null，则回退到全局设置
     const merged = {
       showWordCount: (dbSettings?.showWordCount !== null && dbSettings?.showWordCount !== undefined) 
         ? dbSettings.showWordCount 
@@ -462,12 +446,10 @@ const MessageList = () => {
     setLocalSettings(merged);
   }, [dbSettings, currentConversationId]);
 
-  // 切换对话时重置自动滚动状态
   useEffect(() => {
     setShouldAutoScroll(true);
   }, [currentConversationId]);
   
-  // 监听滚动事件：用户手动滚动时禁用自动滚动
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
@@ -478,20 +460,12 @@ const MessageList = () => {
     });
   }, []);
 
-  /**
-   * 滚动控制：布局变更响应
-   * 当消息长度或思考状态改变时，若处于自动滚动模式，强制同步滚动位置
-   */
   useLayoutEffect(() => {
     if (scrollRef.current && shouldAutoScroll) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages.length, !!streamingMessage, !!reasoningContent, shouldAutoScroll]);
 
-  /**
-   * 滚动控制：流式输出追踪
-   * 针对文本增量追加过程，利用 requestAnimationFrame 优化滚动平滑度，避免掉帧
-   */
   useEffect(() => {
     if (scrollRef.current && shouldAutoScroll && (streamingMessage?.content || reasoningContent)) {
        const scrollContainer = scrollRef.current;
@@ -501,7 +475,9 @@ const MessageList = () => {
     }
   }, [streamingMessage?.content, reasoningContent, shouldAutoScroll]);
 
-  // 复制消息内容
+  /**
+   * 复制消息文本内容
+   */
   const copyMessage = useCallback((content, index) => {
     navigator.clipboard.writeText(content)
       .then(() => {
@@ -513,7 +489,9 @@ const MessageList = () => {
       });
   }, []);
   
-  // 引用消息
+  /**
+   * 引用消息内容到输入框
+   */
   const quoteMessage = useCallback((content) => {
     const textarea = document.querySelector('textarea');
     if (textarea) {
@@ -524,10 +502,11 @@ const MessageList = () => {
     }
   }, []);
   
-  // 编辑消息
+  /**
+   * 进入编辑消息模式
+   */
   const startEditMessage = useCallback((index, content) => {
     setEditingMessageIndex(index);
-    // 如果内容是数组（包含图片等），提取文本部分进行编辑
     if (Array.isArray(content)) {
       const textPart = content.find(c => c.type === 'text');
       setEditContent(textPart ? textPart.text : '');
@@ -536,15 +515,20 @@ const MessageList = () => {
     }
   }, []);
   
+  /**
+   * 取消当前编辑
+   */
   const cancelEdit = useCallback(() => {
     setEditingMessageIndex(null);
     setEditContent('');
   }, []);
   
+  /**
+   * 保存编辑后的内容
+   */
   const saveEdit = useCallback(async (index) => {
     if (!editContent.trim()) return;
     try {
-      // 检查原始内容是否为数组，如果是，则只更新文本部分，保留图片和其他信息
       const originalMsg = messages[index];
       let newContent = editContent;
       
@@ -556,7 +540,6 @@ const MessageList = () => {
           return part;
         });
         
-        // 如果原数组中没有文本部分，添加一个
         if (!newContent.find(p => p.type === 'text')) {
           newContent.unshift({ type: 'text', text: editContent });
         }
@@ -570,11 +553,12 @@ const MessageList = () => {
     }
   }, [editContent, currentConversationId, updateMessage, messages]);
 
-  // 保存并发送
+  /**
+   * 保存编辑并触发 AI 重新回复
+   */
   const saveAndSend = useCallback(async (index) => {
     if (!editContent.trim()) return;
     try {
-      // 检查原始内容是否为数组，如果是，则只更新文本部分
       const originalMsg = messages[index];
       let newContent = editContent;
       
@@ -629,26 +613,21 @@ const MessageList = () => {
         }
       }
       
-      // 构建完整的系统消息（包含用户提示词和语言要求）
       const systemParts = [];
       
-      // 1. 用户自定义的系统提示词（或默认提示词）
       if (effectivePresets.systemPrompt && effectivePresets.systemPrompt.trim()) {
         systemParts.push(effectivePresets.systemPrompt.trim());
       } else {
-        // 如果用户没有配置系统提示词，使用翻译的默认提示词
         const defaultPrompt = t('settings.conversation.promptPlaceholder');
         systemParts.push(defaultPrompt);
       }
 
-      // 1.1 添加已上传的文档内容
       const documentsContent = useFileStore.getState().getCompletedFilesContent(currentConversationId);
       if (documentsContent) {
         systemParts.push('\n\n--- Uploaded Document Content ---\n' + documentsContent);
         logger.info('MessageList.saveAndSend', 'Added document content to system message');
       }
       
-      // 1.2 添加知识库检索的相关文档
       const { activeKnowledgeBase, retrieveDocuments } = useKnowledgeBaseStore.getState();
       if (activeKnowledgeBase) {
         logger.info('MessageList.saveAndSend', 'Knowledge base active, retrieving documents...');
@@ -664,7 +643,6 @@ const MessageList = () => {
         }
       }
       
-      // 2. 语言要求指令
       const { general } = useConfigStore.getState();
       const userLanguage = localSettingsData?.language || general.language || 'zh-CN';
       
@@ -680,7 +658,6 @@ const MessageList = () => {
         systemParts.push('\n\n--- 언어 요구사항 ---\n한국어로 답변해 주세요');
       }
       
-      // 插入完整的系统消息
       if (systemParts.length > 0) {
         messagesList.unshift({ 
           role: 'system', 
@@ -704,7 +681,6 @@ const MessageList = () => {
       
       if (!provider || !provider.apiKey) return;
       
-      // 如果模型不支持多模态，过滤掉消息中的图片内容，将OCR内容合并到文本
       if (!modelConfig?.capabilities?.multimodal) {
         logger.debug('MessageList.saveAndSend', 'Non-multimodal model detected, filtering image content and merging OCR');
         messagesList.forEach((msg, index) => {
@@ -712,18 +688,11 @@ const MessageList = () => {
             let textContent = '';
             if (msg.ocrContent) {
               const inputText = msg.content.find(part => part.type === 'text')?.text || '';
-              // 合并用户输入和OCR识别内容
               if (inputText && inputText.trim()) {
                 textContent = inputText + "\n\n" + msg.ocrContent;
               } else {
-                // 如果用户没有文本输入，只有图片，则只使用OCR内容
                 textContent = msg.ocrContent;
               }
-              logger.debug('MessageList.saveAndSend', `Message ${index} OCR merged:`, {
-                hasUserInput: !!inputText,
-                ocrLength: msg.ocrContent.length,
-                finalLength: textContent.length
-              });
             } else {
               textContent = msg.content
                 .filter(part => part.type === 'text')
@@ -765,7 +734,6 @@ const MessageList = () => {
       let mReasoningStartTime = null;
       let mReasoningEndTime = null;
       
-      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
       const actualBaseUrl = getAliyunRegionUrl(provider);
       
       await chatCompletion({
@@ -817,6 +785,9 @@ const MessageList = () => {
     }
   }, [editContent, currentConversationId, updateMessage, updateMessageById, messages, conversationPresets, providers, currentModel, proxy, setAIGenerating, setReasoning, setStreamingMessage, addMessage, setConversationGenerating, setConversationState, getConversationSettings, defaultModels]);
 
+  /**
+   * 切换消息树分支
+   */
   const handleSwitchBranch = useCallback(async (msg, direction) => {
     if (!msg.siblings || msg.siblings.length <= 1) return;
     const currentIndex = msg.siblingIndex - 1; 
@@ -825,6 +796,9 @@ const MessageList = () => {
     await switchBranch(msg.id, msg.siblings[targetIndex]);
   }, [switchBranch]);
   
+  /**
+   * 重新生成 AI 回复
+   */
   const regenerateMessage = useCallback(async (index) => {
     const allMessages = messages;
     if (index === 0 || !allMessages[index - 1] || allMessages[index - 1].role !== 'user') return;
@@ -849,29 +823,23 @@ const MessageList = () => {
         ...(m.ocrContent ? { ocrContent: m.ocrContent } : {})
       }));
       
-      // 构建完整的系统消息（包含用户提示词和语言要求）
       const systemParts = [];
       
-      // 1. 用户自定义的系统提示词（或默认提示词）
       if (effectivePresets.systemPrompt && effectivePresets.systemPrompt.trim()) {
         systemParts.push(effectivePresets.systemPrompt.trim());
       } else {
-        // 如果用户没有配置系统提示词，使用翻译的默认提示词
         const defaultPrompt = t('settings.conversation.promptPlaceholder');
         systemParts.push(defaultPrompt);
       }
 
-      // 1.1 添加已上传的文档内容
       const documentsContent = useFileStore.getState().getCompletedFilesContent(currentConversationId);
       if (documentsContent) {
         systemParts.push('\n\n--- Uploaded Document Content ---\n' + documentsContent);
         logger.info('MessageList.regenerateMessage', 'Added document content to system message');
       }
       
-      // 1.2 添加知识库检索的相关文档
       const { activeKnowledgeBase, retrieveDocuments } = useKnowledgeBaseStore.getState();
       if (activeKnowledgeBase) {
-        // 重新生成时，使用上一条用户消息作为检索 query
         const prevUserMsg = allMessages[index - 1];
         let query = '';
         if (prevUserMsg) {
@@ -897,7 +865,6 @@ const MessageList = () => {
         }
       }
       
-      // 2. 语言要求指令
       const { general } = useConfigStore.getState();
       const userLanguage = localSettingsData?.language || general.language || 'zh-CN';
       
@@ -913,7 +880,6 @@ const MessageList = () => {
         systemParts.push('\n\n--- 언어 요구사항 ---\n한국어로 답변해 주세요');
       }
       
-      // 插入完整的系统消息
       if (systemParts.length > 0) {
         messagesList.unshift({ 
           role: 'system', 
@@ -933,7 +899,6 @@ const MessageList = () => {
       if (provider && provider.models) modelConfig = provider.models.find(m => m.id === modelId);
       if (!provider || !provider.apiKey) return;
       
-      // 如果模型不支持多模态，过滤掉消息中的图片内容，将OCR内容合并到文本
       if (!modelConfig?.capabilities?.multimodal) {
         logger.debug('MessageList.regenerateMessage', 'Non-multimodal model detected, filtering image content and merging OCR');
         messagesList.forEach((msg, index) => {
@@ -941,18 +906,11 @@ const MessageList = () => {
             let textContent = '';
             if (msg.ocrContent) {
               const inputText = msg.content.find(part => part.type === 'text')?.text || '';
-              // 合并用户输入和OCR识别内容
               if (inputText && inputText.trim()) {
                 textContent = inputText + "\n\n" + msg.ocrContent;
               } else {
-                // 如果用户没有文本输入，只有图片，则只使用OCR内容
                 textContent = msg.ocrContent;
               }
-              logger.debug('MessageList.regenerateMessage', `Message ${index} OCR merged:`, {
-                hasUserInput: !!inputText,
-                ocrLength: msg.ocrContent.length,
-                finalLength: textContent.length
-              });
             } else {
               textContent = msg.content
                 .filter(part => part.type === 'text')
@@ -978,7 +936,6 @@ const MessageList = () => {
       let mReasoningStartTime = null;
       let mReasoningEndTime = null;
       
-      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
       const branchActualBaseUrl = getAliyunRegionUrl(provider);
       
       await chatCompletion({
@@ -1032,7 +989,6 @@ const MessageList = () => {
         </div>
       )}
       {messages.map((msg, i) => {
-        // 防御性检查：跳过损坏的消息对象
         if (!msg) return null;
         
         const isMsgGenerating = isAIGenerating && streamingMessage && (streamingMessage.id === msg.id);
@@ -1042,7 +998,6 @@ const MessageList = () => {
 
         return (
           <React.Fragment key={`${msg.id || i}-${msg.timestamp || Date.now()}`}>
-            {/* 在压缩摘要消息前显示分隔线 */}
             {msg.isCompressionSummary && (
               <div className="flex items-center gap-3 my-6 max-w-5xl mx-auto">
                 <div className="flex-1 border-t-2 border-dashed border-border/50"></div>

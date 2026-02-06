@@ -1,3 +1,8 @@
+/**
+ * 相机拍摄与图片编辑组件
+ * 提供调用摄像头拍照、前后摄像头切换、以及照片拍摄后的裁剪、旋转、亮度对比度调节等编辑功能。
+ */
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Camera, RefreshCw, Check, RotateCcw, Crop, Sun, Moon, SwitchCamera } from 'lucide-react';
@@ -6,29 +11,36 @@ import { cn } from '../../utils/cn';
 import { logger } from '../../services/logger';
 import { isMobileDevice } from '../../utils/envDetect';
 
+/**
+ * 相机捕获组件
+ * @param {object} props - 组件属性
+ * @param {Function} props.onCapture - 完成拍摄并确认后的回调，返回 base64 数据
+ * @param {Function} props.onClose - 关闭弹窗回调
+ * @param {string} [props.initialImage] - 初始进入编辑模式的图片数据
+ */
 const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
   const { t } = useTranslation();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const nativeRetakeInputRef = useRef(null);
   
-  // States
   const [stream, setStream] = useState(null);
   const [error, setError] = useState(null);
-  const [mode, setMode] = useState(initialImage ? 'edit' : 'camera'); // 'camera' | 'edit'
-  const [capturedImage, setCapturedImage] = useState(initialImage); // base64 string
-  const [facingMode, setFacingMode] = useState('user'); // 'user' | 'environment'
+  const [mode, setMode] = useState(initialImage ? 'edit' : 'camera');
+  const [capturedImage, setCapturedImage] = useState(initialImage);
+  const [facingMode, setFacingMode] = useState('user');
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   
-  // Edit states
   const [rotation, setRotation] = useState(0);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
-  const [aspectRatio, setAspectRatio] = useState('original'); // 'original', '1:1', '4:3', '16:9', 'custom'
-  const [aspectRatioValue, setAspectRatioValue] = useState(1); // Width / Height
+  const [aspectRatio, setAspectRatio] = useState('original');
+  const [aspectRatioValue, setAspectRatioValue] = useState(1);
 
-  // Initialize camera
+  /**
+   * 初始化并开启摄像头流
+   */
   const startCamera = useCallback(async () => {
     try {
       if (stream) {
@@ -47,12 +59,10 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
       setStream(newStream);
       if (videoRef.current) {
         videoRef.current.srcObject = newStream;
-        // 显式调用 play() 确保在所有浏览器中都能正常播放
         videoRef.current.play().catch(e => logger.error('CameraCapture', 'Video play error', e));
       }
       setError(null);
       
-      // Check for multiple cameras
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       setHasMultipleCameras(videoDevices.length > 1);
@@ -74,6 +84,9 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     };
   }, [mode, startCamera]);
 
+  /**
+   * 停止摄像头流
+   */
   const stopCamera = () => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
@@ -81,15 +94,24 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     }
   };
 
+  /**
+   * 关闭组件
+   */
   const handleClose = () => {
     stopCamera();
     onClose();
   };
 
+  /**
+   * 切换前后摄像头
+   */
   const switchCamera = () => {
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
   };
 
+  /**
+   * 执行拍照动作并进入编辑模式
+   */
   const takePhoto = () => {
     if (!videoRef.current) return;
     
@@ -99,7 +121,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     canvas.height = video.videoHeight;
     
     const ctx = canvas.getContext('2d');
-    // Mirror if using user camera
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
@@ -111,14 +132,15 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     setMode('edit');
     stopCamera();
     
-    // Reset edit controls
     setRotation(0);
     setBrightness(100);
     setContrast(100);
     setAspectRatio('original');
   };
 
-  // Robust rendering function
+  /**
+   * 渲染应用了滤镜和变换后的编辑预览图
+   */
   const renderEditedImage = useCallback(() => {
     if (!capturedImage || !canvasRef.current) return;
     
@@ -126,7 +148,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     const img = new Image();
     img.onload = () => {
       if (!canvasRef.current) return;
-      // Step 1: Create a canvas for Rotation
       const rotateCanvas = document.createElement('canvas');
       const rotCtx = rotateCanvas.getContext('2d');
       
@@ -142,7 +163,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
       rotCtx.rotate((rotation * Math.PI) / 180);
       rotCtx.drawImage(img, -img.width / 2, -img.height / 2);
       
-      // Step 2: Calculate Crop on the Rotated Image
       let finalW = rotateCanvas.width;
       let finalH = rotateCanvas.height;
       let startX = 0;
@@ -153,19 +173,16 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
         const currentRatio = finalW / finalH;
         
         if (currentRatio > targetRatio) {
-          // Wider than target: crop width
           const newW = finalH * targetRatio;
           startX = (finalW - newW) / 2;
           finalW = newW;
         } else {
-          // Taller than target: crop height
           const newH = finalW / targetRatio;
           startY = (finalH - newH) / 2;
           finalH = newH;
         }
       }
       
-      // Step 3: Draw final result to display canvas with filters
       const canvas = canvasRef.current;
       canvas.width = finalW;
       canvas.height = finalH;
@@ -188,6 +205,9 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     }
   }, [renderEditedImage, mode]);
 
+  /**
+   * 确认编辑结果并输出
+   */
   const handleConfirm = async () => {
     if (canvasRef.current && isImageLoaded) {
       try {
@@ -195,7 +215,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
         if (!dataUrl || dataUrl === 'data:,') {
           throw new Error('Generated empty image');
         }
-        // 使用 await 确保父组件完成状态更新后再关闭弹窗，防止状态丢失
         await onCapture(dataUrl);
         handleClose();
       } catch (err) {
@@ -205,10 +224,16 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     }
   };
 
+  /**
+   * 顺时针旋转图片 90 度
+   */
   const rotateImage = () => {
     setRotation(prev => (prev + 90) % 360);
   };
 
+  /**
+   * 重新拍摄
+   */
   const handleRetake = () => {
     if (isMobileDevice() && nativeRetakeInputRef.current) {
       nativeRetakeInputRef.current.click();
@@ -217,6 +242,9 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     }
   };
 
+  /**
+   * 处理原生相机重拍后的文件输入
+   */
   const handleNativeRetakeChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -225,7 +253,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     reader.onload = (event) => {
       setCapturedImage(event.target.result);
       setMode('edit');
-      // Reset edit controls for the new photo
       setRotation(0);
       setBrightness(100);
       setContrast(100);
@@ -233,10 +260,12 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
     };
     reader.readAsDataURL(file);
     
-    // Reset input
     e.target.value = '';
   };
 
+  /**
+   * 循环切换预设的裁剪比例
+   */
   const cycleAspectRatio = () => {
     const ratios = ['original', '1:1', '4:3', '16:9', 'custom'];
     const currentIndex = ratios.indexOf(aspectRatio);
@@ -268,7 +297,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
         className="hidden"
         onChange={handleNativeRetakeChange}
       />
-      {/* Top Bar */}
       <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm z-10 flex-shrink-0">
          <button onClick={handleClose} className="p-2 bg-black/50 rounded-full text-white hover:bg-white/20 transition-colors">
             <X className="w-6 h-6" />
@@ -276,10 +304,9 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
          <div className="text-white font-medium">
             {mode === 'camera' ? (t('inputArea.takePhoto') || 'Take Photo') : (t('common.edit') || 'Edit')}
          </div>
-         <div className="w-10"></div> {/* Spacer */}
+         <div className="w-10"></div>
       </div>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex items-center justify-center bg-black relative overflow-hidden p-4">
         {mode === 'camera' ? (
           <video 
@@ -297,15 +324,12 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
         )}
       </div>
 
-      {/* Bottom Controls */}
       <div className="bg-black/80 backdrop-blur-md pb-8 pt-4 px-6 z-10 rounded-t-3xl border-t border-white/10 flex-shrink-0">
         
         {mode === 'camera' ? (
           <div className="flex items-center justify-around max-w-sm mx-auto">
-            {/* Gallery Placeholder / Empty */}
             <div className="w-12 h-12"></div>
             
-            {/* Shutter Button */}
             <div className="relative flex items-center justify-center w-24 h-24">
               <button 
                 onClick={takePhoto}
@@ -315,7 +339,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
               </button>
             </div>
             
-            {/* Switch Camera */}
             <div className="w-12 h-12 flex items-center justify-center">
               {hasMultipleCameras && (
                 <button onClick={switchCamera} className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors">
@@ -327,7 +350,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
         ) : (
           <div className="flex flex-col gap-6 w-full max-w-md mx-auto">
             
-            {/* Adjustment Sliders */}
             <div className="flex flex-col gap-3">
                <div className="flex items-center gap-3 text-white/80">
                   <Sun className="w-4 h-4 flex-shrink-0" />
@@ -368,7 +390,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
                )}
             </div>
 
-            {/* Edit Tools */}
             <div className="flex items-center justify-between px-2">
                <button onClick={rotateImage} className="flex flex-col items-center gap-1 text-white/70 hover:text-white transition-colors">
                   <div className="p-2.5 bg-white/10 rounded-full"><RotateCcw className="w-5 h-5" /></div>
@@ -391,7 +412,6 @@ const CameraCapture = ({ onCapture, onClose, initialImage = null }) => {
                </button>
             </div>
             
-            {/* Confirm Actions */}
             <div className="flex items-center gap-3 mt-2">
                <button onClick={handleRetake} className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors">
                   {t('common.cancel') || 'Cancel'}

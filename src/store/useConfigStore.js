@@ -1,3 +1,8 @@
+/**
+ * 配置项 Store
+ * 维护 AI 提供商、场景模型绑定、通用偏好、网络代理及云同步等全局设置。
+ */
+
 import { create } from 'zustand';
 import { db } from '../db';
 import { encryptData, decryptData } from '../utils/crypto';
@@ -25,7 +30,7 @@ export const DEFAULT_PROVIDERS = [
 ];
 
 /**
- * 阿里云服务器区域配置
+ * 阿里云服务器区域配置映射
  */
 export const ALIYUN_REGIONS = {
   china: {
@@ -43,35 +48,27 @@ export const ALIYUN_REGIONS = {
 };
 
 /**
- * 根据阿里云提供商的区域设置获取实际的 baseUrl
- * @param {object} provider - 提供商配置对象
- * @returns {string} 实际的 baseUrl
+ * 获取阿里云提供商对应的区域 Base URL
+ * @param {object} provider - 提供商对象
+ * @returns {string} 目标 URL
  */
 export const getAliyunRegionUrl = (provider) => {
   if (provider.id !== 'aliyun') {
     return provider.baseUrl;
   }
   
-  // 如果设置了自定义URL且非预设区域URL，则使用自定义URL
   const presetUrls = Object.values(ALIYUN_REGIONS).map(r => r.url);
   if (provider.baseUrl && !presetUrls.includes(provider.baseUrl)) {
     return provider.baseUrl;
   }
   
-  // 根据region字段返回对应的URL
   const region = provider.region || 'china';
   return ALIYUN_REGIONS[region]?.url || ALIYUN_REGIONS.china.url;
 };
 
-/**
- * 配置项 Store
- * 维护 AI 提供商、模型选择、通用偏好、代理及云同步等全局设置
- */
 export const useConfigStore = create((set, get) => ({
-  // AI 服务提供商配置
   providers: DEFAULT_PROVIDERS,
   
-  // 各业务场景的默认模型绑定
   defaultModels: {
     chat: '',
     naming: '',
@@ -80,7 +77,6 @@ export const useConfigStore = create((set, get) => ({
     ocr: ''
   },
   
-  // 通用偏好设置
   general: {
     language: 'zh-CN',
     theme: 'system',
@@ -88,23 +84,21 @@ export const useConfigStore = create((set, get) => ({
     autoRender: true
   },
   
-  // 网络代理配置
   proxy: {
     enabled: false, 
-    url: '/api/proxy',        // 本地开发代理
-    cloudUrl: '',             // 生产环境云端代理
-    encryptKey: true,         // 是否加密传输 API Key
+    url: '/api/proxy',
+    cloudUrl: '',
+    encryptKey: true,
     timeout: 30
   },
   
-  // 云端同步设置
   cloudSync: {
     enabled: false,
     syncImages: false,
     lastSyncTime: 0,
     autoSync: true,
-    apiUrl: '',               // 同步后端入口（留空时自动检测环境，使用相对路径）
-    syncStatus: 'idle',       // 当前状态：idle | syncing | success | error
+    apiUrl: '',
+    syncStatus: 'idle',
     lastError: null,
     syncProgress: {
       current: 0,
@@ -113,14 +107,12 @@ export const useConfigStore = create((set, get) => ({
     }
   },
   
-  // 联网搜索配置
   searchSettings: {
     enabled: false,
     engine: 'bing',
     apiKey: '',
   },
   
-  // 全局对话预设
   conversationPresets: {
     systemPrompt: '',
     contextLimit: null,
@@ -155,8 +147,7 @@ export const useConfigStore = create((set, get) => ({
   },
 
   /**
-   * 加载基础外观配置
-   * 独立于主配置存储，允许在用户登录解锁前应用 UI 主题
+   * 加载 UI 主题设置
    */
   loadTheme: async () => {
     try {
@@ -166,10 +157,7 @@ export const useConfigStore = create((set, get) => ({
           general: { ...state.general, theme: themeSetting.value }
         }));
       }
-      // 加载后立即应用主题
       get().applyTheme();
-      
-      // 同时加载同步状态
       await get().loadSyncStatus();
     } catch (e) {
       logger.error('ConfigStore', 'Failed to load theme', e);
@@ -177,7 +165,9 @@ export const useConfigStore = create((set, get) => ({
     }
   },
 
-  // 加载同步状态（未加密）
+  /**
+   * 加载同步状态（非加密）
+   */
   loadSyncStatus: async () => {
     try {
       const status = await db.settings.get('syncStatus');
@@ -191,7 +181,10 @@ export const useConfigStore = create((set, get) => ({
     }
   },
 
-  // 单独保存同步状态（未加密，用于重启后恢复界面显示）
+  /**
+   * 持久化同步状态
+   * @param {object} [syncData] - 同步状态对象
+   */
   saveSyncStatus: async (syncData) => {
     try {
       const { lastSyncTime, syncStatus, lastError } = syncData || get().cloudSync;
@@ -204,7 +197,10 @@ export const useConfigStore = create((set, get) => ({
     }
   },
 
-  // 单独保存主题设置（未加密，用于登录前访问）
+  /**
+   * 持久化主题设置
+   * @param {string} theme - 主题标识
+   */
   saveTheme: async (theme) => {
     try {
       await db.settings.put({ key: 'theme', value: theme });
@@ -214,16 +210,14 @@ export const useConfigStore = create((set, get) => ({
   },
 
   /**
-   * 加载完整的持久化加密配置
-   * 依赖用户主密码进行解密
-   * @param {string} password 解密用的主密码
+   * 加载并解密主配置
+   * @param {string} password - 解密密码
    */
   loadConfig: async (password) => {
     const encrypted = await db.settings.get('config');
     if (encrypted) {
       try {
         const config = await decryptData(encrypted.value, password);
-        // 与默认提供商合并，确保新提供商显示
         const mergedProviders = [
           ...DEFAULT_PROVIDERS.map(dp => {
             const saved = config.providers?.find(sp => sp.id === dp.id);
@@ -237,7 +231,6 @@ export const useConfigStore = create((set, get) => ({
         set({ ...config, providers: mergedProviders });
         get().applyTheme();
         
-        // 同步语言设置到i18n store
         if (config.general?.language) {
           useI18nStore.getState().setLanguage(config.general.language);
         }
@@ -247,28 +240,36 @@ export const useConfigStore = create((set, get) => ({
     }
   },
 
-  // 保存加密配置
+  /**
+   * 加密并保存主配置
+   * @param {string} password - 加密密码
+   */
   saveConfig: async (password) => {
     const { providers, defaultModels, general, proxy, searchSettings, conversationPresets, conversationSettings, cloudSync } = get();
     const config = { providers, defaultModels, general, proxy, searchSettings, conversationPresets, conversationSettings, cloudSync };
     const encrypted = await encryptData(config, password);
     await db.settings.put({ key: 'config', value: encrypted });
-    // 同时单独保存主题供登录前访问
     await get().saveTheme(general.theme);
   },
 
-  // 添加自定义提供商
+  /**
+   * 添加自定义提供商
+   * @param {object} provider - 提供商配置
+   */
   addCustomProvider: (provider) => set((state) => ({
     providers: [...state.providers, { ...provider, id: `custom-${Date.now()}`, enabled: true, models: [], format: provider.format || 'openai' }]
   })),
 
-  // 切换模型选中状态
+  /**
+   * 切换模型的启用状态
+   * @param {string} providerId - 提供商 ID
+   * @param {string} modelId - 模型 ID
+   */
   toggleModelSelection: (providerId, modelId) => set((state) => {
     const providers = state.providers.map(p => {
       if (p.id === providerId) {
         const models = p.models.map(m => {
           if (m.id === modelId) {
-            // 确保布尔值切换：false/undefined -> true，true -> false
             const currentSelected = m.selected === true;
             return { ...m, selected: !currentSelected };
           }
@@ -281,7 +282,12 @@ export const useConfigStore = create((set, get) => ({
     return { providers };
   }),
 
-  // 更新模型能力配置
+  /**
+   * 更新模型功能标志位
+   * @param {string} providerId - 提供商 ID
+   * @param {string} modelId - 模型 ID
+   * @param {object} updates - 待更新字段
+   */
   updateModelCapability: (providerId, modelId, updates) => set((state) => {
     const providers = state.providers.map(p => {
       if (p.id === providerId) {
@@ -298,7 +304,12 @@ export const useConfigStore = create((set, get) => ({
     return { providers };
   }),
 
-  // 更新模型信息
+  /**
+   * 更新模型元数据
+   * @param {string} providerId - 提供商 ID
+   * @param {string} modelId - 模型 ID
+   * @param {object} updates - 待更新字段
+   */
   updateModelInfo: (providerId, modelId, updates) => set((state) => {
     const providers = state.providers.map(p => {
       if (p.id === providerId) {
@@ -315,7 +326,11 @@ export const useConfigStore = create((set, get) => ({
     return { providers };
   }),
 
-  // 添加自定义模型
+  /**
+   * 添加自定义模型到指定提供商
+   * @param {string} providerId - 提供商 ID
+   * @param {object} model - 模型定义
+   */
   addCustomModel: (providerId, model) => set((state) => {
     const providers = state.providers.map(p => {
       if (p.id === providerId) {
@@ -334,7 +349,11 @@ export const useConfigStore = create((set, get) => ({
     return { providers };
   }),
 
-  // 删除模型
+  /**
+   * 删除指定模型
+   * @param {string} providerId - 提供商 ID
+   * @param {string} modelId - 模型 ID
+   */
   deleteModel: (providerId, modelId) => set((state) => {
     const providers = state.providers.map(p => {
       if (p.id === providerId) {
@@ -345,41 +364,47 @@ export const useConfigStore = create((set, get) => ({
     return { providers };
   }),
 
-  // 移除提供商（默认提供商不可删除）
+  /**
+   * 移除自定义提供商
+   * @param {string} id - 提供商 ID
+   */
   removeProvider: (id) => set((state) => ({
     providers: state.providers.filter(p => p.id !== id || DEFAULT_PROVIDERS.find(dp => dp.id === id))
   })),
 
-  // 更新提供商信息
+  /**
+   * 更新提供商核心配置
+   * @param {string} id - 提供商 ID
+   * @param {object} updates - 待更新字段
+   */
   updateProvider: (id, updates) => set((state) => ({
     providers: state.providers.map(p => p.id === id ? { ...p, ...updates } : p)
   })),
 
-  // 更新代理配置
+  /**
+   * 更新代理配置
+   * @param {object} updates - 设置项
+   */
   updateProxy: (updates) => {
     set((state) => ({
       proxy: { ...state.proxy, ...updates }
     }));
   },
   
-  // 更新云同步配置
+  /**
+   * 更新云端同步配置并触发服务状态变更
+   * @param {object} updates - 设置项
+   */
   updateCloudSync: async (updates) => {
-    // 如果尝试启用云同步
     if (updates.enabled === true) {
-      // 动态导入避免循环依赖
       const { syncService } = await import('../services/syncService');
-      
-      // 检查同步服务是否可用 (非阻塞，强制检查以确保获取最新状态)
       syncService.checkProxyHealth(true).then(isAvailable => {
         if (!isAvailable) {
           logger.warn('ConfigStore', 'Cloud sync enabled but sync server is not currently available');
         }
       });
-      
-      // 启动健康监控
       syncService.startProxyHealthMonitoring();
     } else if (updates.enabled === false) {
-      // 停止健康监控
       import('../services/syncService').then(({ syncService }) => {
         syncService.stopProxyHealthMonitoring();
       });
@@ -387,47 +412,57 @@ export const useConfigStore = create((set, get) => ({
     
     set((state) => {
       const newCloudSync = { ...state.cloudSync, ...updates };
-      // 异步保存同步状态
       get().saveSyncStatus(newCloudSync);
       return { cloudSync: newCloudSync };
     });
   },
 
-  // 更新通用设置
+  /**
+   * 更新通用设置
+   * @param {object} updates - 设置项
+   */
   updateGeneral: (updates) => {
     set((state) => ({
       general: { ...state.general, ...updates }
     }));
-    // 确保UI一致性，立即应用主题
     get().applyTheme();
     
     if (updates.theme) {
-      // 单独保存主题供登录前访问
       get().saveTheme(updates.theme);
     }
     
-    // 如果更新了语言设置，同步到i18n store
     if (updates.language) {
       useI18nStore.getState().setLanguage(updates.language);
     }
   },
 
-  // 更新默认模型配置
+  /**
+   * 更新业务场景的默认模型映射
+   * @param {object} updates - 场景模型映射表
+   */
   updateDefaultModels: (updates) => set((state) => ({
     defaultModels: { ...state.defaultModels, ...updates }
   })),
 
-  // 更新搜索设置
+  /**
+   * 更新联网搜索配置
+   * @param {object} updates - 设置项
+   */
   updateSearchSettings: (updates) => set((state) => ({
     searchSettings: { ...state.searchSettings, ...updates }
   })),
 
-  // 更新对话预设
+  /**
+   * 更新对话参数预设
+   * @param {object} updates - 设置项
+   */
   updateConversationPresets: (updates) => set((state) => ({
     conversationPresets: { ...state.conversationPresets, ...updates }
   })),
 
-  // 重置对话预设为默认值
+  /**
+   * 将对话预设重置为全局默认值
+   */
   resetConversationPresets: () => set({
     conversationPresets: {
       systemPrompt: '',
@@ -442,7 +477,10 @@ export const useConfigStore = create((set, get) => ({
     }
   }),
 
-  // 更新对话设置
+  /**
+   * 更新会话交互设置
+   * @param {object} updates - 设置项
+   */
   updateConversationSettings: (updates) => set((state) => ({
     conversationSettings: { 
       ...state.conversationSettings,
@@ -452,7 +490,9 @@ export const useConfigStore = create((set, get) => ({
     }
   })),
 
-  // 应用主题：根据设置切换明暗模式
+  /**
+   * 应用当前主题颜色到 HTML 根节点
+   */
   applyTheme: () => {
     const theme = get().general?.theme || 'system';
     const root = window.document.documentElement;
@@ -467,7 +507,6 @@ export const useConfigStore = create((set, get) => ({
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       updateTheme(mediaQuery.matches);
       
-      // 监听系统主题变化
       mediaQuery.onchange = (e) => {
         if (get().general.theme === 'system') {
           updateTheme(e.matches);
@@ -479,24 +518,21 @@ export const useConfigStore = create((set, get) => ({
   },
 
   /**
-   * 智能模型决策引擎
-   * 根据业务目的（purpose）自动匹配最优可用模型
-   * 优先级：场景绑定默认模型 > 当前对话指定模型 > 系统首个可用模型
+   * 根据业务目的获取最匹配的可用模型
+   * @param {string} purpose - 场景标识 (chat, naming, search, ocr)
+   * @param {object} [currentModel] - 当前对话选中的模型作为备选
+   * @returns {object|null} 匹配到的模型信息
    */
   getEffectiveModel: (purpose, currentModel = null) => {
     const { defaultModels, providers } = get();
     
-    // 支持的目的：chat、naming、search、ocr
     const configuredModelId = defaultModels[purpose];
     
-    // 第一优先级：使用配置的默认模型
     if (configuredModelId && configuredModelId !== 'null' && configuredModelId !== '') {
-      // 查找模型所属的提供商
       for (const provider of providers) {
         if (provider.apiKey && provider.models) {
           const model = provider.models.find(m => m.id === configuredModelId);
           if (model) {
-            logger.info('ConfigStore', `[getEffectiveModel] Using configured ${purpose} model:`, configuredModelId);
             return {
               providerId: provider.id,
               modelId: configuredModelId,
@@ -506,19 +542,13 @@ export const useConfigStore = create((set, get) => ({
           }
         }
       }
-      // 只在chat和OCR目的时显示警告，避免naming和search时频繁警告
-      if (purpose === 'chat' || purpose === 'ocr') {
-        logger.warn('ConfigStore', `[getEffectiveModel] Configured ${purpose} model unavailable:`, configuredModelId);
-      }
     }
     
-    // 第二优先级：使用当前对话模型
     if (currentModel && currentModel.providerId && currentModel.modelId) {
       const provider = providers.find(p => p.id === currentModel.providerId);
       if (provider && provider.apiKey) {
         const model = provider.models?.find(m => m.id === currentModel.modelId);
         if (model) {
-          logger.info('ConfigStore', `[getEffectiveModel] ${purpose} model not configured, using fallback:`, currentModel.modelId);
           return {
             providerId: currentModel.providerId,
             modelId: currentModel.modelId,
@@ -529,12 +559,10 @@ export const useConfigStore = create((set, get) => ({
       }
     }
     
-    // 第三优先级：使用第一个可用的模型
     const activeProvider = providers.find(p => p.apiKey && p.models && p.models.length > 0);
     if (activeProvider) {
       const firstModel = activeProvider.models.find(m => m.selected) || activeProvider.models[0];
       if (firstModel) {
-        logger.info('ConfigStore', `[getEffectiveModel] ${purpose} model using system default:`, firstModel.id);
         return {
           providerId: activeProvider.id,
           modelId: firstModel.id,

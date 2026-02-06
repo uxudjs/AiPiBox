@@ -1,5 +1,11 @@
+/**
+ * 全局设置中心模态框
+ * 负责管理 AI 提供商配置、场景模型绑定、对话预设、联网搜索、知识库偏好、云同步及系统维护工具。
+ * 支持配置的本地暂存与批量应用。
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Cpu, Settings as SettingsIcon, Shield, Globe, Search, MessageSquare, ChevronRight, ChevronDown, Check, Save, Trash2, Plus, RefreshCw, AlertCircle, Brain, Camera, Sparkles, Edit2, Info, RotateCcw, BookOpen, Activity, Clock, LogOut, Image as ImageIcon, HelpCircle } from 'lucide-react';
+import { X, Cpu, Settings as SettingsIcon, Shield, Globe, Search, MessageSquare, ChevronRight, ChevronDown, Check, Trash2, Plus, RefreshCw, AlertCircle, Brain, Camera, Sparkles, Edit2, Info, RotateCcw, BookOpen, Activity, Clock, LogOut, Image as ImageIcon, HelpCircle } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import KnowledgeBaseSettings from './KnowledgeBaseSettings';
 import SystemLogs from './SystemLogs';
@@ -9,10 +15,20 @@ import Switch from '../ui/Switch';
 import SyncStatusIndicator from '../sync/SyncStatusIndicator';
 import HelpGuide from './HelpGuide';
 import { useTranslation } from '../../i18n';
+import { useConfigStore } from '../../store/useConfigStore';
+import { ALIYUN_REGIONS, getAliyunRegionUrl } from '../../store/useConfigStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useChatStore } from '../../store/useChatStore';
+import { clearAllData } from '../../db';
+import { syncService } from '../../services/syncService';
+import { testConnection, fetchModels } from '../../services/aiService';
+import { logger } from '../../services/logger';
+import { inferModelDisplayName } from '../../utils/modelNameInference';
+import { getProxyApiUrl, getSyncApiUrl } from '../../utils/envDetect';
+import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
 
 /**
- * 视觉识别：厂商颜色方案
- * 为模型选择与提供商列表提供一致的色彩提示
+ * AI 提供商视觉品牌配色映射
  */
 const PROVIDER_BRAND_COLORS = {
   'openai': { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-500/20' },
@@ -34,7 +50,11 @@ const PROVIDER_BRAND_COLORS = {
   'lmstudio': { bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-500/20' },
 };
 
-// 获取提供商品牌颜色
+/**
+ * 获取提供商对应的视觉风格颜色
+ * @param {string} providerId - 提供商 ID
+ * @returns {object} 包含样式类名的对象
+ */
 const getProviderColors = (providerId) => {
   const id = String(providerId).toLowerCase();
   return PROVIDER_BRAND_COLORS[id] || { 
@@ -44,23 +64,12 @@ const getProviderColors = (providerId) => {
   };
 };
 
-import { useConfigStore } from '../../store/useConfigStore';
-import { ALIYUN_REGIONS, getAliyunRegionUrl } from '../../store/useConfigStore';
-import { useAuthStore } from '../../store/useAuthStore';
-import { useChatStore } from '../../store/useChatStore';
-import { clearAllData } from '../../db';
-import { syncService } from '../../services/syncService';
-import { testConnection, fetchModels } from '../../services/aiService';
-import { encryptData, decryptData } from '../../utils/crypto';
-import { logger } from '../../services/logger';
-import { inferModelDisplayName } from '../../utils/modelNameInference';
-import { getProxyApiUrl, getSyncApiUrl } from '../../utils/envDetect';
-
-import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
-
 /**
- * 全局设置中心
- * 核心功能：管理多厂商 API 配置、默认模型绑定、云同步偏好及系统维护工具
+ * 设置模态框组件
+ * @param {object} props - 组件属性
+ * @param {boolean} props.isOpen - 是否显示弹窗
+ * @param {Function} props.onClose - 关闭回调
+ * @param {string} [props.initialTab] - 初始激活的标签页 ID
  */
 const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   const { t } = useTranslation();
@@ -73,13 +82,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   const [logSearchQuery, setLogSearchQuery] = useState('');
   const [editingModel, setEditingModel] = useState(null);
   const [isTestingSync, setIsTestingSync] = useState(false);
-  const [proxyStatus, setProxyStatus] = useState(() => {
-    // 始终从 syncService 获取初始状态，确保与实际连接情况同步
-    return syncService.getProxyStatus();
-  });
+  const [proxyStatus, setProxyStatus] = useState(() => syncService.getProxyStatus());
   const [cloudSyncError, setCloudSyncError] = useState(null);
   
-  // 本地暂存配置，直到点击保存才同步到 Store
   const [localConfig, setLocalConfig] = useState(null);
 
   const { 
@@ -96,23 +101,15 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     updateGeneral, 
     updateDefaultModels, 
     saveConfig, 
-    addCustomProvider, 
-    removeProvider, 
     updateSearchSettings,
     updateCloudSync,
     updateConversationPresets,
     updateConversationSettings,
-    resetConversationPresets,
-    toggleModelSelection,
-    updateModelCapability,
-    updateModelInfo,
-    addCustomModel,
-    deleteModel
+    setPersistence
   } = useConfigStore();
   const { retrievalSettings: storeRetrievalSettings, updateRetrievalSettings } = useKnowledgeBaseStore();
-  const { sessionPassword, logout, persistenceMode, setPersistence } = useAuthStore();
+  const { sessionPassword, logout, persistenceMode } = useAuthStore();
 
-  // 初始化本地配置
   useEffect(() => {
     if (isOpen) {
       setLocalConfig({
@@ -129,11 +126,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     } else {
       setLocalConfig(null);
       setEditingProvider(null);
-      setModelSearchQuery(''); // 关闭设置时清空搜索
+      setModelSearchQuery('');
     }
   }, [isOpen]);
 
-  // 数字输入框格式化辅助函数
   const formatNumberWithCommas = (num) => {
     if (!num && num !== 0) return '';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -146,14 +142,12 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     return isNaN(num) || num < 0 ? undefined : num;
   };
   
-  // 通用设置下拉框状态
   const [openGeneralDropdown, setOpenGeneralDropdown] = useState(null);
   const [openSearchDropdown, setOpenSearchDropdown] = useState(false);
   
-  // 滚动容器的 ref
   const searchDropdownScrollRef = useRef(null);
   const generalDropdownScrollRef = useRef(null);
-  const contentScrollRef = useRef(null); // 设置窗口主内容区域的滚动容器
+  const contentScrollRef = useRef(null);
 
   const [tempApiKey, setTempApiKey] = useState('');
 
@@ -164,33 +158,24 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     }
   }, [editingProvider]);
   
-  // 当initialTab变化时更新activeTab
   useEffect(() => {
     if (isOpen && initialTab) {
       setActiveTab(initialTab);
     }
   }, [isOpen, initialTab]);
   
-  // 定时更新代理状态
   useEffect(() => {
     if (isOpen && localConfig?.cloudSync?.enabled && localConfig?.proxy?.enabled) {
       const updateProxyStatus = async () => {
-        // 主动触发健康检查
         await syncService.checkProxyHealth();
-        // 更新UI状态
         setProxyStatus(syncService.getProxyStatus());
       };
       
-      // 立即执行一次检查
       updateProxyStatus();
-      // 每30秒检查一次（降低频率减少负载）
       const interval = setInterval(updateProxyStatus, 30000);
-      
       return () => clearInterval(interval);
     } else if (isOpen) {
-      // 如果代理或云同步未启用，获取底层状态
       const status = syncService.getProxyStatus();
-      // 核心修复：如果代理功能本身已关闭，即使底层状态在线，在UI上也应显示为不可用
       if (!localConfig?.proxy?.enabled) {
         setProxyStatus({ ...status, isAvailable: false });
       } else {
@@ -199,15 +184,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     }
   }, [isOpen, localConfig?.cloudSync?.enabled, localConfig?.proxy?.enabled]);
   
-  /**
-   * 滚动焦点锁定：下拉列表增强
-   * 当自定义下拉菜单（如引擎选择、语言切换）开启时，拦截全局滚轮事件，确保列表内滚动不引发背景页滚动
-   */
   useEffect(() => {
     const handleWheel = (e) => {
       let targetScrollContainer = null;
       
-      // 确定当前打开的下拉框滚动容器
       if (openSearchDropdown && searchDropdownScrollRef.current) {
         targetScrollContainer = searchDropdownScrollRef.current;
       } else if (openGeneralDropdown && generalDropdownScrollRef.current) {
@@ -216,30 +196,22 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       
       if (!targetScrollContainer) return;
       
-      // 检查鼠标是否在下拉框容器内
       const isMouseInDropdown = targetScrollContainer.contains(e.target);
       
-      // 只有当鼠标在下拉框内时才处理
       if (isMouseInDropdown) {
-        // 检查下拉框是否还能继续滚动
         const { scrollTop, scrollHeight, clientHeight } = targetScrollContainer;
         const isScrollingDown = e.deltaY > 0;
         const isScrollingUp = e.deltaY < 0;
-        
-        const canScrollDown = scrollTop < scrollHeight - clientHeight - 1; // -1 for rounding
+        const canScrollDown = scrollTop < scrollHeight - clientHeight - 1;
         const canScrollUp = scrollTop > 1;
         
-        // 如果下拉框还能滚动，阻止默认行为并滚动下拉框
         if ((isScrollingDown && canScrollDown) || (isScrollingUp && canScrollUp)) {
           e.preventDefault();
           targetScrollContainer.scrollTop += e.deltaY;
         }
-        // 如果下拉框已经滚动到底/顶，不阻止，让事件冒泡到页面滚动
       }
-      // 鼠标不在下拉框内：不做任何处理，让页面正常滚动
     };
     
-    // 只在下拉框打开时添加监听器
     if (openSearchDropdown || openGeneralDropdown) {
       window.addEventListener('wheel', handleWheel, { passive: false });
       return () => window.removeEventListener('wheel', handleWheel);
@@ -260,12 +232,15 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     retrievalSettings
   } = localConfig;
 
-  // 更新本地配置的辅助函数
+  /**
+   * 更新本地暂存配置
+   * @param {string} section - 配置区块名
+   * @param {object} updates - 待更新项
+   */
   const updateLocalConfig = (section, updates) => {
     setLocalConfig(prev => {
       if (!prev) return prev;
       if (section === 'providers') {
-        // 特殊处理 providers
         return { ...prev, providers: updates };
       }
       return {
@@ -275,13 +250,14 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     });
   };
 
-  // 测试提供商连接
+  /**
+   * 测试当前提供商配置是否连通
+   */
   const handleTestConnection = async () => {
     if (!editingProvider) return;
     setIsTesting(true);
     setTestResult(null);
     try {
-      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
       const actualBaseUrl = getAliyunRegionUrl(editingProvider);
       const ok = await testConnection(editingProvider.id, editingProvider.apiKey, actualBaseUrl, proxy, editingProvider.format || 'openai');
       setTestResult({ success: ok, message: ok ? t('settings.llm.connectionSuccess') : t('settings.llm.connectionFailed') });
@@ -292,14 +268,15 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     }
   };
 
-  // 获取提供商模型列表
+  /**
+   * 在线拉取提供商支持的模型列表
+   */
   const handleFetchModels = async () => {
     if (!editingProvider) return;
     setIsFetching(true);
     setTestResult(null);
     
     try {
-      // 获取实际的 baseUrl（如果是阿里云提供商，根据区域设置获取对应的URL）
       const actualBaseUrl = getAliyunRegionUrl(editingProvider);
       const models = await fetchModels(
         editingProvider.id, 
@@ -309,23 +286,18 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
         editingProvider.format || 'openai'
       );
       
-      // 验证模型数据格式
       if (!Array.isArray(models)) {
         throw new Error(t('error.invalidResponse'));
       }
       
-      // 检查模型数量是否过多（超过500个）
       if (models.length > 500) {
-        const confirmed = confirm(
-          t('settings.llm.fetchLargeConfirm', { count: models.length }) || `检测到 ${models.length} 个模型，数量过多可能导致界面卡顿。建议在设置中只勾选常用模型。是否继续加载所有模型？`
-        );
+        const confirmed = confirm(t('settings.llm.fetchLargeConfirm', { count: models.length }));
         if (!confirmed) {
           setIsFetching(false);
           return;
         }
       }
       
-      // Ensure all models have required fields
       const validatedModels = models.map(m => ({
         id: String(m.id || 'unknown'),
         name: String(m.name || m.id || 'Unknown Model'), 
@@ -337,13 +309,11 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
         }
       }));
       
-      // Update local config instead of store
       const updatedProviders = providers.map(p => 
         p.id === editingProvider.id ? { ...p, models: validatedModels } : p
       );
       updateLocalConfig('providers', updatedProviders);
       
-      // Then update local editing state
       setEditingProvider(prev => ({
         ...prev,
         models: validatedModels
@@ -357,7 +327,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     } catch (e) {
       const errorMsg = e.message || t('common.unknown');
       logger.error('SettingsModal', 'Fetch models error:', e);
-      
       setTestResult({ 
         success: false, 
         message: t('settings.llm.fetchFailed', { error: errorMsg }) 
@@ -367,9 +336,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     }
   };
 
-
-
-  // Render custom dropdown for search engine selection
   const renderSearchEngineSelector = () => {
     const engines = [
       { value: 'bing', label: 'Bing Search', icon: Globe },
@@ -392,11 +358,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
 
         {openSearchDropdown && (
           <>
-            <div 
-              className="fixed inset-0 z-[80]" 
-              onClick={() => setOpenSearchDropdown(false)}
-              onWheel={(e) => e.stopPropagation()}
-            />
+            <div className="fixed inset-0 z-[80]" onClick={() => setOpenSearchDropdown(false)} />
             <div className="absolute top-full left-0 mt-2 w-full bg-card border rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
               <div className="p-2 border-b flex items-center justify-center bg-accent/20">
                 <span className="text-xs font-black text-primary uppercase tracking-widest">{t('settings.search.selectEngine')}</span>
@@ -405,7 +367,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                 {engines.map(engine => {
                   const isSelected = searchSettings.engine === engine.value;
                   const EngineIcon = engine.icon;
-                  
                   return (
                     <button
                       key={engine.value}
@@ -416,16 +377,11 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       }}
                       className={cn(
                         "w-full text-left p-2 rounded-lg transition-all flex items-center justify-between group/item border border-transparent",
-                        isSelected 
-                          ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
-                          : "hover:bg-primary/5 hover:border-primary/20"
+                        isSelected ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" : "hover:bg-primary/5 hover:border-primary/20"
                       )}
                     >
                       <div className="flex items-center gap-2.5">
-                        <div className={cn(
-                          "w-7 h-7 rounded-lg flex items-center justify-center transition-colors",
-                          isSelected ? "bg-white/20" : "bg-accent"
-                        )}>
+                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center transition-colors", isSelected ? "bg-white/20" : "bg-accent")}>
                           <EngineIcon className={cn("w-4 h-4", isSelected ? "text-white" : "text-muted-foreground")} />
                         </div>
                         <span className="text-xs truncate">{engine.label}</span>
@@ -442,7 +398,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     );
   };
 
-  // Render custom dropdown for general settings (language, theme, etc.)
   const renderGeneralSelector = (options, currentValue, onChange, label) => {
     const currentOption = options.find(o => o.value === currentValue) || options[0];
     const isOpen = openGeneralDropdown === label;
@@ -460,11 +415,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
 
         {isOpen && (
           <>
-            <div 
-              className="fixed inset-0 z-[80]" 
-              onClick={() => setOpenGeneralDropdown(null)}
-              onWheel={(e) => e.stopPropagation()}
-            />
+            <div className="fixed inset-0 z-[80]" onClick={() => setOpenGeneralDropdown(null)} />
             <div className="absolute top-full left-0 mt-2 w-full bg-card border rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
               <div className="p-2 border-b flex items-center justify-center bg-accent/20">
                 <span className="text-xs font-black text-primary uppercase tracking-widest">{label}</span>
@@ -472,7 +423,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
               <div ref={generalDropdownScrollRef} className="max-h-[min(400px,calc(100vh-300px))] overflow-y-auto p-1.5 custom-scrollbar space-y-1">
                 {options.map(option => {
                   const isSelected = currentValue === option.value;
-                  
                   return (
                     <button
                       key={option.value}
@@ -483,9 +433,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       }}
                       className={cn(
                         "w-full text-left p-2 rounded-lg transition-all flex items-center justify-between group/item border border-transparent",
-                        isSelected 
-                          ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" 
-                          : "hover:bg-primary/5 hover:border-primary/20"
+                        isSelected ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20" : "hover:bg-primary/5 hover:border-primary/20"
                       )}
                     >
                       <span className="text-xs truncate">{option.label}</span>
@@ -502,12 +450,10 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   };
 
   /**
-   * 变更持久化：配置批量保存
-   * 将本地 UI 的暂存状态同步至各核心 Store 并触发加密持久化存储
+   * 应用所有变更到全局 Store
    */
   const applyAllChanges = async () => {
     try {
-      // 逐个更新 store 状态
       providers.forEach(p => updateProvider(p.id, p));
       updateProxy(proxy);
       updateGeneral(general);
@@ -516,7 +462,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       updateConversationPresets(conversationPresets);
       updateConversationSettings(conversationSettings);
       
-      // 处理可能失败的更新
       try {
         await updateCloudSync(cloudSync);
       } catch (err) {
@@ -525,21 +470,17 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       
       updateRetrievalSettings(retrievalSettings);
       
-      // 更新持久化设置
       if (localConfig.persistenceMode) {
         setPersistence(localConfig.persistenceMode);
       }
 
-      // 持久化配置
       await saveConfig(sessionPassword);
-      
-      // [同步优化] 保存设置后触发同步
       syncService.debouncedSync();
       
       return true;
     } catch (err) {
       logger.error('SettingsModal', 'Failed to apply changes', err);
-      alert(t('error.saveFailed') || '保存失败');
+      alert(t('error.saveFailed'));
       return false;
     }
   };
@@ -552,7 +493,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   const handleSaveOnly = async () => {
     const success = await applyAllChanges();
     if (success) {
-        alert(t('common.saveSuccess') || '保存成功');
+        alert(t('common.saveSuccess'));
     }
   };
 
@@ -563,14 +504,16 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     }
   };
 
+  /**
+   * 危险操作：清空所有应用数据并登出
+   */
   const handleClearData = async () => {
     if (confirm(t('settings.security.clearDataConfirm'))) {
       try {
-        // Clear cloud data if possible before logging out
         await syncService.deleteCloudData();
       } catch (err) {
         logger.error('SettingsModal', 'Failed to clear cloud data', err);
-        if (!confirm(t('settings.security.clearCloudDataFailedConfirm') || '无法清除云端数据，是否仍要清除本地数据并退出？')) {
+        if (!confirm(t('settings.security.clearCloudDataFailedConfirm'))) {
           return;
         }
       }
@@ -580,12 +523,14 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     }
   };
 
+  /**
+   * 导出加密备份文件
+   */
   const handleExportBackup = async () => {
     const password = prompt(t('settings.security.exportPassword'));
     if (!password) return;
     
     try {
-      // 使用syncService的完整备份功能
       const blob = await syncService.exportFullBackup(password, {
         includeSystemLogs: false, 
         includePublished: true     
@@ -598,7 +543,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       a.click();
       URL.revokeObjectURL(url);
       
-      // 显示成功消息
       const fileSize = (blob.size / 1024 / 1024).toFixed(2);
       alert(t('settings.security.exportSuccess', { size: fileSize }));
     } catch (e) {
@@ -606,7 +550,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     }
   };
 
-  // 手动同步到云端
+  /**
+   * 手动触发云端数据同步
+   */
   const handleManualSync = async () => {
     const { sessionPassword } = useAuthStore.getState();
     if (!sessionPassword) {
@@ -614,7 +560,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       return;
     }
 
-    // 同步前自动保存当前 UI 配置，确保使用的是最新 URL
     const saved = await applyAllChanges();
     if (!saved) return;
 
@@ -626,6 +571,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     }
   };
 
+  /**
+   * 从备份文件导入数据
+   */
   const handleImportBackup = async () => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -638,11 +586,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       if (!password) return;
 
       try {
-        // 使用syncService的完整恢复功能
         const result = await syncService.importFullBackup(file, password);
         
         if (result.success) {
-          // 显示成功消息和统计信息
           const stats = result.stats;
           const message = t('settings.security.importSuccess') + '\n\n' +
             `${t('settings.security.conversations')}: ${stats.conversations}\n` +
@@ -652,8 +598,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
             t('settings.security.reloadPrompt');
           
           alert(message);
-          
-          // 关闭设置界面并重载页面
           onClose();
           setTimeout(() => window.location.reload(), 500);
         }
@@ -682,13 +626,12 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
   return (
     <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4">
       <div className="bg-background w-full h-full md:max-w-4xl md:h-[85vh] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden border">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-2 flex-1">
             {editingProvider && (
               <button onClick={() => {
                 setEditingProvider(null);
-                setModelSearchQuery(''); // 关闭编辑时清空搜索
+                setModelSearchQuery('');
               }} className="p-1 hover:bg-accent rounded-md md:hidden">
                 <ChevronRight className="w-5 h-5 rotate-180" />
               </button>
@@ -697,7 +640,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
               {editingProvider ? editingProvider.name : tabs.find(t_ => t_.id === activeTab)?.label || t('settings.title')}
             </h2>
             
-            {/* 日志搜索框 */}
             {activeTab === 'logs' && !editingProvider && (
               <div className="flex-1 flex justify-end ml-4">
                 <div className="relative w-64">
@@ -720,7 +662,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
         </div>
 
         <div className="flex-1 flex overflow-hidden">
-          {/* Sidebar */}
           <div className={cn(
             "w-16 md:w-64 border-r bg-accent/20 flex flex-col py-4 overflow-y-auto custom-scrollbar",
             editingProvider && "hidden md:flex"
@@ -731,7 +672,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                 onClick={() => {
                     setActiveTab(tab.id);
                     setEditingProvider(null);
-                    setModelSearchQuery(''); // 切换标签时清空搜索
+                    setModelSearchQuery('');
                 }}
                 className={cn(
                   "flex items-center gap-3 px-4 md:px-6 py-3 text-sm transition-colors relative",
@@ -747,7 +688,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
             ))}
           </div>
 
-          {/* Content Area */}
           <div 
             ref={contentScrollRef}
             className={cn(
@@ -893,7 +833,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     </div>
                   )}
 
-                    {/* 阿里云区域选择器 */}
                     {editingProvider.id === 'aliyun' && (
                       <div className="space-y-2">
                         <label className="text-sm font-medium">{t('settings.llm.serverRegion')}</label>
@@ -1000,7 +939,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                               capabilities: { thinking: false, multimodal: false, tools: false },
                               isNew: true
                             })}
-                            className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded-lg hover:opacity-90 flex items-center gap-1"
+                            className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded-lg hover:opacity-90 flex items-center justify-center gap-1"
                           >
                             <Plus className="w-3 h-3" /> {t('settings.llm.newModel')}
                           </button>
@@ -1026,7 +965,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             );
                           }
                           
-                          // 使用虚拟滚动渲染大量模型（高性能）
                           return (
                             <VirtualList
                               items={filteredModels}
@@ -1393,7 +1331,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       <p className="font-medium text-sm">{t('settings.security.cloudSync')}</p>
                       <p className="text-xs text-muted-foreground">{t('settings.security.cloudSyncHint')}</p>
                       
-                      {/* 同步服务状态显示 */}
                       {cloudSync?.enabled && (
                         <div className="mt-2 flex items-center gap-2 text-xs">
                           {proxyStatus.isAvailable ? (
@@ -1414,7 +1351,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         </div>
                       )}
                       
-                      {/* 错误提示 */}
                       {cloudSyncError && (
                         <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/20">
                           <p className="text-xs text-red-600 dark:text-red-400">{cloudSyncError}</p>
@@ -1429,7 +1365,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         updateLocalConfig('cloudSync', { enabled });
                         
                         if (enabled) {
-                          // 异步检查但不阻塞
                           syncService.checkProxyHealth().then(isHealthy => {
                             setProxyStatus(syncService.getProxyStatus());
                             if (!isHealthy) {
@@ -1442,10 +1377,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     />
                   </div>
                   
-                  {/* 云端同步配置详情 */}
                   {cloudSync?.enabled && (
                     <div className="space-y-4 mt-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800 animate-in slide-in-from-top-2">
-                      {/* API URL配置 */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <label className="text-sm font-medium">{t('settings.security.syncApiUrl')}</label>
@@ -1491,7 +1424,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         </p>
                       </div>
 
-                      {/* 同步图片 */}
                       <div className="flex items-start justify-between">
                         <div>
                           <label className="text-sm font-medium">{t('settings.security.syncImages')}</label>
@@ -1503,7 +1435,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                           checked={cloudSync.syncImages ?? false}
                           onChange={(e) => {
                             if (!e.target.checked) {
-                              if (confirm(t('settings.security.syncImagesOffConfirm') || '确定要关闭图片同步吗？关闭后云端的图片数据将被清理以节省空间。')) {
+                              if (confirm(t('settings.security.syncImagesOffConfirm'))) {
                                 updateLocalConfig('cloudSync', { syncImages: false });
                               }
                             } else {
@@ -1514,7 +1446,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         />
                       </div>
 
-                      {/* 自动同步 */}
                       <div className="flex items-start justify-between">
                         <div>
                           <label className="text-sm font-medium">{t('settings.security.autoSync')}</label>
@@ -1529,10 +1460,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         />
                       </div>
 
-                      {/* 同步状态显示 */}
                       <SyncStatusIndicator />
 
-                      {/* 手动同步按钮 */}
                       <button
                         onClick={handleManualSync}
                         disabled={storeCloudSync?.syncStatus === 'syncing' || !cloudSync?.enabled}
@@ -1573,7 +1502,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                             <div 
                               className="fixed inset-0 z-[80]" 
                               onClick={() => setOpenGeneralDropdown(null)}
-                              onWheel={(e) => e.stopPropagation()}
                             />
                             <div className="absolute top-full left-0 mt-2 w-full bg-card border rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
                               <div className="p-2 border-b flex items-center justify-center bg-accent/20">
@@ -1725,11 +1653,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
 
             {activeTab === 'conversation' && (
               <div className="space-y-8 animate-in fade-in">
-                {/* 新对话的预设设定 */}
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold border-b pb-2">{t('settings.conversation.newConversationPresets')}</h3>
                   
-                  {/* 提示 */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium">{t('settings.conversation.prompt')}</label>
                     <textarea
@@ -1757,7 +1683,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     </button>
                   </div>
 
-                  {/* 上下文消息数量限制 */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <label className="text-sm font-medium">{t('settings.conversation.contextLimit')}</label>
@@ -1783,7 +1708,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     <p className="text-xs text-muted-foreground">{t('settings.conversation.contextLimitHint')}</p>
                   </div>
 
-                  {/* 温度 */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <label className="text-sm font-medium">{t('settings.conversation.temperature')}</label>
@@ -1808,7 +1732,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     </div>
                   </div>
 
-                  {/* Top P */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <label className="text-sm font-medium">{t('settings.conversation.topP')}</label>
@@ -1833,7 +1756,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     </div>
                   </div>
 
-                  {/* 流式输出 */}
                   <div className="flex items-center justify-between py-3">
                     <label className="text-sm font-medium">{t('settings.conversation.streaming')}</label>
                     <Switch
@@ -1843,11 +1765,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                   </div>
                 </div>
 
-                {/* 对话设定 */}
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold border-b pb-2">{t('settings.conversation.conversationSettings')}</h3>
                   
-                  {/* 显示部分 */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('settings.conversation.display')}</h4>
                     
@@ -1876,7 +1796,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                     </div>
                   </div>
 
-                  {/* 功能部分 */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('settings.conversation.features')}</h4>
                     
@@ -1954,7 +1873,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                   </div>
                 </div>
 
-                {/* Compression Settings */}
                 <div>
                   <h4 className="text-sm font-semibold mb-3">{t('compression.autoCompression')}</h4>
                   <div className="space-y-3">
@@ -1995,7 +1913,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t bg-accent/10 flex justify-end gap-3">
           <button 
             onClick={onClose}
@@ -2018,7 +1935,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
         </div>
       </div>
 
-      {/* Model Editing Dialog */}
       {editingModel && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border p-6 space-y-4">
@@ -2155,7 +2071,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       const value = parseFormattedNumber(e.target.value);
                       setEditingModel(prev => ({ ...prev, contextWindow: value }));
                     }}
-                    onWheel={(e) => e.target.blur()}
                     placeholder={t('model.defaultUnlimited')}
                     className="w-full px-3 py-2 bg-accent rounded-lg border-none focus:ring-2 focus:ring-primary text-sm"
                   />
@@ -2169,7 +2084,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       const value = parseFormattedNumber(e.target.value);
                       setEditingModel(prev => ({ ...prev, maxTokens: value }));
                     }}
-                    onWheel={(e) => e.target.blur()}
                     placeholder={t('model.defaultUnlimited')}
                     className="w-full px-3 py-2 bg-accent rounded-lg border-none focus:ring-2 focus:ring-primary text-sm"
                   />
@@ -2186,7 +2100,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                       const value = parseFormattedNumber(e.target.value);
                       setEditingModel(prev => ({ ...prev, maxThinkingTokens: value }));
                     }}
-                    onWheel={(e) => e.target.blur()}
                     placeholder={t('model.defaultUnlimited')}
                     className="w-full px-3 py-2 bg-accent rounded-lg border-none focus:ring-2 focus:ring-primary text-sm"
                   />

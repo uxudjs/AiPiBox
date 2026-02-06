@@ -1,6 +1,6 @@
 /**
- * AI请求缓存管理器
- * 用于缓存AI请求结果,减少重复请求
+ * AI 请求缓存管理器
+ * 用于缓存非流式 AI 请求结果，减少冗余的网络开销。
  */
 
 import { logger } from '../services/logger';
@@ -8,27 +8,26 @@ import { logger } from '../services/logger';
 class RequestCacheManager {
   constructor() {
     this.cache = new Map();
-    this.maxCacheSize = 100; // 最多缓存100个请求
-    this.maxCacheAge = 60 * 60 * 1000; // 缓存有效期1小时
+    this.maxCacheSize = 100;
+    this.maxCacheAge = 60 * 60 * 1000;
     
-    // 定期清理过期缓存
     if (typeof setInterval !== 'undefined') {
-      setInterval(() => this.cleanExpiredCache(), 10 * 60 * 1000); // 每10分钟清理一次
+      setInterval(() => this.cleanExpiredCache(), 10 * 60 * 1000);
     }
   }
 
   /**
-   * 生成缓存键
+   * 生成缓存标识键
+   * @param {object} requestData - 请求参数对象
+   * @returns {string} 缓存键
    */
   generateCacheKey(requestData) {
     const { url, method = 'POST', data } = requestData;
     
-    // 对于GET请求,URL就是键
     if (method.toUpperCase() === 'GET') {
       return `GET:${url}`;
     }
     
-    // 对于POST请求,需要包含data的hash
     if (data) {
       const dataStr = JSON.stringify(data);
       const hash = this._simpleHash(dataStr);
@@ -39,40 +38,40 @@ class RequestCacheManager {
   }
 
   /**
-   * 简单的字符串hash函数
+   * 简单的字符串哈希计算
+   * @param {string} str - 待哈希字符串
+   * @returns {string} 哈希结果
    */
   _simpleHash(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
+      hash = hash & hash;
     }
     return hash.toString(36);
   }
 
   /**
-   * 检查是否应该缓存此请求
+   * 检查请求是否符合缓存条件
+   * @param {object} requestData - 请求参数对象
+   * @returns {boolean} 是否应缓存
    */
   shouldCache(requestData) {
     const { url, data } = requestData;
     
-    // 不缓存流式请求
     if (data?.stream) {
       return false;
     }
     
-    // 不缓存聊天请求(因为可能包含上下文)
     if (url.includes('/chat/completions') || url.includes('/messages')) {
       return false;
     }
     
-    // 缓存模型列表请求
     if (url.includes('/models')) {
       return true;
     }
     
-    // 缓存图像生成请求(相同参数生成相同图像)
     if (url.includes('/images/generations') && data?.seed && data.seed !== -1) {
       return true;
     }
@@ -81,7 +80,9 @@ class RequestCacheManager {
   }
 
   /**
-   * 获取缓存
+   * 获取缓存项
+   * @param {string} cacheKey - 缓存键
+   * @returns {any|null} 缓存数据
    */
   get(cacheKey) {
     const cached = this.cache.get(cacheKey);
@@ -90,7 +91,6 @@ class RequestCacheManager {
       return null;
     }
     
-    // 检查是否过期
     if (Date.now() - cached.timestamp > this.maxCacheAge) {
       this.cache.delete(cacheKey);
       logger.debug('RequestCache', 'Cache expired:', cacheKey);
@@ -102,10 +102,11 @@ class RequestCacheManager {
   }
 
   /**
-   * 设置缓存
+   * 写入缓存项
+   * @param {string} cacheKey - 缓存键
+   * @param {any} data - 待缓存数据
    */
   set(cacheKey, data) {
-    // 如果缓存已满,删除最旧的条目
     if (this.cache.size >= this.maxCacheSize) {
       const firstKey = this.cache.keys().next().value;
       this.cache.delete(firstKey);
@@ -121,7 +122,7 @@ class RequestCacheManager {
   }
 
   /**
-   * 清理过期缓存
+   * 清理已过期的缓存条目
    */
   cleanExpiredCache() {
     const now = Date.now();
@@ -140,7 +141,7 @@ class RequestCacheManager {
   }
 
   /**
-   * 清空所有缓存
+   * 清空全部缓存
    */
   clear() {
     this.cache.clear();
@@ -148,7 +149,8 @@ class RequestCacheManager {
   }
 
   /**
-   * 获取缓存统计信息
+   * 获取当前缓存统计
+   * @returns {object} 统计信息
    */
   getStats() {
     const now = Date.now();
@@ -173,37 +175,31 @@ class RequestCacheManager {
   }
 }
 
-// 创建全局单例
 export const requestCache = new RequestCacheManager();
 
 /**
- * 使用缓存包装请求函数
+ * 包装异步函数以支持缓存
+ * @param {object} requestData - 请求标识参数
+ * @param {Function} executeFn - 实际执行请求的函数
+ * @returns {Promise<any>} 请求结果
  */
 export async function withCache(requestData, executeFn) {
-  // 检查是否应该缓存
   if (!requestCache.shouldCache(requestData)) {
     return await executeFn();
   }
   
-  // 生成缓存键
   const cacheKey = requestCache.generateCacheKey(requestData);
   
-  // 尝试从缓存获取
   const cached = requestCache.get(cacheKey);
   if (cached) {
     return cached;
   }
   
-  // 执行请求
   try {
     const result = await executeFn();
-    
-    // 缓存结果
     requestCache.set(cacheKey, result);
-    
     return result;
   } catch (error) {
-    // 不缓存错误结果
     throw error;
   }
 }

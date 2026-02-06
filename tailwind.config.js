@@ -1,3 +1,7 @@
+/**
+ * Tailwind CSS Mn‡ö
+ */
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [

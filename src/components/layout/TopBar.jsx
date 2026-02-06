@@ -1,5 +1,10 @@
+/**
+ * 顶部状态栏组件
+ * 显示当前对话标题、模型信息、视图标题，并提供隐身模式开关及移动端菜单触发器。
+ */
+
 import React from 'react';
-import { Menu, Eye, EyeOff, Sparkles, ChevronDown, Image } from 'lucide-react';
+import { Menu, Eye, EyeOff, Sparkles, Image } from 'lucide-react';
 import { useChatStore } from '../../store/useChatStore';
 import { useConfigStore } from '../../store/useConfigStore';
 import { useViewStore } from '../../store/useViewStore';
@@ -9,8 +14,9 @@ import { cn } from '../../utils/cn';
 import { useTranslation } from '../../i18n';
 
 /**
- * 顶部导航组件
- * 显示当前对话元数据（标题、模型型号）、隐身模式切换器及移动端菜单触点
+ * 顶部工具栏组件
+ * @param {object} props - 组件属性
+ * @param {Function} props.onMenuClick - 移动端菜单点击回调
  */
 const TopBar = ({ onMenuClick }) => {
   const { t } = useTranslation();
@@ -24,23 +30,22 @@ const TopBar = ({ onMenuClick }) => {
   );
   
   /**
-   * 获取模型显示标识
-   * 优先采用厂商配置中的 friendly name，若无则降级展示 modelId
+   * 获取当前模型的显示名称
+   * @returns {string|null} 模型名称
    */
   const getModelDisplayName = () => {
     if (!currentModel?.modelId) return null;
     
-    // 遍历所有提供商，查找匹配的模型
     for (const provider of providers) {
       if (provider.models && currentModel.providerId === provider.id) {
         const model = provider.models.find(m => m.id === currentModel.modelId);
         if (model) {
-          return model.name || model.id; // 优先返回自定义显示名称
+          return model.name || model.id;
         }
       }
     }
     
-    return currentModel.modelId; // 找不到返回原始 ID
+    return currentModel.modelId;
   };
 
   return (

@@ -1,3 +1,8 @@
+/**
+ * 图像库展示组件
+ * 以网格形式展示历史生成的图像，支持单张详情查看、多选批量删除及清空历史。
+ */
+
 import React, { useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useImageGenStore } from '../../store/useImageGenStore';
@@ -6,17 +11,17 @@ import {
   Trash2, 
   CheckCircle2, 
   Circle, 
-  Maximize2,
-  MoreVertical,
-  Download
+  Maximize2
 } from 'lucide-react';
 import ImageDetailModal from './ImageDetailModal';
 
+/**
+ * 图像画廊组件
+ */
 const ImageGallery = () => {
   const { t } = useTranslation();
   const { 
     history, 
-    deleteImage, 
     deleteBatchImages, 
     clearAllHistory,
     selectedImage,
@@ -26,6 +31,11 @@ const ImageGallery = () => {
   const [isMultiSelect, setIsMultiSelect] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
 
+  /**
+   * 切换单张图片的选中状态
+   * @param {string} id - 图像 ID
+   * @param {Event} e - 点击事件
+   */
   const toggleSelect = (id, e) => {
     e.stopPropagation();
     setSelectedIds(prev => 
@@ -33,6 +43,9 @@ const ImageGallery = () => {
     );
   };
 
+  /**
+   * 执行批量删除操作
+   */
   const handleBatchDelete = () => {
     if (confirm(t('imageFactory.deleteConfirm', { count: selectedIds.length }))) {
       deleteBatchImages(selectedIds);
@@ -53,7 +66,6 @@ const ImageGallery = () => {
 
   return (
     <div className="space-y-4">
-      {/* 工具栏 */}
       <div className="flex items-center justify-between px-1">
         <div className="flex gap-2">
           <button
@@ -90,7 +102,6 @@ const ImageGallery = () => {
         )}
       </div>
 
-      {/* 网格 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {history.map((img) => (
           <div 
@@ -108,10 +119,8 @@ const ImageGallery = () => {
               loading="lazy"
             />
             
-            {/* 渐变遮罩 */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             
-            {/* 选择框 */}
             {isMultiSelect && (
               <div className="absolute top-2 left-2">
                 {selectedIds.includes(img.id) ? (
@@ -122,7 +131,6 @@ const ImageGallery = () => {
               </div>
             )}
 
-            {/* 操作提示 */}
             {!isMultiSelect && (
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white">

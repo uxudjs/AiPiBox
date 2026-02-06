@@ -1,5 +1,10 @@
+/**
+ * 知识库管理设置组件
+ * 提供知识库的创建、编辑、删除功能，以及文档的上传解析、内容分片、检索参数调节等核心能力。
+ */
+
 import React, { useState } from 'react';
-import { Plus, Trash2, Upload, FileText, X, AlertCircle, Check, Loader2, FileType, Edit2, Save } from 'lucide-react';
+import { Plus, Trash2, Upload, FileText, X, AlertCircle, Loader2, Edit2, Save } from 'lucide-react';
 import { useKnowledgeBaseStore } from '../../store/useKnowledgeBaseStore';
 import { cn } from '../../utils/cn';
 import { logger } from '../../services/logger';
@@ -7,8 +12,10 @@ import { parseDocument, formatDocumentForAI, SUPPORTED_TYPES } from '../../servi
 import { useTranslation } from '../../i18n';
 
 /**
- * 知识库设置组件
- * 在设置面板中展示知识库管理界面
+ * 知识库设置面板组件
+ * @param {object} props - 组件属性
+ * @param {object} props.retrievalSettings - 当前检索算法配置
+ * @param {Function} props.onUpdateRetrievalSettings - 配置更新回调
  */
 const KnowledgeBaseSettings = ({ 
   retrievalSettings: controlledSettings, 
@@ -17,7 +24,6 @@ const KnowledgeBaseSettings = ({
   const { t } = useTranslation();
   const kbStore = useKnowledgeBaseStore();
   
-  // 使用受控设置或从 store 获取
   const retrievalSettings = controlledSettings || kbStore.retrievalSettings;
   const updateRetrievalSettings = onUpdateRetrievalSettings || kbStore.updateRetrievalSettings;
   
@@ -36,15 +42,14 @@ const KnowledgeBaseSettings = ({
   const [newKBDescription, setNewKBDescription] = useState('');
   const [showNewKBForm, setShowNewKBForm] = useState(false);
   const [uploadingTo, setUploadingTo] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState({}); // { fileName: { status, progress, error } }
+  const [uploadProgress, setUploadProgress] = useState({});
 
-  // 编辑状态
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
 
   /**
-   * 创建新知识库
+   * 创建新的知识库实例
    */
   const handleCreateKB = () => {
     if (!newKBName.trim()) {
@@ -59,8 +64,9 @@ const KnowledgeBaseSettings = ({
   };
 
   /**
-   * 处理文件上传
-   * 支持多文件批量上传
+   * 处理文件上传与异步解析
+   * @param {string} kbId - 目标知识库 ID
+   * @param {Event} event - 文件选择事件
    */
   const handleFileUpload = async (kbId, event) => {
     const files = Array.from(event.target.files || []);
@@ -70,13 +76,11 @@ const KnowledgeBaseSettings = ({
     
     for (const file of files) {
       try {
-        // 初始化进度
         setUploadProgress(prev => ({
           ...prev,
           [file.name]: { status: 'waiting', progress: 0 }
         }));
 
-        // 解析文档
         const parsedDoc = await parseDocument(file, (progressEvent) => {
           setUploadProgress(prev => ({
             ...prev,
@@ -84,10 +88,8 @@ const KnowledgeBaseSettings = ({
           }));
         });
         
-        // 格式化内容
         const content = formatDocumentForAI(parsedDoc);
         
-        // 添加到知识库
         await addDocument(kbId, {
           name: file.name,
           content: content,
@@ -96,7 +98,6 @@ const KnowledgeBaseSettings = ({
           metadata: parsedDoc.metadata
         });
         
-        // 清除成功文件的进度
         setUploadProgress(prev => {
           const next = { ...prev };
           delete next[file.name];
@@ -106,13 +107,11 @@ const KnowledgeBaseSettings = ({
       } catch (error) {
         logger.error('KnowledgeBaseSettings', 'File upload failed:', error);
         
-        // 记录错误状态
         setUploadProgress(prev => ({
           ...prev,
           [file.name]: { status: 'error', progress: 0, error: error.message }
         }));
         
-        // 3秒后清除错误显示
         setTimeout(() => {
           setUploadProgress(prev => {
             const next = { ...prev };
@@ -123,14 +122,10 @@ const KnowledgeBaseSettings = ({
       }
     }
     
-    // 如果没有正在进行的任务，重置状态
     setUploadingTo(null);
     event.target.value = '';
   };
 
-  /**
-   * 开始编辑知识库
-   */
   const handleStartEdit = (kb, e) => {
     e.stopPropagation();
     setEditingId(kb.id);
@@ -138,9 +133,6 @@ const KnowledgeBaseSettings = ({
     setEditDescription(kb.description || '');
   };
 
-  /**
-   * 保存编辑
-   */
   const handleSaveEdit = (e) => {
     e.stopPropagation();
     if (!editName.trim()) {
@@ -154,9 +146,6 @@ const KnowledgeBaseSettings = ({
     setEditingId(null);
   };
 
-  /**
-   * 取消编辑
-   */
   const handleCancelEdit = (e) => {
     e.stopPropagation();
     setEditingId(null);
@@ -168,11 +157,7 @@ const KnowledgeBaseSettings = ({
       .join(',');
   };
 
-  /**
-   * 获取文件图标
-   */
   const getFileIcon = (fileType) => {
-    // 简单的映射，或者使用 SUPPORTED_TYPES 中的 icon
     if (!fileType) return <FileText className="w-4 h-4" />;
     
     switch (fileType) {
@@ -186,7 +171,6 @@ const KnowledgeBaseSettings = ({
 
   return (
     <div className="space-y-6">
-      {/* 标题和添加按钮 */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold">{t('knowledgeBase.management')}</h3>
@@ -203,7 +187,6 @@ const KnowledgeBaseSettings = ({
         </button>
       </div>
 
-      {/* 新建知识库表单 */}
       {showNewKBForm && (
         <div className="p-4 bg-accent/20 rounded-xl border animate-in fade-in slide-in-from-top-2">
           <div className="space-y-3">
@@ -249,7 +232,6 @@ const KnowledgeBaseSettings = ({
         </div>
       )}
 
-      {/* 检索设置 */}
       <div className="p-4 bg-card rounded-xl border">
         <h4 className="text-sm font-bold mb-3">{t('knowledgeBase.retrievalSettings')}</h4>
         <div className="space-y-3">
@@ -297,7 +279,6 @@ const KnowledgeBaseSettings = ({
         </div>
       </div>
 
-      {/* 知识库列表 */}
       <div className="space-y-3">
         {knowledgeBases.length === 0 ? (
           <div className="p-12 text-center bg-accent/10 rounded-xl border border-dashed">
@@ -316,7 +297,6 @@ const KnowledgeBaseSettings = ({
             
             return (
               <div key={kb.id} className="bg-card rounded-xl border overflow-hidden">
-                {/* 知识库头部 */}
                 <div
                   className="p-4 flex items-center justify-between cursor-pointer hover:bg-accent/20 transition-colors"
                   onClick={() => setExpandedKB(isExpanded ? null : kb.id)}
@@ -405,10 +385,8 @@ const KnowledgeBaseSettings = ({
                   </div>
                 </div>
 
-                {/* 展开的文档列表 */}
                 {isExpanded && (
                   <div className="border-t bg-accent/5 p-4 animate-in fade-in slide-in-from-top-2">
-                    {/* 上传进度显示 */}
                     {Object.keys(uploadProgress).length > 0 && (
                       <div className="mb-4 space-y-2">
                         {Object.entries(uploadProgress).map(([fileName, status]) => (
@@ -436,7 +414,6 @@ const KnowledgeBaseSettings = ({
                       </div>
                     )}
 
-                    {/* 上传按钮 */}
                     <div className="mb-3">
                       <label className={`inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg transition-colors text-sm ${uploadingTo === kb.id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/20 cursor-pointer'}`}>
                         <Upload className="w-4 h-4" />
@@ -460,7 +437,6 @@ const KnowledgeBaseSettings = ({
                       </div>
                     </div>
 
-                    {/* 文档列表 */}
                     {kb.documents.length === 0 ? (
                       <div className="p-8 text-center text-xs text-muted-foreground bg-background/50 rounded-lg">
                         <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-50" />
@@ -508,7 +484,6 @@ const KnowledgeBaseSettings = ({
         )}
       </div>
 
-      {/* 使用提示 */}
       <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
         <div className="flex gap-3">
           <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />

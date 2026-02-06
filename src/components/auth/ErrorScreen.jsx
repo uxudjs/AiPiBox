@@ -1,19 +1,31 @@
+/**
+ * 初始化错误显示界面
+ * 当应用核心加载失败时展示，提供重试及清除缓存重置的选项。
+ */
+
 import React from 'react';
 import PropTypes from 'prop-types';
 import { AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
 /**
- * 初始化错误/异常界面
- * 当应用核心加载失败时显示，提供重试和修复建议
+ * 错误显示屏组件
+ * @param {object} props - 组件属性
+ * @param {string} props.error - 错误消息文本
  */
 const ErrorScreen = ({ error }) => {
   const { t } = useTranslation();
 
+  /**
+   * 重新加载应用
+   */
   const handleReload = () => {
     window.location.reload();
   };
 
+  /**
+   * 清除本地配置缓存并重启
+   */
   const handleClearCache = () => {
     if (window.confirm(t('app.clearCacheConfirm') || '确定要清除所有缓存数据并重启吗？这将登出应用并重置本地设置。')) {
       localStorage.clear();

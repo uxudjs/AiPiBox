@@ -1,11 +1,13 @@
 /**
- * Compress an image file using Canvas
- * @param {File} file - The image file to compress
- * @param {Object} options - Compression options
- * @param {number} options.maxWidth - Maximum width
- * @param {number} options.maxHeight - Maximum height
- * @param {number} options.quality - JPEG quality (0 to 1)
- * @returns {Promise<string>} - Compressed image as Data URL
+ * þÏ‹)åw
+ * ( Canvas API ùþGÛL:ø)>Œ(Ï‹)
+ */
+
+/**
+ * ‹)þÏ‡ö
+ * @param {File} file - …‹)„þÏ‡ö
+ * @param {object} options - ‹)	y
+ * @returns {Promise<string>} ‹)„ Data URL
  */
 export const compressImage = (file, options = {}) => {
   const {
@@ -24,7 +26,6 @@ export const compressImage = (file, options = {}) => {
         let width = img.width;
         let height = img.height;
 
-        // Calculate new dimensions
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
@@ -44,7 +45,6 @@ export const compressImage = (file, options = {}) => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Compress
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
         resolve(dataUrl);
       };

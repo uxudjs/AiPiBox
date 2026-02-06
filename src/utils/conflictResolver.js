@@ -1,6 +1,6 @@
 /**
- * 冲突检测和解决工具模块
- * 用于处理云端同步时的数据冲突
+ * 冲突检测与解决工具
+ * 用于处理云端同步过程中的数据冲突，提供多种解决策略。
  */
 
 import { logger } from '../services/logger';
@@ -27,27 +27,23 @@ export const ResolutionStrategy = {
 };
 
 /**
- * 检测数据冲突
+ * 检测单项数据冲突
  * @param {object} localItem - 本地数据项
  * @param {object} remoteItem - 云端数据项
- * @returns {object|null} 冲突信息,无冲突返回null
+ * @returns {object|null} 冲突信息
  */
 export function detectConflict(localItem, remoteItem) {
-  // 如果其中一个不存在,不算冲突
   if (!localItem || !remoteItem) {
     return null;
   }
 
-  // 检查是否有lastUpdatedAt或updatedAt字段
   const localTime = localItem.lastUpdatedAt || localItem.updatedAt || 0;
   const remoteTime = remoteItem.lastUpdatedAt || remoteItem.updatedAt || 0;
 
-  // 如果时间戳相同,无冲突
   if (localTime === remoteTime) {
     return null;
   }
 
-  // 检查内容是否相同
   const localContent = JSON.stringify(localItem);
   const remoteContent = JSON.stringify(remoteItem);
   
@@ -55,7 +51,6 @@ export function detectConflict(localItem, remoteItem) {
     return null;
   }
 
-  // 确定冲突类型
   let conflictType = ConflictType.MODIFICATION;
   
   if (localItem.deleted && !remoteItem.deleted) {
@@ -63,7 +58,6 @@ export function detectConflict(localItem, remoteItem) {
   } else if (!localItem.deleted && remoteItem.deleted) {
     conflictType = ConflictType.DELETION;
   } else if (Math.abs(localTime - remoteTime) < 1000) {
-    // 1秒内的修改可能是同时编辑
     conflictType = ConflictType.TIMESTAMP;
   }
 
@@ -95,11 +89,8 @@ export function detectConflicts(localData, remoteData) {
   }
 
   const conflicts = [];
-  
-  // 创建本地数据映射
   const localMap = new Map(localData.map(item => [item.id, item]));
   
-  // 检查每个远程项
   for (const remoteItem of remoteData) {
     const localItem = localMap.get(remoteItem.id);
     const conflict = detectConflict(localItem, remoteItem);
@@ -132,17 +123,14 @@ export function resolveConflict(conflict, strategy = ResolutionStrategy.TIMESTAM
       return conflict.remote.data;
     
     case ResolutionStrategy.TIMESTAMP:
-      // 选择最新时间戳的版本
       return conflict.local.timestamp > conflict.remote.timestamp
         ? conflict.local.data
         : conflict.remote.data;
     
     case ResolutionStrategy.MERGE:
-      // 智能合并(仅适用于特定数据类型)
       return mergeConflictData(conflict.local.data, conflict.remote.data);
     
     case ResolutionStrategy.MANUAL:
-      // 手动解决需要返回冲突信息,由UI处理
       return conflict;
     
     default:
@@ -180,25 +168,20 @@ export function resolveConflicts(conflicts, strategy = ResolutionStrategy.TIMEST
  * @returns {object} 合并后的数据
  */
 function mergeConflictData(local, remote) {
-  // 基础合并策略:保留两边都有的字段,优先使用最新的
   const merged = { ...local };
   
   for (const key in remote) {
-    if (remote.hasOwnProperty(key)) {
-      // 如果本地没有这个字段,使用远程的
+    if (Object.prototype.hasOwnProperty.call(remote, key)) {
       if (!(key in local)) {
         merged[key] = remote[key];
       }
-      // 如果是数组,尝试合并
       else if (Array.isArray(local[key]) && Array.isArray(remote[key])) {
         merged[key] = mergeArrays(local[key], remote[key]);
       }
-      // 如果是对象,递归合并
       else if (typeof local[key] === 'object' && typeof remote[key] === 'object' && 
                local[key] !== null && remote[key] !== null) {
         merged[key] = mergeConflictData(local[key], remote[key]);
       }
-      // 其他情况,使用最新的(这里假设remote是最新的)
       else {
         merged[key] = remote[key];
       }
@@ -209,13 +192,12 @@ function mergeConflictData(local, remote) {
 }
 
 /**
- * 合并数组(去重)
- * @param {Array} arr1 - 数组1
- * @param {Array} arr2 - 数组2
+ * 合并数组并去重
+ * @param {Array} arr1 - 数组 1
+ * @param {Array} arr2 - 数组 2
  * @returns {Array} 合并后的数组
  */
 function mergeArrays(arr1, arr2) {
-  // 如果数组元素是对象,按id去重
   if (arr1.length > 0 && typeof arr1[0] === 'object' && arr1[0] !== null && 'id' in arr1[0]) {
     const map = new Map();
     for (const item of [...arr1, ...arr2]) {
@@ -224,7 +206,6 @@ function mergeArrays(arr1, arr2) {
     return Array.from(map.values());
   }
   
-  // 简单去重
   return [...new Set([...arr1, ...arr2])];
 }
 
@@ -235,13 +216,11 @@ function mergeArrays(arr1, arr2) {
  * @returns {object} 合并后的对话
  */
 export function mergeConversations(localConversation, remoteConversation) {
-  // 基本字段使用最新的
   const merged = {
     ...localConversation,
     ...remoteConversation
   };
   
-  // 特殊处理messages - 按时间戳合并
   if (localConversation.messages && remoteConversation.messages) {
     const allMessages = [...localConversation.messages, ...remoteConversation.messages];
     const messageMap = new Map();
@@ -257,7 +236,6 @@ export function mergeConversations(localConversation, remoteConversation) {
       .sort((a, b) => a.createdAt - b.createdAt);
   }
   
-  // 使用最新的更新时间
   merged.lastUpdatedAt = Math.max(
     localConversation.lastUpdatedAt || 0,
     remoteConversation.lastUpdatedAt || 0
@@ -267,7 +245,7 @@ export function mergeConversations(localConversation, remoteConversation) {
 }
 
 /**
- * 消息数据专用的合并策略
+ * 消息列表专用的合并策略
  * @param {Array} localMessages - 本地消息列表
  * @param {Array} remoteMessages - 远程消息列表
  * @returns {Array} 合并后的消息列表
@@ -275,7 +253,6 @@ export function mergeConversations(localConversation, remoteConversation) {
 export function mergeMessages(localMessages, remoteMessages) {
   const messageMap = new Map();
   
-  // 添加所有消息,按ID去重,保留最新的
   for (const msg of [...localMessages, ...remoteMessages]) {
     const existing = messageMap.get(msg.id);
     if (!existing || (msg.updatedAt || msg.createdAt) > (existing.updatedAt || existing.createdAt)) {
@@ -283,7 +260,6 @@ export function mergeMessages(localMessages, remoteMessages) {
     }
   }
   
-  // 按创建时间排序
   return Array.from(messageMap.values())
     .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 }
@@ -299,8 +275,7 @@ export function needsMerge(local, remote) {
     return false;
   }
   
-  const conflict = detectConflict(local, remote);
-  return conflict !== null;
+  return detectConflict(local, remote) !== null;
 }
 
 /**
@@ -317,10 +292,8 @@ export function getConflictSummary(conflicts) {
   };
   
   for (const conflict of conflicts) {
-    // 按类型统计
     summary.byType[conflict.type] = (summary.byType[conflict.type] || 0) + 1;
     
-    // 记录最早和最新的冲突
     const conflictTime = Math.max(conflict.local.timestamp, conflict.remote.timestamp);
     if (!summary.newestConflict || conflictTime > summary.newestConflict.timestamp) {
       summary.newestConflict = { ...conflict, timestamp: conflictTime };

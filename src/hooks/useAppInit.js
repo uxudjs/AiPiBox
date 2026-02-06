@@ -1,3 +1,8 @@
+/**
+ * 应用初始化生命周期钩子
+ * 集中管理主题加载、认证检查、配置恢复及同步服务启动等核心初始化逻辑。
+ */
+
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useConfigStore } from '../store/useConfigStore';
@@ -8,8 +13,8 @@ import { logger } from '../services/logger';
 import { APP_INIT_TIMEOUT } from '../utils/constants';
 
 /**
- * useAppInit Hook
- * 集中管理应用初始化生命周期：主题加载、认证检查、配置加载及同步服务启动
+ * 管理应用全局初始化流程
+ * @returns {object} 初始化状态包含 loading, error, warning 及认证标识
  */
 export const useAppInit = () => {
   const { t } = useTranslation();
@@ -20,7 +25,6 @@ export const useAppInit = () => {
   const [initError, setInitError] = useState(null);
   const [syncWarning, setSyncWarning] = useState(null);
 
-  // 第一阶段：基础环境初始化
   useEffect(() => {
     const initBase = async () => {
       const timeoutPromise = new Promise((_, reject) => 
@@ -49,7 +53,6 @@ export const useAppInit = () => {
     initBase();
   }, [checkInit, loadTheme, t]);
 
-  // 第二阶段：解锁后加载用户配置与同步服务
   useEffect(() => {
     let isMounted = true;
     
@@ -58,7 +61,6 @@ export const useAppInit = () => {
         try {
           await loadConfig(sessionPassword);
           
-          // 异步恢复未完成的任务
           useChatStore.getState().resumePendingTasks().catch(err => 
             logger.error('useAppInit', 'Task resumption error', err)
           );

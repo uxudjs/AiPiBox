@@ -287,4 +287,4 @@ const ConversationSettings = ({ conversationId, onClose, inline = false }) => {
   );
 };
 
-export default ConversationSettings;
+export default ConversationSettings;

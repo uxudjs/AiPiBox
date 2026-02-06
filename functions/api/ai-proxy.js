@@ -1,6 +1,6 @@
 /**
  * Cloudflare Workers AI 代理函数
- * 代理 AI 服务请求以绕过网络限制并确保连接稳定性
+ * 代理 AI 服务请求以绕过网络限制并确保连接稳定性。
  */
 
 /**
@@ -30,6 +30,8 @@ const ALLOWED_HOSTS = [
 
 /**
  * 敏感信息脱敏工具 (URLs)
+ * @param {string} url - 待脱敏的 URL
+ * @returns {string} 脱敏后的 URL
  */
 function maskUrl(url) {
   try {
@@ -46,11 +48,11 @@ function maskUrl(url) {
 
 /**
  * Cloudflare Workers 请求处理入口
+ * @param {object} context - 请求上下文
  */
 export async function onRequest(context) {
   const { request, env } = context;
 
-  // 限制仅支持 POST 请求
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ 
       error: 'Method Not Allowed',
@@ -69,7 +71,6 @@ export async function onRequest(context) {
     const body = await request.json();
     const { url, method = 'POST', headers = {}, data, stream = false } = body;
 
-    // 1. 校验必填参数
     if (!url) {
       return new Response(JSON.stringify({ 
         error: 'Bad Request',
@@ -80,7 +81,6 @@ export async function onRequest(context) {
       });
     }
 
-    // 2. SSRF 安全校验：验证域名白名单
     try {
       const targetHost = new URL(url).hostname;
       const isAllowed = ALLOWED_HOSTS.some(allowed => 
@@ -106,10 +106,8 @@ export async function onRequest(context) {
       });
     }
 
-    // 3. 记录日志（脱敏）
     console.log(`[${new Date().toISOString()}] [${requestId}] ${method} ${maskUrl(url)}`);
 
-    // 4. 封装 Fetch 请求参数
     const fetchOptions = {
       method: method || 'POST',
       headers: {
@@ -123,7 +121,6 @@ export async function onRequest(context) {
       fetchOptions.body = JSON.stringify(data);
     }
 
-    // 场景 A: 转发 SSE 流式响应
     if (stream) {
       fetchOptions.headers['Accept'] = 'text/event-stream';
 
@@ -140,7 +137,6 @@ export async function onRequest(context) {
       });
     }
 
-    // 场景 B: 处理常规响应
     const response = await fetch(url, fetchOptions);
     const duration = Date.now() - startTime;
 

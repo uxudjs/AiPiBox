@@ -1,3 +1,8 @@
+/**
+ * 身份验证/登录屏组件
+ * 提供应用首次启动时的密码设置，以及后续使用时的解锁功能。
+ */
+
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Lock, ShieldAlert, ShieldCheck, ArrowRight } from 'lucide-react';
@@ -5,8 +10,9 @@ import { useTranslation } from '../../i18n';
 import { useAuthStore } from '../../store/useAuthStore';
 
 /**
- * 登录/身份验证界面
- * 负责主密码的解锁以及首次使用时的密码设置
+ * 登录界面组件
+ * @param {object} props - 组件属性
+ * @param {boolean} props.isInitialized - 应用是否已设置过主密码
  */
 const LoginScreen = ({ isInitialized }) => {
   const { t } = useTranslation();
@@ -16,6 +22,10 @@ const LoginScreen = ({ isInitialized }) => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /**
+   * 提交登录或注册密码请求
+   * @param {Event} e - 表单提交事件
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;

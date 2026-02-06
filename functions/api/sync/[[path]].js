@@ -1,8 +1,13 @@
 /**
  * Cloudflare Workers 云端同步接口
- * 使用 KV 存储实现轻量级数据同步
+ * 使用 KV 存储实现轻量级数据同步。
  */
 
+/**
+ * 请求处理程序
+ * @param {object} context - 请求上下文
+ * @returns {Response} HTTP 响应
+ */
 export async function onRequest(context) {
   const { request, env, params } = context;
   const path = params.path?.[0] || '';
@@ -17,7 +22,6 @@ export async function onRequest(context) {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // 绑定 KV 命名空间
   const KV = env.SYNC_DATA;
 
   if (!KV) {
@@ -31,15 +35,11 @@ export async function onRequest(context) {
   }
 
   let response;
-  // 路由分发逻辑
   if (request.method === 'GET' && path) {
-    // 处理数据获取
     response = await handleDownload(KV, path, request);
   } else if (request.method === 'POST' && !path) {
-    // 处理数据保存
     response = await handleUpload(KV, request);
   } else if (request.method === 'DELETE' && path) {
-    // 处理数据移除
     response = await handleDelete(KV, path);
   } else {
     response = new Response(JSON.stringify({
@@ -50,7 +50,6 @@ export async function onRequest(context) {
     });
   }
 
-  // 为所有响应添加 CORS 头
   const newResponse = new Response(response.body, response);
   Object.keys(corsHeaders).forEach(key => {
     newResponse.headers.set(key, corsHeaders[key]);
@@ -60,9 +59,10 @@ export async function onRequest(context) {
 
 /**
  * 处理下载请求
- * @param {Object} KV KV 实例
- * @param {string} id 资源标识符
- * @param {Request} request 请求对象
+ * @param {object} KV - KV 实例
+ * @param {string} id - 资源标识符
+ * @param {Request} request - 请求对象
+ * @returns {Response} HTTP 响应
  */
 async function handleDownload(KV, id, request) {
   try {
@@ -94,8 +94,9 @@ async function handleDownload(KV, id, request) {
 
 /**
  * 处理上传请求
- * @param {Object} KV KV 实例
- * @param {Request} request 请求对象
+ * @param {object} KV - KV 实例
+ * @param {Request} request - 请求对象
+ * @returns {Response} HTTP 响应
  */
 async function handleUpload(KV, request) {
   try {
@@ -111,7 +112,6 @@ async function handleUpload(KV, request) {
       });
     }
 
-    // 保存到KV
     await KV.put(`sync:${id}`, JSON.stringify({ data, timestamp }), {
       metadata: { lastUpdated: Date.now() }
     });
@@ -136,8 +136,9 @@ async function handleUpload(KV, request) {
 
 /**
  * 处理删除请求
- * @param {Object} KV KV 实例
- * @param {string} id 资源标识符
+ * @param {object} KV - KV 实例
+ * @param {string} id - 资源标识符
+ * @returns {Response} HTTP 响应
  */
 async function handleDelete(KV, id) {
   try {

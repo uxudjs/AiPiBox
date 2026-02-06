@@ -1,9 +1,13 @@
+/**
+ * Vite 项目配置文件
+ */
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/', // 确保部署后路径正确
+  base: '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

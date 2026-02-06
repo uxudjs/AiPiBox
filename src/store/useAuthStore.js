@@ -1,17 +1,20 @@
+/**
+ * 认证状态 Store
+ * 维护全局登录状态、会话密码及登录保持策略，确保数据解密环境可用。
+ */
+
 import { create } from 'zustand';
 import { hashPassword } from '../utils/crypto';
 import { db } from '../db';
 import { logger } from '../services/logger';
 
-// 认证持久化存储的本地 localStorage 键名
 const STORAGE_KEY = 'aipibox_auth_persist';
-// 用于本地轻量混淆的盐值
 const OBFUSCATE_KEY = 'AiPiBox_Secure_Salt_v1';
 
 /**
- * 基础混淆加密
- * 用于防止在 localStorage 中以明文形式存储敏感信息
- * 注意：本方法仅防窥视，不应作为强加密手段
+ * 基础字符混淆
+ * @param {string} text - 原始文本
+ * @returns {string} 混淆后的十六进制字符串
  */
 const obfuscate = (text) => {
   try {
@@ -28,8 +31,9 @@ const obfuscate = (text) => {
 };
 
 /**
- * 混淆解密
- * 还原经过 obfuscate 方法处理过的字符串
+ * 还原混淆字符
+ * @param {string} hex - 混淆后的字符串
+ * @returns {string} 还原后的文本
  */
 const deobfuscate = (hex) => {
   try {
@@ -46,7 +50,7 @@ const deobfuscate = (hex) => {
 };
 
 /**
- * 登录保持时长映射（毫秒）
+ * 登录保持时长配置 (毫秒)
  */
 export const PERSISTENCE_OPTIONS = {
   'none': 0,
@@ -56,20 +60,14 @@ export const PERSISTENCE_OPTIONS = {
   '30d': 30 * 24 * 60 * 60 * 1000
 };
 
-/**
- * 认证状态 Store
- * 维护全局登录状态、加密会话与持久化策略
- */
 export const useAuthStore = create((set, get) => ({
-  // 状态属性
-  isAuthenticated: false,   // 是否已通过身份验证
-  isInitialized: false,     // 是否已初始化（即是否设置了主密码）
-  sessionPassword: '',      // 会话期明文密码（仅存于内存，供后续业务加密操作使用）
-  persistenceMode: 'none',  // 登录保持模式：none | 1d | 5d | 10d | 30d
+  isAuthenticated: false,
+  isInitialized: false,
+  sessionPassword: '',
+  persistenceMode: 'none',
   
   /**
-   * 初始化检查
-   * 验证主密码设置状态并尝试从本地存储恢复活跃会话
+   * 检查应用初始化状态及尝试自动登录
    */
   checkInit: async () => {
     try {
@@ -82,7 +80,6 @@ export const useAuthStore = create((set, get) => ({
           if (persisted) {
             const { p: encodedPass, e: expiry, m: mode } = JSON.parse(persisted);
             
-            // 执行自动登录：未过期且密码散列匹配
             if (expiry > Date.now()) {
               const password = deobfuscate(encodedPass);
               const inputHash = await hashPassword(password);
@@ -113,12 +110,11 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * 初始化应用主密码
-   * @param {string} password 用户设置的明文密码
+   * 设置初始主密码
+   * @param {string} password - 原始明文密码
    */
   setupPassword: async (password) => {
     const hash = await hashPassword(password);
-    // 持久化存储哈希值，永不存储明文
     await db.settings.put({ key: 'passwordHash', value: hash });
     localStorage.removeItem(STORAGE_KEY);
     set({ 
@@ -130,9 +126,9 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * 用户登录验证
-   * @param {string} password 待验证的明文密码
-   * @returns {Promise<boolean>} 验证通过返回 true
+   * 执行登录验证
+   * @param {string} password - 待验证明文密码
+   * @returns {Promise<boolean>} 是否登录成功
    */
   login: async (password) => {
     const passwordHash = await db.settings.get('passwordHash');
@@ -145,8 +141,8 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * 配置或切换登录保持模式
-   * @param {string} mode 目标持久化模式
+   * 设置登录保持策略
+   * @param {string} mode - 持久化模式标识
    */
   setPersistence: (mode) => {
     const { sessionPassword, isAuthenticated } = get();
@@ -174,8 +170,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * 安全登出
-   * 清除会话密码并注销持久化凭据
+   * 登出并清除会话凭据
    */
   logout: () => {
     localStorage.removeItem(STORAGE_KEY);
@@ -183,13 +178,11 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * 主密码强度校验
-   * 标准：≥8位，需包含大小写、数字及特殊符号
-   * @param {string} password 待校验的明文
-   * @returns {boolean}
+   * 校验密码强度
+   * @param {string} password - 待校验密码
+   * @returns {boolean} 是否符合复杂度要求
    */
   validatePassword: (password) => {
-    // 允许任何标准特殊字符，不仅限于之前的有限集合
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     return regex.test(password);
   }

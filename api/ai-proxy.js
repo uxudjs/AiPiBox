@@ -1,12 +1,13 @@
 /**
- * 云端 AI 代理 API (Serverless Function)
- * 代理 AI 服务请求以确保连接稳定性，支持 Vercel 和 Netlify 部署
+ * 云端 AI 代理接口 (Serverless Function)
+ * 转发客户端 AI 服务请求，提供安全校验、日志记录、SSE 流式响应透传及 SSRF 防护。
+ * 兼容 Vercel 和 Netlify 部署环境。
  */
 
 import axios from 'axios';
 
 /**
- * 允许代理的域名白名单，防止 SSRF 攻击
+ * 允许转发的目标域名白名单
  */
 const ALLOWED_HOSTS = [
   'api.openai.com',
@@ -33,7 +34,11 @@ const ALLOWED_HOSTS = [
 ];
 
 /**
- * 敏感信息脱敏工具 (Headers & URLs)
+ * 敏感信息脱敏处理器
+ * 对日志输出中的 API Key 和 URL 参数进行屏蔽处理。
+ * @param {any} info - 待处理的数据
+ * @param {string} [type='header'] - 处理类型 (header|url)
+ * @returns {any} 脱敏后的数据
  */
 function maskSensitiveInfo(info, type = 'header') {
   if (type === 'header') {
@@ -66,11 +71,11 @@ function maskSensitiveInfo(info, type = 'header') {
 }
 
 /**
- * API 处理入口函数
- * 处理客户端发送的 AI 请求转发
+ * API 请求处理器
+ * @param {Request} req - HTTP 请求对象
+ * @param {Response} res - HTTP 响应对象
  */
 export default async function handler(req, res) {
-  // 限制仅支持 POST 请求
   if (req.method !== 'POST') {
     return res.status(405).json({ 
       error: 'Method Not Allowed',
@@ -84,7 +89,6 @@ export default async function handler(req, res) {
   try {
     const { url, method = 'POST', headers = {}, data, stream = false } = req.body;
 
-    // 1. 校验必填参数
     if (!url) {
       return res.status(400).json({ 
         error: 'Bad Request',
@@ -92,7 +96,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. SSRF 安全校验：验证域名白名单
     try {
       const targetHost = new URL(url).hostname;
       const isAllowed = ALLOWED_HOSTS.some(allowed => 
@@ -112,11 +115,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid target URL' });
     }
 
-    // 3. 记录请求日志（脱敏处理）
     console.log(`[${new Date().toISOString()}] [${requestId}] ${method} ${maskSensitiveInfo(url, 'url')}`);
     console.log(`[${requestId}] Stream: ${stream}, Headers: ${JSON.stringify(maskSensitiveInfo(headers, 'header'))}`);
 
-    // 4. 封装 Axios 请求配置
     const config = {
       url,
       method: method || 'POST',
@@ -133,7 +134,6 @@ export default async function handler(req, res) {
       config.data = data;
     }
 
-    // 场景 A: 处理 SSE 流式响应
     if (stream) {
       config.responseType = 'stream';
       config.headers['Accept'] = 'text/event-stream';
@@ -176,7 +176,6 @@ export default async function handler(req, res) {
       return;
     }
 
-    // 场景 B: 处理常规 JSON 响应
     const response = await axios(config);
     const duration = Date.now() - startTime;
 

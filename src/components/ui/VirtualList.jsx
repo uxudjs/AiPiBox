@@ -1,9 +1,20 @@
+/**
+ * 高性能虚拟列表组件 (Virtual Windowing)
+ * 采用按需渲染策略，仅在内存中挂载可视区域内的 DOM 节点，适用于海量数据的长列表展示。
+ */
+
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 
 /**
- * 高性能虚拟列表组件 (Virtual Windowing)
- * 采用按需渲染策略，仅在内存中挂载可视区域内的 DOM 节点，适用于超长模型列表或日志展示
+ * 虚拟化列表组件
+ * @param {object} props - 组件属性
+ * @param {Array} props.items - 数据源数组
+ * @param {Function} props.renderItem - 单项渲染函数
+ * @param {number} props.itemHeight - 每项的固定高度（像素）
+ * @param {number} props.containerHeight - 可视区域高度
+ * @param {number} [props.overscan=5] - 预渲染的项数（缓冲区）
+ * @param {HTMLElement} [props.scrollParent] - 外部滚动容器（可选）
  */
 const VirtualList = ({ 
   items = [], 
@@ -14,7 +25,7 @@ const VirtualList = ({
   className = '',
   emptyMessage = null,
   preserveScrollPosition = false,
-  scrollParent = null // 外部滚动容器引用
+  scrollParent = null 
 }) => {
   const containerRef = useRef(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -23,18 +34,18 @@ const VirtualList = ({
   const scrollTimeoutRef = useRef(null);
   const isMounted = useRef(false);
 
-  // 监听外部滚动容器
+  /**
+   * 监听外部滚动父容器的状态同步
+   */
   useEffect(() => {
     if (!scrollParent || !containerRef.current) return;
 
     const updateFromParent = () => {
       if (!containerRef.current || !scrollParent) return;
       
-      // 获取列表相对于滚动容器顶部的距离
       const listOffsetTop = containerRef.current.offsetTop;
       const parentScrollTop = scrollParent.scrollTop;
       
-      // 计算相对于列表顶部的滚动位置
       requestAnimationFrame(() => {
         setScrollTop(Math.max(0, parentScrollTop - listOffsetTop));
         setParentHeight(scrollParent.clientHeight);
@@ -47,11 +58,10 @@ const VirtualList = ({
 
     scrollParent.addEventListener('scroll', updateFromParent);
     
-    // 同时也监听父容器的大小变化
     const resizeObserver = new ResizeObserver(updateFromParent);
     resizeObserver.observe(scrollParent);
 
-    updateFromParent(); // 初始对齐
+    updateFromParent();
     
     return () => {
       scrollParent.removeEventListener('scroll', updateFromParent);
@@ -59,34 +69,31 @@ const VirtualList = ({
     };
   }, [scrollParent, isScrolling]);
 
-  // 计算可视区域内应该渲染的项
+  /**
+   * 计算当前可视区域应当展示的元素及其偏移位置
+   */
   const { visibleItems, offsetY, start } = useMemo(() => {
     const totalItems = items.length;
     if (totalItems === 0) return { visibleItems: [], offsetY: 0, start: 0 };
 
-    // 使用外部父容器高度或指定的固定高度
     const currentContainerHeight = scrollParent ? parentHeight : containerHeight;
 
-    // 计算可视区域的起始和结束索引
     const startIndex = Math.floor(scrollTop / itemHeight);
     const endIndex = Math.ceil((scrollTop + currentContainerHeight) / itemHeight);
 
-    // 添加 overscan（上下多渲染几项，避免滚动时出现空白）
     const start = Math.max(0, startIndex - overscan);
     const end = Math.min(totalItems, endIndex + overscan);
 
-    // 计算偏移量（让虚拟项出现在正确的位置）
     const offsetY = start * itemHeight;
     const visibleItems = items.slice(start, end);
 
     return { visibleItems, offsetY, start };
-  }, [items, scrollTop, itemHeight, containerHeight, overscan]);
+  }, [items, scrollTop, itemHeight, containerHeight, overscan, scrollParent, parentHeight]);
 
   const totalHeight = items.length * itemHeight;
 
   /**
-   * 滚动调度优化
-   * 使用 requestAnimationFrame 降频同步滚动偏移量，避免阻塞 UI 线程
+   * 内部滚动事件处理，包含平滑更新与性能降频
    */
   const handleScroll = useCallback((e) => {
     const target = e.target;
@@ -94,10 +101,8 @@ const VirtualList = ({
       setScrollTop(target.scrollTop);
     });
     
-    // 标记正在滚动状态
     if (!isScrolling) setIsScrolling(true);
     
-    // 延迟重置滚动状态（用于优化渲染）
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
@@ -106,7 +111,6 @@ const VirtualList = ({
     }, 150);
   }, [isScrolling]);
 
-  // 清理定时器
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -117,7 +121,6 @@ const VirtualList = ({
     };
   }, []);
 
-  // 重置滚动位置（当 items 变化时，除非 preserveScrollPosition 为 true）
   useEffect(() => {
     if (!isMounted.current) return;
     
@@ -127,7 +130,6 @@ const VirtualList = ({
     }
   }, [items.length, preserveScrollPosition]);
 
-  // 空列表处理
   if (items.length === 0) {
     return (
       <div 
@@ -157,19 +159,15 @@ const VirtualList = ({
       style={!scrollParent ? { height: containerHeight } : {}}
       onScroll={!scrollParent ? handleScroll : undefined}
     >
-      {/* 外部容器：撑开总高度 */}
       <div style={{ height: totalHeight, position: 'relative' }}>
-        {/* 内部容器：包含可见项，通过 transform 定位 */}
         <div 
           style={{ 
             transform: `translateY(${offsetY}px)`,
-            // 在滚动时使用 will-change 优化 GPU 合成，停止滚动后移除以节省内存
             willChange: isScrolling ? 'transform' : 'auto' 
           }}
         >
           {visibleItems.map((item, index) => {
             const actualIndex = start + index;
-            // 使用 memoized wrapper 或确保 renderItem 是廉价的
             return (
               <div 
                 key={item.key || item.id || actualIndex}

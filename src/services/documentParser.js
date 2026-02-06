@@ -1,15 +1,15 @@
 /**
  * 本地文档解析服务
- * 负责从多种文件格式（PDF, Word, PPT, Excel, Text）中提取可读文本
- * 实现逻辑完全基于浏览器端，保护隐私且无需后端 OCR 资源
+ * 负责从多种文件格式（PDF, Word, PPT, Excel, Text）中提取可读文本。
+ * 实现逻辑完全基于浏览器端，保护隐私且无需后端 OCR 资源。
  */
+
 import { logger } from './logger';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useI18nStore } from '../i18n';
 
 /**
  * PDF Worker CDN 容灾列表
- * 确保在本地 Worker 加载受阻时仍能正常解析 PDF
  */
 const PDF_WORKER_CDNS = [
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
@@ -18,7 +18,6 @@ const PDF_WORKER_CDNS = [
   'https://s4.zstatic.net/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];
 
-// 单个文件最大解析限制 (20MB)，避免大文件导致浏览器卡顿
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 /**
@@ -74,39 +73,35 @@ export const SUPPORTED_TYPES = {
 
 /**
  * 初始化 PDF 解析运行时
- * 优先采用 Vite 资源路径，其次自动轮询 CDN 回退
  */
 const initPdfWorker = async () => {
   if (pdfjsLib.GlobalWorkerOptions.workerSrc) return;
 
   try {
-    // 尝试使用 Vite 推荐的资源导入方式加载本地 worker
-    // 优先尝试本地 node_modules 中的 worker 文件
     pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
       'pdfjs-dist/build/pdf.worker.min.js',
       import.meta.url
     ).href;
   } catch (e) {
     logger.warn('DocumentParser', 'Failed to load local PDF worker, setting initial fallback', e);
-    // 设置第一个 CDN 作为默认回退
     pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_CDNS[0];
   }
 };
 
 /**
  * 文件解析预校验
+ * @param {File} file - 待校验的文件对象
+ * @returns {string} 文件类型标识
  */
 export function validateFile(file) {
   logger.info('DocumentParser', 'Validating file:', file.name);
   
   const t = useI18nStore.getState().t;
   
-  // 检查文件大小
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(t('document.fileSizeExceeded', { maxSize: (MAX_FILE_SIZE / 1024 / 1024).toFixed(0) }));
   }
   
-  // 检查文件类型
   const fileType = getFileType(file);
   if (!fileType) {
     throw new Error(t('document.unsupportedFileType', { fileName: file.name }));
@@ -117,20 +112,19 @@ export function validateFile(file) {
 
 /**
  * 推断文件类型标识
- * 结合文件扩展名与 MIME 类型进行二次确认
+ * @param {File|string} file - 文件对象或文件名
+ * @returns {string|null} 类型标识
  */
 export function getFileType(file) {
   const fileName = typeof file === 'string' ? file : file.name;
   const fileMimeType = typeof file === 'object' ? file.type : '';
   
   for (const [type, config] of Object.entries(SUPPORTED_TYPES)) {
-    // 优先检查扩展名，因为MIME类型可能不准确
     const ext = fileName.toLowerCase().match(/\.[^.]+$/)?.[0];
     if (ext && config.extensions.includes(ext)) {
       return type;
     }
     
-    // 其次检查MIME类型
     if (fileMimeType && config.mimeTypes.includes(fileMimeType)) {
       return type;
     }
@@ -140,7 +134,8 @@ export function getFileType(file) {
 
 /**
  * PDF 文件解析逻辑
- * 实现多层级错误重试与文本层提取
+ * @param {File} file - PDF 文件
+ * @returns {Promise<object>} 解析结果
  */
 async function parsePDF(file) {
   await initPdfWorker();
@@ -150,7 +145,6 @@ async function parsePDF(file) {
   let pdf = null;
   let lastError = null;
   
-  // 第一次尝试：使用当前配置的 workerSrc (本地或首选CDN)
   try {
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     pdf = await loadingTask.promise;
@@ -158,20 +152,17 @@ async function parsePDF(file) {
     logger.warn('DocumentParser', 'PDF parsing failed with current worker, trying fallback CDNs', error);
     lastError = error;
     
-    // 如果失败，轮询所有 CDN 尝试恢复
     for (const cdnUrl of PDF_WORKER_CDNS) {
-      // 如果当前 workerSrc 已经是这个 CDN，跳过以避免重复尝试
       if (pdfjsLib.GlobalWorkerOptions.workerSrc === cdnUrl) continue;
       
       try {
         logger.info('DocumentParser', 'Switching PDF worker to:', cdnUrl);
         pdfjsLib.GlobalWorkerOptions.workerSrc = cdnUrl;
         
-        // 重新尝试加载文档
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         pdf = await loadingTask.promise;
         
-        lastError = null; // 成功恢复
+        lastError = null;
         break; 
       } catch (retryError) {
         logger.warn('DocumentParser', `PDF parsing failed with CDN ${cdnUrl}`, retryError);
@@ -208,6 +199,8 @@ async function parsePDF(file) {
 
 /**
  * Word (.docx) 文件解析逻辑
+ * @param {File} file - Word 文件
+ * @returns {Promise<object>} 解析结果
  */
 async function parseWord(file) {
   const { default: mammoth } = await import('mammoth');
@@ -215,7 +208,7 @@ async function parseWord(file) {
   const result = await mammoth.extractRawText({ arrayBuffer });
   
   return {
-    text: result.value, // 提取的原始文本
+    text: result.value,
     metadata: {
       fileName: file.name,
       fileSize: file.size,
@@ -228,7 +221,8 @@ async function parseWord(file) {
 
 /**
  * Excel (.xlsx, .xls) 文件解析逻辑
- * 将各 sheet 转换为 CSV 风格的纯文本
+ * @param {File} file - Excel 文件
+ * @returns {Promise<object>} 解析结果
  */
 async function parseExcel(file) {
   const XLSX = await import('xlsx');
@@ -239,7 +233,6 @@ async function parseExcel(file) {
   
   workbook.SheetNames.forEach(sheetName => {
     const worksheet = workbook.Sheets[sheetName];
-    // 将工作表转换为CSV格式的文本
     const txt = XLSX.utils.sheet_to_csv(worksheet);
     if (txt.trim()) {
       fullText += `--- Sheet: ${sheetName} ---\n${txt}\n\n`;
@@ -260,7 +253,8 @@ async function parseExcel(file) {
 
 /**
  * PowerPoint (.pptx) 文件解析逻辑
- * 通过解压并解析 OpenXML 结构提取每页幻灯片的文字
+ * @param {File} file - PPT 文件
+ * @returns {Promise<object>} 解析结果
  */
 async function parsePowerPoint(file) {
   const { default: JSZip } = await import('jszip');
@@ -269,12 +263,10 @@ async function parsePowerPoint(file) {
   let fullText = '';
   let slideCount = 0;
   
-  // 查找所有幻灯片文件
   const slideFiles = Object.keys(content.files).filter(fileName => 
     fileName.match(/ppt\/slides\/slide\d+\.xml/)
   );
   
-  // 按顺序排序 (slide1.xml, slide2.xml ...)
   slideFiles.sort((a, b) => {
     const numA = parseInt(a.match(/slide(\d+)\.xml/)[1]);
     const numB = parseInt(b.match(/slide(\d+)\.xml/)[1]);
@@ -285,7 +277,6 @@ async function parsePowerPoint(file) {
     slideCount++;
     const xmlContent = await content.files[fileName].async('text');
     
-    // 使用简单的正则提取文本 (a:t 标签通常包含文本)
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
     const textNodes = xmlDoc.getElementsByTagName("a:t");
@@ -301,7 +292,6 @@ async function parsePowerPoint(file) {
   }
 
   if (fullText.trim() === '') {
-    // 处理旧版二进制格式
     if (file.name.endsWith('.ppt')) {
       const t = useI18nStore.getState().t;
       throw new Error(t('document.pptxOnly'));
@@ -323,6 +313,8 @@ async function parsePowerPoint(file) {
 
 /**
  * 文本类文件解析（Markdown/TXT）
+ * @param {File} file - 文本文件
+ * @returns {Promise<object>} 解析结果
  */
 async function parseText(file) {
   const t = useI18nStore.getState().t;
@@ -347,7 +339,9 @@ async function parseText(file) {
 
 /**
  * 文档解析调度中心
- * 根据文件类型自动分配相应的解析器
+ * @param {File} file - 待解析的文件
+ * @param {Function} onProgress - 进度回调函数
+ * @returns {Promise<object>} 解析后的结构化数据
  */
 export async function parseDocument(file, onProgress = null) {
   logger.info('DocumentParser', 'Start parsing document:', file.name);
@@ -400,14 +394,15 @@ export async function parseDocument(file, onProgress = null) {
 }
 
 /**
- * 将解析出的结构化数据序列化
- * 生成包含文件元信息的提示词上下文，并自动截断超长文本
+ * 将解析出的数据序列化为 AI 可读文本
+ * @param {object} parsedDoc - 解析后的文档对象
+ * @param {number} maxLength - 最大文本长度限制
+ * @returns {string} 序列化后的文本
  */
 export function formatDocumentForAI(parsedDoc, maxLength = 32000) {
   const t = useI18nStore.getState().t;
   let content = parsedDoc.text || '';
   
-  // 文本预清洗：统一换行符并折叠连续空白
   content = content.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n');
   
   if (content.length > maxLength) {

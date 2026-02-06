@@ -1,3 +1,8 @@
+/**
+ * Mermaid 流程图渲染组件
+ * 支持流程图的实时渲染、缩放、拖拽平移、全屏查看、源码查看及导出为 PNG/SVG 功能。
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 import { 
@@ -6,20 +11,24 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 
-// 初始化 Mermaid (如果尚未初始化)
 mermaid.initialize({
   startOnLoad: false,
   theme: 'default',
   securityLevel: 'loose',
-  // 抑制 Mermaid 默认的错误渲染行为，改由应用逻辑处理
   suppressErrorRendering: true,
 });
 
+/**
+ * Mermaid 渲染器组件
+ * @param {object} props - 组件属性
+ * @param {string} props.content - Mermaid 语法的图表描述文本
+ * @param {boolean} [props.isGenerating=false] - 是否处于流式生成中
+ */
 const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
   const { t } = useTranslation();
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
-  const [scale, setScale] = useState(2); // 默认 200%
+  const [scale, setScale] = useState(2);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
@@ -31,32 +40,21 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
   const chartRef = useRef(null);
 
   /**
-   * 清理并优化 Mermaid 图表内容
-   * 自动修复常见的语法错误，增强兼容性
+   * 自动修复 Mermaid 语法中常见的 AI 生成错误
+   * @param {string} text - 原始文本
+   * @returns {string} 修复后的文本
    */
   const cleanMermaidContent = (text) => {
     let cleaned = text;
 
-    // 1. 自动修复 subgraph 标题语法
-    // 许多 AI 生成的代码中 subgraph 标题包含空格或 Emoji 却未加引号，这会导致解析失败
-    // 将 subgraph Title 转换为 subgraph "Title"
     cleaned = cleaned.replace(/subgraph\s+([^\n"\[]+)(?=\n|$)/g, (match, title) => {
         const trimmedTitle = title.trim();
-        // 如果标题已经包含特殊字符（非字母数字下划线中文）且没加引号，则包裹引号
         if (trimmedTitle && !trimmedTitle.startsWith('"') && /[^a-zA-Z0-9_\u4e00-\u9fa5]/.test(trimmedTitle)) {
             return `subgraph "${trimmedTitle}"`;
         }
         return match;
     });
 
-    // 2. 优化样式语法兼容性
-    // 修正：不再将 color 强制替换为 stroke，因为 color 控制文字颜色，stroke 控制边框颜色。
-    // 如果需要同时设置边框，建议在 Mermaid 代码中显式指定。
-
-    // 3. 移除可能导致严重解析错误的极其罕见的特殊字符，但保留绝大多数 Emoji
-    // 之前是暴力删除所有 Emoji，现在改为保留，因为引号化已经解决了大部分问题
-    
-    // 4. 清理多余的空行
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
     
     return cleaned;
@@ -69,23 +67,20 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
       try {
         const cleaned = cleanMermaidContent(content);
         
-        // 检测主题
         const isDark = document.documentElement.classList.contains('dark');
         mermaid.initialize({
           startOnLoad: false,
           theme: isDark ? 'dark' : 'default',
           securityLevel: 'loose',
-          suppressErrorRendering: true, // 再次确保抑制原生报错
+          suppressErrorRendering: true,
         });
 
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         
-        // 使用 try-catch 包装渲染过程
         const { svg } = await mermaid.render(id, cleaned);
         setSvg(svg);
         setError('');
         
-        // 渲染完成后重置为 200%
         setScale(2);
         setPan({ x: 0, y: 0 });
       } catch (err) {
@@ -97,11 +92,9 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     renderChart();
   }, [content, isGenerating]);
 
-  // 缩放处理
   const handleZoomIn = () => setScale(s => Math.min(s + 0.2, 5));
   const handleZoomOut = () => setScale(s => Math.max(s - 0.2, 0.5));
 
-  // 拖拽处理 (鼠标)
   const handleMouseDown = (e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -120,7 +113,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     setIsDragging(false);
   };
 
-  // 触控处理
   const handleTouchStart = (e) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
@@ -136,7 +128,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     const dy = touch.clientY - lastMousePos.y;
     setPan(p => ({ x: p.x + dx, y: p.y + dy }));
     setLastMousePos({ x: touch.clientX, y: touch.clientY });
-    // 阻止页面滚动
     if (e.cancelable) e.preventDefault();
   };
 
@@ -144,7 +135,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     setIsDragging(false);
   };
 
-  // 复制SVG代码
   const handleCopyCode = () => {
     navigator.clipboard.writeText(content).then(() => {
       setCopied(true);
@@ -152,7 +142,10 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     });
   };
 
-  // 下载图片
+  /**
+   * 将图表导出为指定格式文件
+   * @param {string} format - 格式标识 (svg | png)
+   */
   const handleDownload = async (format = 'svg') => {
     if (!svg) return;
 
@@ -167,22 +160,19 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else {
-      // Convert SVG to PNG
       const img = new Image();
       const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(svgBlob);
       
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const scale = 2; // High resolution
+        const scale = 2;
         
-        // Find the SVG element within chartRef
         const svgElement = chartRef.current.querySelector('svg');
         let width = 0;
         let height = 0;
 
         if (svgElement) {
-            // Try getBBox if available
             try {
                 const bbox = svgElement.getBBox();
                 width = bbox.width;
@@ -191,7 +181,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
                 console.warn('Mermaid getBBox failed:', e);
             }
             
-            // Fallback to viewBox
             if (!width || !height) {
                 const viewBox = svgElement.getAttribute('viewBox');
                 if (viewBox) {
@@ -204,7 +193,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
             }
         }
         
-        // Fallback to image natural dimensions or defaults
         if (!width || !height) {
             width = img.width || 800;
             height = img.height || 600;
@@ -215,10 +203,9 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
         
         const ctx = canvas.getContext('2d');
         ctx.scale(scale, scale);
-        // Fill white background for PNG
         ctx.fillStyle = '#ffffff';
         if (document.documentElement.classList.contains('dark')) {
-           ctx.fillStyle = '#1e1e1e'; // Dark background for dark mode
+           ctx.fillStyle = '#1e1e1e';
         }
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
@@ -236,10 +223,8 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     }
   };
 
-  // 切换全屏
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
-    // 全屏切换时也重置为 200%
     setScale(2);
     setPan({ x: 0, y: 0 });
   };
@@ -294,7 +279,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
 
   return (
     <div className={containerClass}>
-      {/* Toolbar */}
       <div className="flex items-center justify-between p-2 border-b border-border bg-muted/30">
         <div className="flex items-center gap-1">
           <button onClick={handleZoomOut} className="p-1.5 rounded hover:bg-accent text-foreground" title={t('mermaid.zoomOut')}>
@@ -327,7 +311,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
         </div>
       </div>
 
-      {/* Main Content Area */}
       <div 
         ref={containerRef}
         className={`overflow-hidden relative ${isFullscreen ? 'flex-1' : 'h-[400px]'}`}
@@ -359,13 +342,11 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
                 style={chartStyle}
                 className="select-none"
              />
-             {/* Invisible element to measure SVG dimensions if needed */}
              <div ref={chartRef} style={{ visibility: 'hidden', position: 'absolute', top: '-9999px', left: '-9999px' }} dangerouslySetInnerHTML={{ __html: svg }} />
           </div>
         )}
       </div>
       
-      {/* Help Tip */}
       <div className="px-3 py-1 bg-muted/30 text-[10px] text-muted-foreground border-t border-border flex justify-between">
          <span>{t('mermaid.dragHint') || 'Drag to pan, Scroll to zoom'}</span>
       </div>

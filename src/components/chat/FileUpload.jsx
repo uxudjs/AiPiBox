@@ -1,5 +1,10 @@
+/**
+ * 文档上传组件
+ * 支持点击、拖拽上传多种格式文件（PDF, Word, PPT, Excel, Text 等），并显示解析进度。
+ */
+
 import React, { useRef, useState } from 'react';
-import { Upload, X, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useFileStore } from '../../store/useFileStore';
 import { SUPPORTED_TYPES } from '../../services/documentParser';
@@ -7,29 +12,26 @@ import { logger } from '../../services/logger';
 import { useTranslation } from '../../i18n';
 
 /**
- * 文件上传组件
- * 支持点击上传和拖拽上传文档，显示上传进度
- * @param {Object} props
- * @param {string} props.conversationId - 当前对话ID
- * @param {Function} props.onFileUploaded - 文件上传完成回调
+ * 文件上传界面组件
+ * @param {object} props - 组件属性
+ * @param {string} props.conversationId - 所属对话 ID
+ * @param {Function} [props.onFileUploaded] - 文件上传完成后的回调
  */
 const FileUpload = ({ conversationId, onFileUploaded }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
-  const { addFile, uploadedFiles, removeFile, getFilesByConversation } = useFileStore();
+  const { addFile, removeFile, getFilesByConversation } = useFileStore();
   
-  // 获取当前对话的文件列表
   const currentFiles = getFilesByConversation(conversationId);
   
   /**
-   * 处理文件选择
-   * 支持多文件上传
+   * 处理文件输入变化并启动解析流程
+   * @param {FileList} files - 待处理的文件集合
    */
   const handleFileSelect = async (files) => {
     if (!files || files.length === 0) return;
     
-    // [稳定性优化] 设置硬性文件大小限制 (20MB)
     const MAX_FILE_SIZE = 20 * 1024 * 1024;
     
     for (const file of Array.from(files)) {
@@ -46,26 +48,34 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
     }
   };
   
-  // 点击上传按钮
+  /**
+   * 触发隐藏的文件输入框
+   */
   const handleClick = () => {
     fileInputRef.current?.click();
   };
   
-  // 拖拽进入时显示高亮效果
+  /**
+   * 拖拽悬停处理
+   */
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   };
   
-  // 拖拽离开时移除高亮
+  /**
+   * 拖拽离开处理
+   */
   const handleDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
   
-  // 放下文件时处理上传
+  /**
+   * 文件投放处理
+   */
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -75,7 +85,11 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
     handleFileSelect(files);
   };
   
-  // 获取文件图标
+  /**
+   * 获取文件对应的类型图标
+   * @param {File} file - 文件对象
+   * @returns {string} 图标或表情
+   */
   const getFileIcon = (file) => {
     for (const [type, config] of Object.entries(SUPPORTED_TYPES)) {
       if (config.mimeTypes.includes(file.type)) {
@@ -85,7 +99,11 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
     return '📎';
   };
   
-  // 获取状态图标
+  /**
+   * 根据解析状态获取图标组件
+   * @param {string} status - 当前状态标识
+   * @returns {ReactNode} 图标组件
+   */
   const getStatusIcon = (status) => {
     switch (status) {
       case 'uploading':
@@ -102,7 +120,6 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
   
   return (
     <div className="space-y-2">
-      {/* 上传区域 */}
       <div
         className={cn(
           "border-2 border-dashed rounded-xl p-4 transition-all cursor-pointer",
@@ -139,7 +156,6 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
         </div>
       </div>
       
-      {/* 已上传文件列表 */}
       {currentFiles.length > 0 && (
         <div className="space-y-2">
           {currentFiles.map((file) => (
@@ -147,10 +163,8 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
               key={file.id}
               className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/20 transition-colors"
             >
-              {/* 文件图标 */}
               <div className="text-2xl">{getFileIcon(file)}</div>
               
-              {/* 文件信息 */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium truncate">{file.name}</p>
@@ -170,7 +184,6 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
                   )}
                 </div>
                 
-                {/* 进度条 */}
                 {(file.status === 'uploading' || file.status === 'parsing') && (
                   <div className="mt-2 w-full h-1 bg-accent rounded-full overflow-hidden">
                     <div
@@ -181,7 +194,6 @@ const FileUpload = ({ conversationId, onFileUploaded }) => {
                 )}
               </div>
               
-              {/* 删除按钮 */}
               <button
                 onClick={() => removeFile(file.id)}
                 className="p-1 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"

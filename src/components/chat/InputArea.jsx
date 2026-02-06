@@ -1,3 +1,9 @@
+/**
+ * 聊天输入区域组件
+ * 包含多行输入框、附件上传、相机拍摄、模型选择及多种辅助工具栏。
+ * 负责协调消息发送流程与文件预处理。
+ */
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useChatStore } from '../../store/useChatStore';
@@ -22,11 +28,9 @@ import {
   X 
 } from 'lucide-react';
 
-// Hooks
 import { useFileHandler } from './hooks/useFileHandler';
 import { useMessageSender } from './hooks/useMessageSender';
 
-// Components
 import FileUpload from './FileUpload';
 import ConversationSettings from './ConversationSettings';
 import KnowledgeBaseSelector from './KnowledgeBaseSelector';
@@ -37,7 +41,7 @@ import InputToolbar from './InputToolbar';
 import ModelSelectorPopup from './ModelSelectorPopup';
 
 /**
- * 厂商颜色映射逻辑提取
+ * AI 提供商视觉风格映射
  */
 const PROVIDER_BRAND_COLORS = {
   'openai': { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400' },
@@ -49,6 +53,11 @@ const PROVIDER_BRAND_COLORS = {
   'openrouter': { bg: 'bg-violet-500/10', text: 'text-violet-600 dark:text-violet-400' }
 };
 
+/**
+ * 根据提供商 ID 获取配色方案
+ * @param {string} providerId - 提供商标识
+ * @returns {object} 包含背景与文本样式的对象
+ */
 const getProviderColors = (providerId) => {
   const id = String(providerId).toLowerCase();
   return PROVIDER_BRAND_COLORS[id] || { bg: 'bg-accent', text: 'text-muted-foreground' };
@@ -76,7 +85,6 @@ const InputArea = () => {
   const modelSearchInputRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // Stores
   const { 
     createNewConversation, setCurrentModel, setConversationGenerating,
     stopAIGeneration, getConversationSettings, compressConversation, applyCompression 
@@ -99,7 +107,6 @@ const InputArea = () => {
   const currentConversation = useLiveQuery(() => currentConversationId ? db.conversations.get(currentConversationId) : null, [currentConversationId]);
   const localSettings = currentConversation?.localSettings || null;
 
-  // Custom Hooks
   const {
     pendingImages, setPendingImages, uploadedFiles, isFilesReady, isDragging,
     handleFileSelect, handlePaste, handleDragOver, handleDragLeave, handleDrop,
@@ -112,7 +119,6 @@ const InputArea = () => {
     clearPendingImages, uploadedFiles, isFilesReady, localSettings
   });
 
-  // Init model
   useEffect(() => {
     if (!currentModel) {
       const defId = defaultModels.chat;
@@ -133,18 +139,15 @@ const InputArea = () => {
   useEffect(() => { if (showModelSelector) setTimeout(() => modelSearchInputRef.current?.focus(), 50); }, [showModelSelector]);
   useEffect(() => { if (currentView !== 'chat') { setShowModelSelector(false); setShowFileUpload(false); setShowConvSettings(false); setShowKBSelector(false); setShowCamera(false); setPreviewImage(null); } }, [currentView]);
 
-  // [同步优化] 监听全局同步状态变化，以触发按钮反馈
   const prevSyncStatusRef = useRef(cloudSync?.syncStatus);
   useEffect(() => {
     if (!cloudSync) return;
     
-    // 当状态从正在同步转为成功时
     if (prevSyncStatusRef.current === 'syncing' && cloudSync.syncStatus === 'success') {
       setIsSyncSuccess(true);
       const timer = setTimeout(() => setIsSyncSuccess(false), CHAT_CONFIG.SYNC_FEEDBACK_DURATION);
       return () => clearTimeout(timer);
     } 
-    // 当状态从正在同步转为错误时
     else if (prevSyncStatusRef.current === 'syncing' && cloudSync.syncStatus === 'error') {
       setIsSyncError(true);
       const timer = setTimeout(() => setIsSyncError(false), CHAT_CONFIG.SYNC_ERROR_DURATION);
@@ -155,8 +158,7 @@ const InputArea = () => {
   }, [cloudSync?.syncStatus]);
 
   /**
-   * 手动触发同步逻辑
-   * 优化：状态完全交给全局 store 管理，此处仅负责调用服务
+   * 触发手动数据同步
    */
   const handleManualSync = async () => {
     const { sessionPassword } = useAuthStore.getState();
@@ -166,10 +168,12 @@ const InputArea = () => {
       await syncService.syncWithConflictResolution(sessionPassword);
     } catch (error) {
       logger.error('InputArea', 'Manual sync failed', error);
-      // 错误已由 syncService 写入 store，useEffect 会捕捉并显示反馈
     }
   };
 
+  /**
+   * 执行对话内容压缩
+   */
   const handleManualCompress = async () => {
     if (!currentConversationId || currentConversationId === 'incognito' || isCompressing || currentIsAIGenerating) return;
     setIsCompressing(true);
@@ -265,7 +269,6 @@ const InputArea = () => {
         {showConvSettings && <div className="absolute bottom-full left-0 mb-4 w-full z-[10001] animate-in fade-in slide-in-from-bottom-4"><ConversationSettings inline={true} conversationId={currentConversationId} onClose={() => setShowConvSettings(false)} /></div>}
         {showModelSelector && <ModelSelectorPopup onClose={() => setShowModelSelector(false)} modelSearchQuery={modelSearchQuery} setModelSearchQuery={setModelSearchQuery} modelSearchInputRef={modelSearchInputRef} flatModelItems={flatModelItems} toggleProvider={toggleProvider} getProviderColors={getProviderColors} currentModel={currentModel} setCurrentModel={setCurrentModel} t={t} />}
 
-        {/* Top Independent Buttons */}
         <div className="flex items-center justify-end gap-2 mb-2 px-1">
           <button 
             onClick={() => { if (isMobileDevice() && nativeCameraRef.current) nativeCameraRef.current.click(); else setShowCamera(true); }} 

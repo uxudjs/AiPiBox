@@ -1,15 +1,25 @@
+/**
+ * 系统日志查看器组件
+ * 提供运行日志的实时监控、级别过滤（Error, Warn 等）、搜索、详情查看及导出导出功能。
+ * 使用虚拟滚动（VirtualList）优化大规模日志数据的展示。
+ */
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { logger } from '../../services/logger';
 import VirtualList from '../ui/VirtualList';
-import { Download, Trash2, Filter, AlertCircle, Info, Bug, AlertTriangle, CheckCircle, X, Copy } from 'lucide-react';
+import { Download, Trash2, AlertCircle, Info, Bug, AlertTriangle, X, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../i18n';
 
-// Helper functions defined outside components
+/**
+ * 根据日志级别获取对应的颜色样式
+ * @param {string} level - 日志级别
+ * @returns {string} Tailwind CSS 类名字符串
+ */
 const getLevelColor = (level) => {
   switch (level.toLowerCase()) {
     case 'error': return 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/50';
@@ -20,6 +30,11 @@ const getLevelColor = (level) => {
   }
 };
 
+/**
+ * 根据日志级别获取对应的图标组件
+ * @param {string} level - 日志级别
+ * @returns {ReactNode} 图标组件
+ */
 const getLevelIcon = (level) => {
   switch (level.toLowerCase()) {
     case 'error': return <AlertCircle className="w-3 h-3" />;
@@ -30,11 +45,17 @@ const getLevelIcon = (level) => {
   }
 };
 
-// 日志详情弹窗组件
+/**
+ * 日志详情弹窗组件
+ * 展示日志的完整 JSON 数据与堆栈信息。
+ */
 const LogDetailsModal = ({ log, onClose }) => {
   const { t } = useTranslation();
   if (!log) return null;
   
+  /**
+   * 复制日志 JSON 内容
+   */
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(log, null, 2));
   };
@@ -71,7 +92,6 @@ const LogDetailsModal = ({ log, onClose }) => {
         
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           <div className="space-y-4">
-            {/* 单行显示级别和模块 */}
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2 p-2.5 bg-muted/30 rounded-lg border border-border/50 flex-1">
                 <span className="text-muted-foreground flex-shrink-0">{t('settings.logs.level')}:</span>
@@ -110,7 +130,6 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
   const containerRef = useRef(null);
   const [listHeight, setListHeight] = useState(600);
   
-  // 动态测量列表高度
   useEffect(() => {
     if (!containerRef.current) return;
     
@@ -124,7 +143,6 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
     return () => observer.disconnect();
   }, []);
 
-  // Use Dexie's live query to watch logs
   const logs = useLiveQuery(
     () => db.system_logs.orderBy('timestamp').reverse().toArray(),
     []
@@ -136,17 +154,14 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
     return logs.filter(log => {
       const level = log.level.toUpperCase();
       
-      // 强制过滤掉 INFO 和 DEBUG 日志
       if (level === 'INFO' || level === 'DEBUG') {
         return false;
       }
 
-      // Level filter
       if (filterLevel !== 'ALL' && level !== filterLevel) {
         return false;
       }
       
-      // Search query (passed from parent)
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         return (
@@ -160,17 +175,22 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
     });
   }, [logs, filterLevel, searchQuery]);
 
+  /**
+   * 清空数据库存储的所有日志
+   */
   const handleClearLogs = async () => {
     if (confirm(t('settings.logs.clearConfirm'))) {
       await logger.clear();
     }
   };
 
+  /**
+   * 导出系统日志为文件
+   */
   const handleExportLogs = () => {
     logger.export();
   };
 
-  // 优化后的列表项渲染：固定高度，内容截断
   const renderLogItem = (log) => (
     <div 
       onClick={() => setSelectedLog(log)}
@@ -198,12 +218,9 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
-      {/* Log Details Modal Overlay */}
       {selectedLog && <LogDetailsModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
 
-      {/* Toolbar - Filters Left, Actions Right */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 border-b border-border shrink-0">
-        {/* Left: Filters */}
         <div className="flex items-center gap-1">
            {['ALL', 'ERROR', 'WARN'].map((level) => (
              <button
@@ -221,7 +238,6 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
            ))}
         </div>
 
-        {/* Right: Actions */}
         <div className="flex items-center gap-1">
           <button
             onClick={handleClearLogs}
@@ -240,13 +256,12 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
         </div>
       </div>
 
-      {/* Log List */}
       <div ref={containerRef} className="relative flex-1 min-h-0 overflow-hidden">
         <VirtualList
           items={filteredLogs}
           renderItem={renderLogItem}
-          itemHeight={60} // Fixed height matching the renderItem container
-          scrollParent={null} // 强制内部滚动以实现固定页脚
+          itemHeight={60}
+          scrollParent={null}
           containerHeight={listHeight} 
           className="custom-scrollbar"
           emptyMessage={
@@ -257,7 +272,6 @@ const SystemLogs = ({ searchQuery = '', scrollParent = null }) => {
         />
       </div>
       
-      {/* Footer / Status */}
       <div className="px-6 py-2 border-t border-border text-[11px] text-muted-foreground flex justify-between items-center shrink-0">
         <span className="font-mono">{t('settings.logs.totalRecords', { count: filteredLogs.length })}</span>
         {logs && logs.length > filteredLogs.length && (

@@ -1,11 +1,16 @@
-import React, { useRef } from 'react';
+/**
+ * 聊天工具栏组件
+ * 位于输入框下方，整合文件上传、搜索开关、推理开关、压缩、知识库选择及模型切换等功能。
+ */
+
+import React from 'react';
 import { Plus, Globe, Brain, Minimize2, BookOpen, Sliders, Image as ImageIcon, Sparkles, ChevronDown, Square, Loader2, ArrowUp } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../i18n';
 
 /**
- * InputToolbar - 底部工具栏组件
- * 包含附件上传、搜索、深度思考、压缩、知识库、对话设置及模型选择/发送按钮
+ * 输入区域工具栏组件
+ * @param {object} props - 组件属性
  */
 const InputToolbar = ({
   fileInputRef,
@@ -34,7 +39,6 @@ const InputToolbar = ({
 
   return (
     <div className="flex items-center justify-between px-2 pb-1 gap-2">
-      {/* 左侧功能按钮组 */}
       <div className="flex items-center gap-1 flex-1 overflow-x-auto min-w-0 scrollbar-hide">
         <input 
           type="file" 
@@ -108,7 +112,6 @@ const InputToolbar = ({
         </button>
       </div>
 
-      {/* 右侧：模型选择器与发送按钮 */}
       <div className="flex items-center gap-3 flex-shrink-0 ml-2">
         <button 
           onClick={() => setShowModelSelector(true)} 

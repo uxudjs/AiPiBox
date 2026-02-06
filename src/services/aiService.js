@@ -1,3 +1,9 @@
+/**
+ * AI 服务集成模块
+ * 负责处理多厂商 AI 模型（OpenAI, Anthropic, Google, DeepSeek 等）的对话、生图、搜索及模型列表获取。
+ * 提供流式响应解析、思考过程捕获、自动重试、代理转发及对话压缩等核心能力。
+ */
+
 import axios from 'axios';
 import { logger } from './logger';
 import { inferModelDisplayName, inferModelCapabilities } from '../utils/modelNameInference';
@@ -29,8 +35,11 @@ export const AI_PROVIDERS = {
 };
 
 /**
- * 自动请求重试机制
- * 针对 5xx 错误、网络超时及特定 API 限流进行指数退避重试
+ * 自动请求重试包装器
+ * @param {Function} fn - 待执行的异步函数
+ * @param {number} retries - 剩余重试次数
+ * @param {number} delay - 重试延迟毫秒数
+ * @returns {Promise<any>} 函数执行结果
  */
 async function withRetry(fn, retries = 3, delay = 1000) {
   try {
@@ -46,7 +55,7 @@ async function withRetry(fn, retries = 3, delay = 1000) {
     
     if (status) {
       if (status >= 400 && status < 500 && status !== 429) {
-      logger.warn('aiService', `Client error (${status}), no retry:`, error.message);
+        logger.warn('aiService', `Client error (${status}), no retry:`, error.message);
         throw error;
       }
     }
@@ -61,12 +70,11 @@ async function withRetry(fn, retries = 3, delay = 1000) {
       throw error;
     }
     
-    // 处理 429 (Too Many Requests) 的 Retry-After 标头
+    // 处理 429 限流后的 Retry-After 标头
     let nextDelay = delay;
     if (status === 429) {
       const retryAfter = error.response?.headers?.['retry-after'];
       if (retryAfter) {
-        // Retry-After 可以是秒数，也可以是 HTTP 日期
         const seconds = parseInt(retryAfter, 10);
         if (!isNaN(seconds)) {
           nextDelay = seconds * 1000;
@@ -88,13 +96,16 @@ async function withRetry(fn, retries = 3, delay = 1000) {
 
 /**
  * 规范化 API 基础地址
+ * @param {string} url - 原始 URL
+ * @returns {string} 处理后的 URL
  */
 const normalizeBaseUrl = (url) => {
   return (url || '').trim().replace(/\/+$/, '');
 };
 
 /**
- * 验证连接安全性，针对非本地环境的 HTTP 请求输出警告
+ * 验证连接安全性
+ * @param {string} url - 待验证的 URL
  */
 const checkSecureConnection = (url) => {
   if (url && url.startsWith('http:') && !url.includes('localhost') && !url.includes('127.0.0.1') && !url.includes('0.0.0.0')) {
@@ -104,25 +115,23 @@ const checkSecureConnection = (url) => {
 
 /**
  * 构建具体的 API 请求 URL
- * 处理不同厂商（如 Azure, Gemini, OpenAI）的路径拼装逻辑差异
+ * @param {string} baseUrl - 基础地址
+ * @param {string} endpoint - 终端路径
+ * @param {string} format - API 格式
+ * @param {string} provider - 服务商标识
+ * @returns {string} 完整请求路径
  */
 const buildTargetUrl = (baseUrl, endpoint, format, provider) => {
   let url = normalizeBaseUrl(baseUrl);
   checkSecureConnection(url);
   
-  // Azure 特殊处理
   if (provider === 'azure' || url.includes('openai.azure.com')) {
-    // 如果 URL 已经包含 endpoint，则直接返回（保持 query params 等）
-    // 注意：Azure 的 endpoint 可能包含 query parameters，所以不能简单去重
     if (url.includes('/chat/completions') || url.includes('/models')) {
       return url;
     }
-    // Azure 的 standard URL 构建比较复杂（包含 deployment ID），通常建议用户填入完整 URL
-    // 或者在 chatCompletion 中动态构建
     return url; 
   }
 
-  // Gemini/Google 格式
   if (format === 'gemini' || format === 'google') {
     if (!url.includes('/v1beta') && !url.includes('/v1')) {
       url += '/v1beta';
@@ -130,7 +139,6 @@ const buildTargetUrl = (baseUrl, endpoint, format, provider) => {
     return `${url}${endpoint}`;
   }
   
-  // Claude 格式
   if (format === 'claude') {
     if (!url.includes('/v1')) {
       url += '/v1';
@@ -138,19 +146,13 @@ const buildTargetUrl = (baseUrl, endpoint, format, provider) => {
     return `${url}${endpoint}`;
   }
   
-  // OpenAI 格式 (及其他兼容格式)
-  
-  // 1. 如果 URL 已经包含具体的 endpoint (如 /chat/completions)
-  // 此时忽略传入的 endpoint 参数，直接使用 URL，但如果是请求 models 而 URL 是 chat，则尝试替换
   if (url.includes('/chat/completions')) {
     if (endpoint === '/models') {
-       // 尝试从 chat URL 推导 models URL (不一定成功，但比直接追加好)
        return url.replace('/chat/completions', '/models');
     }
     return url;
   }
   
-  // 2. 检查是否已经包含 /v1 (或 v2, v3, beta 等版本号)
   const lastPart = url.split('?')[0].split('/').pop();
   const hasVersion = /^v\d+/.test(lastPart) || lastPart === 'beta' || url.includes('/v1/');
   
@@ -158,21 +160,15 @@ const buildTargetUrl = (baseUrl, endpoint, format, provider) => {
     return `${url}${endpoint}`;
   }
 
-  // 3. 特殊提供商处理
-  // Perplexity: 官方文档显示使用标准 OpenAI 兼容格式
-  // API 端点: https://api.perplexity.ai/chat/completions
-  // 不需要 /v1 前缀，直接使用完整路径
   if (url.includes('api.perplexity.ai')) {
     return `${url}${endpoint}`;
   }
 
-  // 4. 默认行为：添加 /v1
   return `${url}/v1${endpoint}`;
 };
 
 /**
  * 请求 Payload 转换器集合
- * 将统一的消息格式转换为各厂商（OpenAI/Claude/Gemini 等）要求的特定数据结构
  */
 const formatters = {
   [AI_PROVIDERS.OPENAI]: (messages, model, options) => {
@@ -289,16 +285,14 @@ const formatters = {
   }
 };
 
-// 别名映射
 formatters.claude = formatters[AI_PROVIDERS.ANTHROPIC];
 formatters.gemini = formatters[AI_PROVIDERS.GOOGLE];
 formatters.google = formatters[AI_PROVIDERS.GOOGLE];
 formatters.openai = formatters[AI_PROVIDERS.OPENAI];
-formatters.azure = formatters[AI_PROVIDERS.OPENAI]; // Azure 使用兼容的 Payload
+formatters.azure = formatters[AI_PROVIDERS.OPENAI];
 
 /**
  * 流式响应解析器集合
- * 实时解析不同厂商返回的 SSE (Server-Sent Events) 数据块
  */
 const parsers = {
   [AI_PROVIDERS.OPENAI]: (line) => {
@@ -358,15 +352,15 @@ parsers.openai = parsers[AI_PROVIDERS.OPENAI];
 parsers.azure = parsers[AI_PROVIDERS.OPENAI];
 
 /**
- * 计算当前生效的代理服务器地址
+ * 获取当前生效的代理服务器地址
+ * @param {object} proxyConfig - 代理配置对象
+ * @returns {string} 代理 URL
  */
 function getProxyUrl(proxyConfig = {}) {
-  // 如果配置了cloudUrl,使用配置的URL
   if (proxyConfig.cloudUrl) {
     return proxyConfig.cloudUrl;
   }
   
-  // 否则使用环境检测自动选择
   try {
     const autoUrl = getProxyApiUrl();
     logger.debug('aiService', 'Auto-detected proxy URL:', autoUrl);
@@ -378,11 +372,15 @@ function getProxyUrl(proxyConfig = {}) {
 }
 
 /**
- * 连通性测试
- * 验证提供的 API Key 与地址是否能够成功握手并列出模型或发送简易请求
+ * 测试 API 连接性
+ * @param {string} provider - 服务商
+ * @param {string} apiKey - 密钥
+ * @param {string} baseUrl - 基础地址
+ * @param {object} proxyConfig - 代理配置
+ * @param {string} format - 接口格式
+ * @returns {Promise<boolean>} 是否连接成功
  */
 export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}, format = 'openai') {
-  // 根据配置决定是否使用代理
   const isProxy = proxyConfig.enabled === true;
   const proxyUrl = isProxy ? getProxyUrl(proxyConfig) : null;
   
@@ -405,22 +403,15 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
     headers['anthropic-version'] = '2023-06-01';
     headers['anthropic-dangerous-direct-browser-access'] = 'true';
   } else if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
-    // Azure 测试连接：尝试发送一个最小的 chat 请求
-    // Azure 没有标准的 /models 端点可供列出所有 deployments
-    // 如果 URL 已经包含 chat/completions，直接使用
     if (baseUrl && baseUrl.includes('/chat/completions')) {
       targetUrl = baseUrl;
     } else {
-       // 如果不是完整 URL，Azure 测试比较困难，这里假设用户配置了完整的 Base URL 指向 deployment
-       // 比如 https://resource.openai.azure.com/openai/deployments/model/chat/completions?api-version=...
        targetUrl = baseUrl;
     }
     method = 'POST';
-    // 尝试一个非常简单的请求
     data = { messages: [{role:'user', content:'hi'}], max_tokens: 1 };
     headers['api-key'] = apiKey;
   } else {
-    // OpenAI 格式
     targetUrl = buildTargetUrl(baseUrl, '/models', format, provider);
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
@@ -466,27 +457,18 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
 
 /**
  * 获取可用的模型列表
- * @param {string} provider - Provider identifier (e.g., 'openai', 'anthropic')
- * @param {string} apiKey - API key for authentication
- * @param {string} baseUrl - Base URL of the API endpoint
- * @param {object} proxyConfig - Proxy configuration object
- * @param {string} format - API format ('openai', 'gemini', etc.)
- * @returns {Promise<Array>} Array of model objects with structure:
- *   - id: Model identifier (required)
- *   - name: Display name with priority:
- *     1. API-provided displayName/display_name field (if available)
- *     2. Local inference from model ID (fallback)
- *   - selected: Boolean indicating if model is selected
- *   - capabilities: Object with thinking/multimodal/tools flags
+ * @param {string} provider - 服务商
+ * @param {string} apiKey - 密钥
+ * @param {string} baseUrl - 基础地址
+ * @param {object} proxyConfig - 代理配置
+ * @param {string} format - 接口格式
+ * @returns {Promise<Array>} 模型对象列表
  */
 export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, format = 'openai') {
-
-  // Azure 不支持标准的模型列表获取，直接返回空或抛出提示
   if (provider === 'azure') {
     return []; 
   }
 
-  // 根据配置决定是否使用代理
   const isProxy = proxyConfig.enabled === true;
   const proxyUrl = isProxy ? getProxyUrl(proxyConfig) : null;
 
@@ -502,7 +484,6 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
 
   logger.debug('aiService', 'Fetching models from:', targetUrl, { useProxy: isProxy });
 
-  // 使用缓存包装请求
   return withCache(
     { url: targetUrl, method: 'GET', headers },
     async () => {
@@ -527,11 +508,8 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
           
       return geminiModels.map(m => {
         const id = String(m.name || '').split('/').pop() || 'unknown';
-        
-        // Priority 1: Use API-provided displayName or display_name
         let displayName = m.displayName || m.display_name || m.displayname;
         
-        // Priority 2: Fallback to local inference logic if no API displayName
         if (!displayName) {
           const inferredName = inferModelDisplayName(id, provider);
           displayName = inferredName || id;
@@ -558,11 +536,8 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
 
         return models.map(m => {
           const id = m.id || m.name;
-          
-          // Priority 1: Use API-provided display name (check multiple possible field names)
           let displayName = m.displayName || m.display_name || m.displayname || m.display;
           
-          // Priority 2: Fallback to local inference logic if no API displayName
           if (!displayName) {
             const inferredName = inferModelDisplayName(id, provider);
             displayName = inferredName || id;
@@ -598,10 +573,13 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
 }
 
 /**
- * 执行联网搜索（支持 Bing, Google, Tavily）
+ * 执行联网搜索
+ * @param {string} query - 搜索关键词
+ * @param {string} engine - 搜索引擎 (bing, google, tavily)
+ * @param {string} apiKey - 引擎 API 密钥
+ * @returns {Promise<Array>} 搜索结果列表
  */
 export async function search(query, engine, apiKey) {
-  // ... (保持原样)
   logger.info('aiService', 'Starting search:', { query, engine });
   
   const { t } = useTranslation();
@@ -658,8 +636,9 @@ export async function search(query, engine, apiKey) {
 }
 
 /**
- * 核心：AI 对话补全接口
- * 支持多厂商适配、流式响应、思考过程（Reasoning）捕获及自动重试
+ * AI 对话补全接口
+ * @param {object} params - 配置参数，包含 provider, model, messages, apiKey 等
+ * @returns {Promise<string|void>} 非流式返回结果，流式则通过回调返回
  */
 export async function chatCompletion({
   provider,
@@ -682,6 +661,9 @@ export async function chatCompletion({
   let hasNativeReasoning = false;
   let isReasoningEnded = false;
 
+  /**
+   * 处理流式响应并解析思考过程标签
+   */
   const handleStream = (chunk) => {
     if (!onStream) return;
     if (!onThinking) {
@@ -740,6 +722,9 @@ export async function chatCompletion({
     }
   };
 
+  /**
+   * 清空当前的思考缓冲区
+   */
   const flushThinkingBuffer = () => {
     if (thinkingBuffer) {
       if (isThinkingState && onThinking) {
@@ -753,24 +738,16 @@ export async function chatCompletion({
 
   logger.debug('aiService', 'Processing chat request:', { provider, model, messageCount: messages?.length });
   
-  // 根据配置决定是否使用代理
   const isProxy = proxyConfig.enabled === true;
   const proxyUrl = isProxy ? getProxyUrl(proxyConfig) : null;
 
   let targetUrl;
   
-  // URL 构建逻辑
   if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
-    // Azure 逻辑：如果 baseUrl 已经是完整的（包含 chat/completions），直接使用
-    // 否则尝试根据 model 构建标准 Azure URL
     const normalizedUrl = normalizeBaseUrl(baseUrl);
     if (normalizedUrl.includes('/chat/completions')) {
       targetUrl = normalizedUrl;
     } else {
-      // 假设标准 Azure 格式: https://{resource}.openai.azure.com
-      // 需要构建: .../openai/deployments/{model}/chat/completions?api-version=2024-02-15-preview
-      // 默认 api-version，用户可以在 baseUrl 后加参数覆盖吗？有点复杂。
-      // 这里采用简单的推断
       targetUrl = `${normalizedUrl}/openai/deployments/${model}/chat/completions?api-version=2024-02-15-preview`;
     }
   } else if (format === 'gemini') {
@@ -780,7 +757,6 @@ export async function chatCompletion({
   } else if (format === 'claude') {
     targetUrl = buildTargetUrl(baseUrl, '/messages', format, provider);
   } else {
-    // OpenAI
     targetUrl = buildTargetUrl(baseUrl, '/chat/completions', format, provider);
   }
   
@@ -788,7 +764,6 @@ export async function chatCompletion({
   
   const headers = { 'Content-Type': 'application/json' };
   
-  // Header 设置逻辑
   if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
     headers['api-key'] = apiKey;
   } else if (format === 'claude') {
@@ -806,6 +781,9 @@ export async function chatCompletion({
     payload.stream = true;
   }
   
+  /**
+   * 执行实际的请求逻辑
+   */
   const executeRequest = async () => {
     let hasStreamedData = false;
     let done = false;
@@ -860,7 +838,6 @@ export async function chatCompletion({
           if (value) {
             buffer += decoder.decode(value, { stream: true });
             
-            // 优化：仅查找完整行，避免对整个 buffer 进行 split
             let lineIndex;
             while ((lineIndex = buffer.indexOf('\n')) !== -1) {
               const line = buffer.slice(0, lineIndex).trim();
@@ -1001,6 +978,9 @@ export async function chatCompletion({
 
 /**
  * 恢复中断的异步任务
+ * @param {string} taskId - 任务 ID
+ * @param {object} proxyConfig - 代理配置
+ * @returns {Promise<object>} 任务数据
  */
 export async function resumeTask(taskId, proxyConfig = {}) {
   const isProxy = proxyConfig.enabled === true;
@@ -1009,7 +989,6 @@ export async function resumeTask(taskId, proxyConfig = {}) {
   }
 
   const proxyUrl = getProxyUrl(proxyConfig);
-  // 提取基础 URL
   const baseUrl = proxyUrl.substring(0, proxyUrl.lastIndexOf('/api/proxy'));
   const taskUrl = `${baseUrl}/api/proxy/task/${taskId}`;
 
@@ -1028,10 +1007,10 @@ export async function resumeTask(taskId, proxyConfig = {}) {
 
 /**
  * 对话内容自动压缩
- * 请求 AI 对历史上下文进行摘要处理，以优化 Token 消耗
+ * @param {object} params - 压缩参数
+ * @returns {Promise<string>} 压缩后的摘要
  */
 export async function compressMessages(params) {
-  // 简化的重用实现
   const { messages, provider, model, apiKey, baseUrl, proxyConfig, format } = params;
   const compressionMessages = [
     {
@@ -1057,7 +1036,8 @@ export async function compressMessages(params) {
 
 /**
  * AI 图像生成接口
- * 适配 DALL-E 3、SDXL (SiliconFlow) 及 Gemini 等多平台的生图能力
+ * @param {object} params - 包含 prompt, model, provider 等配置
+ * @returns {Promise<Array>} 生成的图像 URL 列表 (Base64 或 远程地址)
  */
 export async function generateImage({
   provider,
@@ -1077,11 +1057,9 @@ export async function generateImage({
   let payload;
   const headers = { 'Content-Type': 'application/json' };
 
-  // 修复认证逻辑
   if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
     headers['api-key'] = apiKey;
   } else if (provider !== AI_PROVIDERS.GOOGLE && format !== 'gemini' && format !== 'google') {
-    // Perplexity 认证不使用 Bearer 前缀
     if (provider === 'perplexity' || (baseUrl && baseUrl.includes('api.perplexity.ai'))) {
       headers['Authorization'] = apiKey;
     } else {
@@ -1089,12 +1067,10 @@ export async function generateImage({
     }
   }
 
-
   const size = `${options.width || 1024}x${options.height || 1024}`;
   const batchSize = options.batchSize || 1;
   const seed = options.seed === -1 ? Math.floor(Math.random() * 2147483647) : options.seed;
 
-  // 1. Google Gemini 分支
   if (provider === AI_PROVIDERS.GOOGLE || format === 'gemini') {
     targetUrl = buildTargetUrl(baseUrl, `/models/${model}:generateContent`, format, provider) + `?key=${apiKey}`;
     const parts = [];
@@ -1110,7 +1086,6 @@ export async function generateImage({
       generationConfig: { candidateCount: batchSize }
     };
   } 
-  // 2. OpenAI 官方分支 (严格遵循 DALL-E 规范，移除不支持的负向提示词)
   else if (provider === AI_PROVIDERS.OPENAI) {
     targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
     payload = {
@@ -1123,7 +1098,6 @@ export async function generateImage({
     };
     if (model.includes('dall-e-3')) delete payload.n;
   }
-  // 3. SiliconFlow 分支
   else if (provider === AI_PROVIDERS.SILICONFLOW) {
     targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
     payload = {
@@ -1138,8 +1112,6 @@ export async function generateImage({
       response_format: 'b64_json'
     };
   }
-  // 4. 其他供应商 (通用 OpenAI 兼容格式)
-  // 移除硬编码的阿里云 logic，允许用户通过兼容网关 (如 OneAPI) 自定义配置
   else {
     targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
     payload = {
@@ -1155,6 +1127,9 @@ export async function generateImage({
     };
   }
 
+  /**
+   * 执行图像生成请求
+   */
   const executeRequest = async () => {
     try {
       const axiosUrl = (isProxy && proxyUrl) ? proxyUrl : targetUrl;
@@ -1174,7 +1149,6 @@ export async function generateImage({
       const data = response.data;
       let imageUrls = [];
 
-      // 结果解析逻辑保持不变...
       if (data.data && Array.isArray(data.data)) {
         imageUrls = data.data.map(item => item.b64_json ? `data:image/png;base64,${item.b64_json}` : item.url);
       } else if (data.output && Array.isArray(data.output.results)) {

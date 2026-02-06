@@ -1,3 +1,9 @@
+/**
+ * Markdown 渲染组件
+ * 支持 GFM、LaTeX、Mermaid、代码高亮及实时 Web 预览。
+ * 包含错误边界保护，确保渲染异常时不会导致应用崩溃。
+ */
+
 import React, { useEffect, useState, useRef, Component } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -6,7 +12,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { 
-  Copy, Play, ExternalLink, Check, Info, Loader2, Image as ImageIcon
+  Copy, Play, ExternalLink, Check, Info, Image as ImageIcon
 } from 'lucide-react';
 import { db } from '../../db';
 import { useTranslation, useI18nStore } from '../../i18n';
@@ -17,19 +23,19 @@ import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/atom-one-dark.css';
 
 /**
- * 代码增强展示组件
- * 为 Markdown 中的代码块提供高亮显示、剪贴板复制及 Web 代码（HTML/JS/CSS）的实时预览与发布功能
+ * 代码块增强展示组件
+ * @param {object} props - 组件属性
+ * @param {string} props.language - 编程语言标识
+ * @param {string} props.value - 代码原始内容
  */
 const CodeBlock = ({ language, value }) => {
   const { t } = useTranslation();
   const [showPreview, setShowPreview] = useState(false);
   const [publishedId, setPublishedId] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [isHighlighted, setIsHighlighted] = useState(false);
   const codeRef = useRef(null);
   const isWebCode = ['html', 'css', 'javascript', 'js'].includes(language?.toLowerCase());
 
-  // 异步初始化代码高亮，避免阻塞主线程并支持代码分割
   useEffect(() => {
     if (codeRef.current && !showPreview) {
       const highlight = async () => {
@@ -37,7 +43,6 @@ const CodeBlock = ({ language, value }) => {
           const { default: hljs } = await import('highlight.js');
           if (codeRef.current) {
             hljs.highlightElement(codeRef.current);
-            setIsHighlighted(true);
           }
         } catch (err) {
           logger.error('MarkdownRenderer', 'Failed to load highlight.js', err);
@@ -47,7 +52,6 @@ const CodeBlock = ({ language, value }) => {
     }
   }, [value, language, showPreview]);
 
-  // 复制代码到剪贴板
   const copyToClipboard = () => {
     navigator.clipboard.writeText(value).then(() => {
       setCopied(true);
@@ -55,7 +59,6 @@ const CodeBlock = ({ language, value }) => {
     });
   };
 
-  // 发布代码到预览页面
   const publishCode = async () => {
     const id = Math.random().toString(36).slice(2, 10);
     await db.published.put({
@@ -119,8 +122,7 @@ const CodeBlock = ({ language, value }) => {
 };
 
 /**
- * UI 错误隔离组件
- * 捕获渲染层异常，通过降级 UI 展示原始文本而非导致白屏
+ * 内部错误边界类
  */
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -136,7 +138,6 @@ class ErrorBoundary extends Component {
     logger.error('MarkdownRenderer', 'Rendering error:', error, errorInfo);
   }
 
-  // 渲染错误提示界面
   render() {
     if (this.state.hasError) {
       const { t } = useI18nStore.getState();
@@ -164,26 +165,23 @@ class ErrorBoundary extends Component {
 }
 
 /**
- * Markdown 核心渲染组件
- * 整合 ReactMarkdown 及其生态插件，支持 GFM、LaTeX、Mermaid、自定义 HTML 解析等特性
+ * Markdown 内容渲染主体
+ * @param {object} props - 组件属性
  */
 const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
   const { t } = useTranslation();
   const [previewImage, setPreviewImage] = useState(null);
 
-  // 防御性检查：确保 content 有效
   if (content === null || content === undefined) {
     return null;
   }
 
-  // 兼容性处理：处理非数组但具有 {type, text} 结构的对象（常见于同步数据不一致或特定模型输出）
   if (!Array.isArray(content) && typeof content === 'object' && content !== null) {
     if (content.type === 'text' && content.text !== undefined) {
       return <MarkdownRendererContent content={content.text} isGenerating={isGenerating} />;
     }
   }
 
-  // 如果内容是数组（包含图片和文本），直接渲染对应组件
   if (Array.isArray(content)) {
     return (
       <div className="space-y-4">
@@ -239,7 +237,6 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
   }
 
   const safeContent = String(content || '');
-  // 移除思考过程标签（<thinking>已由MessageList单独处理）
   const mainContent = safeContent.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
 
   return (
@@ -374,9 +371,6 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
   );
 };
 
-/**
- * Markdown 渲染入口（带性能优化）
- */
 const MarkdownRenderer = React.memo((props) => {
   return (
     <ErrorBoundary content={props.content}>
