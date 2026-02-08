@@ -164,7 +164,7 @@ export const enUS = {
       newConversationPresets: 'New Conversation Presets',
       conversationSettings: 'Conversation Settings',
       prompt: 'Prompt',
-      promptPlaceholder: 'Be efficient, clear and concise. Use emojis when appropriate. Prioritize facts over agreement',
+      promptPlaceholder: 'Be concise, factual, and efficient. Use emojis appropriately.',
       resetToDefault: 'Reset to Default',
       contextLimit: 'Context Message Limit',
       contextLimitHint: 'Limit the number of historical messages AI can access. Set to "Unlimited" to use all history.',
@@ -552,9 +552,9 @@ export const enUS = {
 
   ocr: {
     notSupported: 'Current model {model} does not support image input, will use OCR to process image',
-    contextHeader: '[OCR Text Recognition Result]',
-    contextIntro: 'User uploaded an image. Since the current model does not support image input, the system has used OCR technology to extract text from the image. Below is the recognized text content, please process it as part of the user\'s input:',
-    contextFooter: 'Note: The above content was automatically extracted by OCR and may contain recognition errors.'
+    contextHeader: '[OCR Result]',
+    contextIntro: '[System Note: Image unsupported. Following is OCR text, treat as user input:]',
+    contextFooter: 'Note: Extracted by OCR, may contain errors.'
   },
 
   plusMenu: {
@@ -651,8 +651,8 @@ export const enUS = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: 'You are a professional conversation naming assistant. Your task is to read user input and generate a short, accurate title (no more than 10 words).\n\nRules:\n1. Output the title directly without any punctuation, quotes, or explanatory text.\n2. The title should summarize the core topic of the conversation.\n3. If you cannot summarize, output "New Conversation".',
-      titleGeneratorUser: 'User input: {message}\n\nPlease generate a title:',
+      titleGeneratorPrompt: 'Summarize input into a short, accurate title (max 10 words)\nRules:\n1. Output title only, no punctuation/explanation\n2. Summarize core topic in English\n3. Fallback: "New Conversation"',
+      titleGeneratorUser: 'Input: {message}\nTitle:',
       cannotCompressIncognito: 'Cannot compress incognito mode conversation',
       conversationIdRequired: 'Conversation ID not specified',
       conversationEmpty: 'Conversation is empty, no compression needed',

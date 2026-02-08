@@ -399,6 +399,20 @@ export const useChatStore = create((set, get) => ({
         return;
       }
 
+      // 对短对话启用绕过规则：如果首条消息少于 10 个字符，直接使用消息内容作为标题
+      if (firstMessage && firstMessage.length < 10) {
+        const cleanTitle = firstMessage.trim();
+        if (cleanTitle) {
+          const isCurrentConversation = get().currentConversationId === id;
+          await db.conversations.update(id, { 
+            title: cleanTitle,
+            hasUnread: !isCurrentConversation
+          });
+          syncService.debouncedSync();
+          return;
+        }
+      }
+
       const currentModel = get().currentModel;
       let effectiveModel = useConfigStore.getState().getEffectiveModel('naming', currentModel);
       

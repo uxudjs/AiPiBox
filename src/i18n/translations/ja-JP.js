@@ -128,7 +128,7 @@ export const jaJP = {
       newConversationPresets: '新規会話のプリセット',
       conversationSettings: '会話設定',
       prompt: 'プロンプト',
-      promptPlaceholder: '効率的で、明快かつ簡潔なスタイル。適切に絵文字を使用。盲目的に同意せず、事実を優先',
+      promptPlaceholder: '簡潔・明快・事実に即して回答。絵文字を適宜使用。',
       resetToDefault: 'デフォルトにリセット',
       contextLimit: 'コンテキストメッセージ制限',
       contextLimitHint: 'AIがアクセスできる履歴メッセージ数を制限します。「無制限」に設定するとすべての履歴を使用します',
@@ -515,9 +515,9 @@ export const jaJP = {
 
   ocr: {
     notSupported: '現在のモデル {model} は画像入力に対応していないため、OCR で画像を処理します',
-    contextHeader: '[OCRテキスト認識結果]',
-    contextIntro: 'ユーザーが画像をアップロードしました。現在のモデルは画像入力に対応していないため、システムはOCR技術を使用して画像からテキストを抽出しました。以下は認識されたテキスト内容です。ユーザー入力の一部として処理してください：',
-    contextFooter: '注意：上記の内容はOCRによって自動抽出されたもので、認識エラーが含まれる可能性があります。'
+    contextHeader: '[OCR認識結果]',
+    contextIntro: '[システム注：画像非対応のため、以下はOCR抽出テキストです。ユーザー入力として処理してください]',
+    contextFooter: '注：OCR抽出のため、誤りを含む可能性があります。'
   },
 
   imageFactory: {
@@ -650,8 +650,8 @@ export const jaJP = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: 'あなたはプロの会話タイトル生成アシスタントです。ユーザーの入力を読み、短く正確なタイトル（10文字以内）を生成してください。\n\nルール：\n1. タイトルを直接出力し、句読点、引用符、または説明テキストを含めないでください。\n2. タイトルは会話の主要なトピックを要約する必要があります。\n3. 要約できない場合は「新しい会話」と出力してください。',
-      titleGeneratorUser: 'ユーザー入力: {message}\n\nタイトルを生成してください：',
+      titleGeneratorPrompt: '入力を要約し、短く正確なタイトル(10文字以内)を生成せよ\nルール：\n1. タイトルのみ出力（句読点/説明不要）\n2. 日本語で要約\n3. 不可時は「新しい会話」と出力',
+      titleGeneratorUser: '入力: {message}\nタイトル:',
       cannotCompressIncognito: 'シークレットモードの会話を圧縮できません',
       conversationIdRequired: '会話IDが指定されていません',
       conversationEmpty: '会話が空です。圧縮は不要です',

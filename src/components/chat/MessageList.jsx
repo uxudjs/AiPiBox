@@ -624,7 +624,7 @@ const MessageList = () => {
 
       const documentsContent = useFileStore.getState().getCompletedFilesContent(currentConversationId);
       if (documentsContent) {
-        systemParts.push('\n\n--- Uploaded Document Content ---\n' + documentsContent);
+        systemParts.push('\n\n[Uploaded Documents]\n' + documentsContent);
         logger.info('MessageList.saveAndSend', 'Added document content to system message');
       }
       
@@ -635,10 +635,10 @@ const MessageList = () => {
         
         if (retrievedDocs.length > 0) {
           const kbContext = retrievedDocs.map((doc, idx) => 
-            `[Document ${idx + 1}] ${doc.documentName}\n${doc.content}\nSimilarity: ${(doc.similarity * 100).toFixed(1)}%`
+            `[Doc ${idx + 1}] ${doc.documentName} (Sim: ${(doc.similarity * 100).toFixed(1)}%)\n${doc.content}`
           ).join('\n\n');
           
-          systemParts.push('\n\n--- Knowledge Base Documents ---\n' + kbContext);
+          systemParts.push('\n\n[Knowledge Base]\n' + kbContext);
           logger.info('MessageList.saveAndSend', `Retrieved ${retrievedDocs.length} documents from KB`);
         }
       }
@@ -647,15 +647,15 @@ const MessageList = () => {
       const userLanguage = localSettingsData?.language || general.language || 'zh-CN';
       
       if (userLanguage === 'zh-CN') {
-        systemParts.push('\n\n--- 语言要求 ---\n请使用简体中文回复。不要使用繁体字和港台用语');
+        systemParts.push('\n\n请用简体中文回复。');
       } else if (userLanguage === 'zh-TW') {
-        systemParts.push('\n\n--- 語言要求 ---\n請使用繁體中文回覆。使用台灣地區的用語習慣');
+        systemParts.push('\n\n請用台灣繁體中文回覆。');
       } else if (userLanguage === 'en-US') {
-        systemParts.push('\n\n--- Language Requirement ---\nPlease respond in English');
+        systemParts.push('\n\nRespond in English.');
       } else if (userLanguage === 'ja-JP') {
-        systemParts.push('\n\n--- 言語要件 ---\n日本語で回答してください');
+        systemParts.push('\n\n日本語で回答してください。');
       } else if (userLanguage === 'ko-KR') {
-        systemParts.push('\n\n--- 언어 요구사항 ---\n한국어로 답변해 주세요');
+        systemParts.push('\n\n한국어로 답변하세요.');
       }
       
       if (systemParts.length > 0) {
@@ -834,7 +834,7 @@ const MessageList = () => {
 
       const documentsContent = useFileStore.getState().getCompletedFilesContent(currentConversationId);
       if (documentsContent) {
-        systemParts.push('\n\n--- Uploaded Document Content ---\n' + documentsContent);
+        systemParts.push('\n\n[Uploaded Documents]\n' + documentsContent);
         logger.info('MessageList.regenerateMessage', 'Added document content to system message');
       }
       
@@ -856,10 +856,10 @@ const MessageList = () => {
           
           if (retrievedDocs.length > 0) {
             const kbContext = retrievedDocs.map((doc, idx) => 
-              `[Document ${idx + 1}] ${doc.documentName}\n${doc.content}\nSimilarity: ${(doc.similarity * 100).toFixed(1)}%`
+              `[Doc ${idx + 1}] ${doc.documentName} (Sim: ${(doc.similarity * 100).toFixed(1)}%)\n${doc.content}`
             ).join('\n\n');
             
-            systemParts.push('\n\n--- Knowledge Base Documents ---\n' + kbContext);
+            systemParts.push('\n\n[Knowledge Base]\n' + kbContext);
             logger.info('MessageList.regenerateMessage', `Retrieved ${retrievedDocs.length} documents from KB`);
           }
         }
@@ -869,15 +869,15 @@ const MessageList = () => {
       const userLanguage = localSettingsData?.language || general.language || 'zh-CN';
       
       if (userLanguage === 'zh-CN') {
-        systemParts.push('\n\n--- 语言要求 ---\n请使用简体中文回复。不要使用繁体字和港台用语');
+        systemParts.push('\n\n请用简体中文回复');
       } else if (userLanguage === 'zh-TW') {
-        systemParts.push('\n\n--- 語言要求 ---\n請使用繁體中文回覆。使用台灣地區的用語習慣');
+        systemParts.push('\n\n請用台灣繁體中文回覆');
       } else if (userLanguage === 'en-US') {
-        systemParts.push('\n\n--- Language Requirement ---\nPlease respond in English');
+        systemParts.push('\n\nRespond in English.');
       } else if (userLanguage === 'ja-JP') {
-        systemParts.push('\n\n--- 言語要件 ---\n日本語で回答してください');
+        systemParts.push('\n\n日本語で回答してください');
       } else if (userLanguage === 'ko-KR') {
-        systemParts.push('\n\n--- 언어 요구사항 ---\n한국어로 답변해 주세요');
+        systemParts.push('\n\n한국어로 답변하세요');
       }
       
       if (systemParts.length > 0) {

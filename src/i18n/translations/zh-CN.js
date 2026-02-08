@@ -164,7 +164,7 @@ export const zhCN = {
       newConversationPresets: '新对话的预设设定',
       conversationSettings: '对话设定',
       prompt: '提示',
-      promptPlaceholder: '风格高效，浅白且简明扼要。适时的使用emoji。不一味的赞同，优先保证事实',
+      promptPlaceholder: '回复需高效、简明、真实。适当使用emoji。',
       resetToDefault: '重置为预设值',
       contextLimit: '上下文消息数量上限',
       contextLimitHint: '限制 AI 可以访问的历史消息数量，设置为"无限制"将使用所有历史消息',
@@ -552,9 +552,9 @@ export const zhCN = {
 
   ocr: {
     notSupported: '当前模型 {model} 不支持图片输入,将使用 OCR 处理图片',
-    contextHeader: '[图片内容OCR识别结果]',
-    contextIntro: '用户上传了图片,由于当前模型不支持图像输入,系统已使用OCR技术对图片进行文字识别和内容提取。以下是识别出的文本内容,请将其作为用户输入的一部分进行处理:',
-    contextFooter: '注:以上内容由OCR自动提取,可能包含识别误差。'
+    contextHeader: '[图片OCR识别结果]',
+    contextIntro: '[系统注：当前模型不支持图片，以下是OCR识别出的文本，请作为用户输入处理]',
+    contextFooter: '注：内容由OCR提取，可能存在误差。'
   },
 
   plusMenu: {
@@ -651,8 +651,8 @@ export const zhCN = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: '你是一个专业的对话命名助手。你的任务是阅读用户的输入，并生成一个简短、精准的标题（不超过10个字）。\n\n规则：\n1. 直接输出标题，不要包含任何标点符号、引号或解释性文字。\n2. 标题应概括对话的核心主题。\n3. 如果无法概括，请输出“新对话”。',
-      titleGeneratorUser: '用户输入：{message}\n\n请生成标题：',
+      titleGeneratorPrompt: '阅读输入，生成简短精准标题(10字内)\n规则：\n1. 直接输出标题，无标点/解释性文字\n2. 概括核心主题，使用简体中文\n3. 无法概括则输出“新对话”',
+      titleGeneratorUser: '输入：{message}\n标题：',
       cannotCompressIncognito: '无法压缩隐身模式对话',
       conversationIdRequired: '未指定对话ID',
       conversationEmpty: '对话为空，无需压缩',

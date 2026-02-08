@@ -128,7 +128,7 @@ export const zhTW = {
       newConversationPresets: '新對話的預設設定',
       conversationSettings: '對話設定',
       prompt: '提示',
-      promptPlaceholder: '風格高效，淺白且簡明扼要。適時使用 emoji。不一味贊同，優先保證事實',
+      promptPlaceholder: '回覆需高效、簡明、真實。適當使用 emoji。',
       resetToDefault: '重設為預設值',
       contextLimit: '上下文訊息數量上限',
       contextLimitHint: '限制 AI 可以存取的歷史訊息數量，設定為「無限制」將使用所有歷史訊息',
@@ -515,9 +515,9 @@ export const zhTW = {
 
   ocr: {
     notSupported: '目前模型 {model} 不支援圖片輸入，將使用 OCR 處理圖片',
-    contextHeader: '[圖片內容OCR識別結果]',
-    contextIntro: '使用者上傳了圖片，由於目前模型不支援圖像輸入，系統已使用OCR技術對圖片進行文字識別和內容提取。以下是識別出的文本內容，請將其作為使用者輸入的一部分進行處理：',
-    contextFooter: '註：以上內容由OCR自動提取，可能包含識別誤差。'
+    contextHeader: '[圖片OCR識別結果]',
+    contextIntro: '[系統註：當前模型不支援圖片，以下是OCR識別出的文本，請作為用戶輸入處理]',
+    contextFooter: '註：內容由OCR提取，可能存在誤差。'
   },
 
   imageFactory: {
@@ -650,8 +650,8 @@ export const zhTW = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: '你是一個專業的對話命名助手。你的任務是閱讀用戶的輸入，並生成一個簡短、精準的標題（不超過10個字）。\n\n規則：\n1. 直接輸出標題，不要包含任何標點符號、引號或解釋性文字。\n2. 標題應概括對話的核心主題。\n3. 如果無法概括，請輸出「新對話」。',
-      titleGeneratorUser: '用戶輸入：{message}\n\n請生成標題：',
+      titleGeneratorPrompt: '閱讀輸入，生成簡短精準標題(10字內)\n規則：\n1. 直接輸出標題，無標點/解釋性文字\n2. 概括核心主題，使用繁體中文\n3. 無法概括則輸出「新對話」',
+      titleGeneratorUser: '輸入：{message}\n標題：',
       cannotCompressIncognito: '無法壓縮隱身模式對話',
       conversationIdRequired: '未指定對話ID',
       conversationEmpty: '對話為空，無需壓縮',

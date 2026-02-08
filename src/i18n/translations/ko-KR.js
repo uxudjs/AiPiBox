@@ -128,7 +128,7 @@ export const koKR = {
       newConversationPresets: '새 대화 프리셋',
       conversationSettings: '대화 설정',
       prompt: '프롬프트',
-      promptPlaceholder: '효율적이고 명확하며 간결한 스타일. 적절히 이모지 사용. 맹목적으로 동의하지 않고 사실을 우선',
+      promptPlaceholder: '간결하고 사실에 입각해 답변하세요. 이모지를 적절히 사용하세요.',
       resetToDefault: '기본값으로 재설정',
       contextLimit: '컨텍스트 메시지 제한',
       contextLimitHint: 'AI가 접근할 수 있는 이전 메시지 수를 제한합니다. "무제한"으로 설정하면 모든 기록을 사용합니다',
@@ -515,9 +515,9 @@ export const koKR = {
 
   ocr: {
     notSupported: '현재 모델 {model} 은(는) 이미지 입력을 지원하지 않으므로 OCR로 이미지를 처리합니다',
-    contextHeader: '[OCR 텍스트 인식 결과]',
-    contextIntro: '사용자가 이미지를 업로드했습니다. 현재 모델이 이미지 입력을 지원하지 않으므로 시스템이 OCR 기술을 사용하여 이미지에서 텍스트를 추출했습니다. 다음은 인식된 텍스트 내용입니다. 사용자 입력의 일부로 처리하십시오:',
-    contextFooter: '참고: 위 내용은 OCR에 의해 자동으로 추출되었으며 인식 오류가 포함될 수 있습니다.'
+    contextHeader: '[OCR 인식 결과]',
+    contextIntro: '[시스템 참고: 이미지 미지원. 다음은 OCR 추출 텍스트입니다. 사용자 입력으로 처리하세요]',
+    contextFooter: '참고: OCR 추출본으로 오류가 있을 수 있습니다.'
   },
 
   imageFactory: {
@@ -646,8 +646,8 @@ export const koKR = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: '당신은 전문적인 대화 제목 생성 어시스턴트입니다. 사용자 입력을 읽고 짧고 정확한 제목(10단어 이하)을 생성하세요.\n\n규칙:\n1. 제목을 직접 출력하고 구두점, 인용부호 또는 설명 텍스트를 포함하지 마세요.\n2. 제목은 대화의 핵심 주제를 요약해야 합니다.\n3. 요약할 수 없다면 "새 대화"를 출력하세요.',
-      titleGeneratorUser: '사용자 입력: {message}\n\n제목을 생성해주세요:',
+      titleGeneratorPrompt: '입력을 요약하여 짧고 정확한 제목(10단어 이하)을 생성하세요\n규칙:\n1. 제목만 출력(구두점/설명 제외)\n2. 한국어로 요약\n3. 요약 불가 시 "새 대화" 출력',
+      titleGeneratorUser: '입력: {message}\n제목:',
       cannotCompressIncognito: '시크릿 모드 대화를 압축할 수 없습니다',
       conversationIdRequired: '대화 ID가 지정되지 않았습니다',
       conversationEmpty: '대화가 비어 있습니다. 압축이 필요하지 않습니다',
