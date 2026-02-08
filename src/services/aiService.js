@@ -950,9 +950,11 @@ export async function chatCompletion({
         const response = await axios.post(axiosUrl, axiosData, axiosOptions);
         
         if (format === 'gemini') {
-          return response.data.candidates[0].content.parts[0].text;
+          const parts = response.data.candidates?.[0]?.content?.parts || [];
+          return parts.map(p => p.text || '').join('');
         } else if (format === 'claude') {
-          return response.data.content[0].text;
+          const contents = response.data.content || [];
+          return contents.map(c => c.text || '').join('');
         }
         return response.data.choices[0].message.content;
       }

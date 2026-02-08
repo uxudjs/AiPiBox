@@ -421,17 +421,21 @@ export const useChatStore = create((set, get) => ({
 
       const { getAliyunRegionUrl } = await import('./useConfigStore');
       const actualBaseUrl = getAliyunRegionUrl(effectiveModel.provider);
+      const { t } = useI18nStore.getState();
       const titleResponse = await chatCompletion({
         provider: effectiveModel.providerId,
         model: effectiveModel.modelId,
         apiKey: effectiveModel.provider.apiKey,
         baseUrl: actualBaseUrl,
         messages: [
-          { 
-            role: 'system', 
-            content: '你是一个专业的对话命名助手。你的任务是阅读用户的输入，并生成一个简短、精准的标题（不超过10个字）。\n\n规则：\n1. 直接输出标题，不要包含任何标点符号、引号或解释性文字。\n2. 标题应概括对话的核心主题。\n3. 如果无法概括，请输出"新对话"।' 
+          {
+            role: 'system',
+            content: t('chat.titleGeneratorPrompt')
           },
-          { role: 'user', content: `用户输入：${firstMessage}\n\n请生成标题：` }
+          {
+            role: 'user',
+            content: t('chat.titleGeneratorUser', { message: firstMessage })
+          }
         ],
         proxyConfig: config.proxy || {},
         format: effectiveModel.provider.format || 'openai',
