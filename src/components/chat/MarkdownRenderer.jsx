@@ -277,16 +277,7 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
             const value = String(children).replace(/\n$/, '');
             
             if (language === 'mermaid') {
-              // 检测该 mermaid 代码块是否已闭合（通过检查原始文本中该位置之后是否还有内容或闭合标记）
-              // react-markdown 的 node.position 可以提供位置信息
-              const isBlockComplete = !isGenerating || (node?.position?.end?.offset < mainContent.length);
-              
-              return (
-                <MermaidRenderer 
-                  content={value} 
-                  isGenerating={isGenerating && !isBlockComplete} 
-                />
-              );
+              return <MermaidRenderer content={value} isGenerating={isGenerating} />;
             }
             
             return !inline ? (

@@ -62,11 +62,7 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
   };
 
   useEffect(() => {
-    if (!content) return;
-
-    // 如果仍在生成中，且尚未有渲染结果，则不在此触发全量渲染
-    // 除非我们检测到内容似乎已经稳定（在 MarkdownRenderer 中处理）
-    if (isGenerating && !svg) return;
+    if (!content || isGenerating) return;
 
     const renderChart = async () => {
       try {
@@ -279,14 +275,14 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     setPan({ x: 0, y: 0 });
   };
 
-  if (isGenerating && !svg) {
+  if (isGenerating) {
     return (
       <div className={`my-4 border border-border rounded-lg bg-card/50 overflow-hidden ${className}`}>
         <div className="flex items-center gap-2 p-3 bg-muted/30 border-b border-border text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin text-primary" />
           <span>{t('markdown.generatingChart') || 'Generating chart...'}</span>
         </div>
-        <pre className="p-4 text-xs font-mono overflow-y-auto text-black dark:text-gray-300 max-h-[120px] scrollbar-thin leading-relaxed">
+        <pre className="p-4 text-xs font-mono overflow-x-auto text-black dark:text-gray-300">
           {content}
         </pre>
       </div>
