@@ -62,7 +62,11 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
   };
 
   useEffect(() => {
-    if (!content || isGenerating) return;
+    if (!content) return;
+
+    // 如果仍在生成中，且尚未有渲染结果，则不在此触发全量渲染
+    // 除非我们检测到内容似乎已经稳定（在 MarkdownRenderer 中处理）
+    if (isGenerating && !svg) return;
 
     const renderChart = async () => {
       try {
@@ -92,6 +96,26 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
 
     renderChart();
   }, [content, isGenerating]);
+
+  // 使用原生非 passive 监听器来阻止页面滚动
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+      // 阻止默认行为以防止页面滚动
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setScale(s => Math.min(Math.max(s + delta, 0.5), 5));
+    };
+
+    // 显式指定 { passive: false }
+    container.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   const handleZoomIn = () => setScale(s => Math.min(s + 0.2, 5));
   const handleZoomOut = () => setScale(s => Math.max(s - 0.2, 0.5));
@@ -255,14 +279,14 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     setPan({ x: 0, y: 0 });
   };
 
-  if (isGenerating) {
+  if (isGenerating && !svg) {
     return (
       <div className={`my-4 border border-border rounded-lg bg-card/50 overflow-hidden ${className}`}>
         <div className="flex items-center gap-2 p-3 bg-muted/30 border-b border-border text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin text-primary" />
           <span>{t('markdown.generatingChart') || 'Generating chart...'}</span>
         </div>
-        <pre className="p-4 text-xs font-mono overflow-x-auto text-black dark:text-gray-300">
+        <pre className="p-4 text-xs font-mono overflow-y-auto text-black dark:text-gray-300 max-h-[120px] scrollbar-thin leading-relaxed">
           {content}
         </pre>
       </div>
@@ -347,12 +371,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onWheel={(e) => {
-          // 无论是否全屏，滚轮都在此区域触发缩放而非页面滚动
-          e.preventDefault();
-          const delta = e.deltaY > 0 ? -0.1 : 0.1;
-          setScale(s => Math.min(Math.max(s + delta, 0.5), 5));
-        }}
       >
         {showCode ? (
           <div className="absolute inset-0 overflow-auto p-4 bg-muted/30 font-mono text-sm text-black dark:text-gray-300">

@@ -651,7 +651,7 @@ export const enUS = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: 'You are a professional conversation naming assistant. Your task is to read user input and generate a short, accurate title (no more than 10 words).\n\nRules:\n1. Output the title directly without any punctuation, quotes, or explanatory text.\n2. The title should summarize the core topic of the conversation.\n3. If you cannot summarize, output "New Conversation".',
+      titleGeneratorPrompt: 'You are a professional conversation naming assistant. Your task is to read user input and generate a short, accurate title (no more than 10 words).\n\nRules:\n1. Output the title directly without any punctuation, quotes, or explanatory text.\n2. The title should summarize the core topic of the conversation and use the same language as the user input (e.g., if the user input is Chinese, output the title in Chinese).\n3. If you cannot summarize, output "New Conversation".',
       titleGeneratorUser: 'User input: {message}\n\nPlease generate a title:',
       cannotCompressIncognito: 'Cannot compress incognito mode conversation',
       conversationIdRequired: 'Conversation ID not specified',
