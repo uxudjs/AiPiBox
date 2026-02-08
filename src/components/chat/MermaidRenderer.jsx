@@ -24,7 +24,7 @@ mermaid.initialize({
  * @param {string} props.content - Mermaid 语法的图表描述文本
  * @param {boolean} [props.isGenerating=false] - 是否处于流式生成中
  */
-const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
+const MermaidRenderer = ({ content, className = '', isGenerating = false, isBlockComplete = false }) => {
   const { t } = useTranslation();
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
@@ -62,7 +62,9 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
   };
 
   useEffect(() => {
-    if (!content || isGenerating) return;
+    // 只有当内容存在，且（不处于生成中，或者块已完成）时才触发渲染
+    const shouldRender = content && (!isGenerating || isBlockComplete);
+    if (!shouldRender) return;
 
     const renderChart = async () => {
       try {
@@ -91,39 +93,21 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     };
 
     renderChart();
-  }, [content, isGenerating]);
-
-  // 使用原生非 passive 监听器来阻止页面滚动
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleWheel = (e) => {
-      // 阻止默认行为以防止页面滚动
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      setScale(s => Math.min(Math.max(s + delta, 0.5), 5));
-    };
-
-    // 显式指定 { passive: false }
-    container.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      container.removeEventListener('wheel', handleWheel);
-    };
-  }, []);
+  }, [content, isGenerating, isBlockComplete]);
 
   const handleZoomIn = () => setScale(s => Math.min(s + 0.2, 5));
   const handleZoomOut = () => setScale(s => Math.max(s - 0.2, 0.5));
 
   const handleMouseDown = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     setLastMousePos({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;
+    e.stopPropagation();
     const dx = e.clientX - lastMousePos.x;
     const dy = e.clientY - lastMousePos.y;
     setPan(p => ({ x: p.x + dx, y: p.y + dy }));
@@ -275,14 +259,17 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     setPan({ x: 0, y: 0 });
   };
 
-  if (isGenerating) {
+  if (isGenerating && !isBlockComplete) {
     return (
       <div className={`my-4 border border-border rounded-lg bg-card/50 overflow-hidden ${className}`}>
         <div className="flex items-center gap-2 p-3 bg-muted/30 border-b border-border text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin text-primary" />
           <span>{t('markdown.generatingChart') || 'Generating chart...'}</span>
         </div>
-        <pre className="p-4 text-xs font-mono overflow-x-auto text-black dark:text-gray-300">
+        <pre 
+          className="p-4 text-[10px] font-mono overflow-hidden text-black dark:text-gray-300 line-clamp-4 bg-muted/10"
+          style={{ display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}
+        >
           {content}
         </pre>
       </div>
@@ -367,6 +354,13 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onWheel={(e) => {
+          // 无论是否全屏，滚轮都在此区域触发缩放而非页面滚动
+          e.preventDefault();
+          e.stopPropagation();
+          const delta = e.deltaY > 0 ? -0.1 : 0.1;
+          setScale(s => Math.min(Math.max(s + delta, 0.5), 5));
+        }}
       >
         {showCode ? (
           <div className="absolute inset-0 overflow-auto p-4 bg-muted/30 font-mono text-sm text-black dark:text-gray-300">

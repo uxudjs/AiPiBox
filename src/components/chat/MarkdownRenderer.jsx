@@ -4,13 +4,19 @@
  * 包含错误边界保护，确保渲染异常时不会导致应用崩溃。
  */
 
-import React, { useEffect, useState, useRef, Component } from 'react';
+import React, { useEffect, useState, useRef, Component, createContext, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
+
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+
+/**
+ * Markdown 上下文，用于传递渲染状态
+ */
+const MarkdownContext = createContext({ content: '', isGenerating: false });
 import { 
   Copy, Play, ExternalLink, Check, Info, Image as ImageIcon
 } from 'lucide-react';
@@ -27,8 +33,9 @@ import 'highlight.js/styles/atom-one-dark.css';
  * @param {object} props - 组件属性
  * @param {string} props.language - 编程语言标识
  * @param {string} props.value - 代码原始内容
+ * @param {boolean} props.isComplete - 代码块是否已完成
  */
-const CodeBlock = ({ language, value }) => {
+const CodeBlock = ({ language, value, isComplete }) => {
   const { t } = useTranslation();
   const [showPreview, setShowPreview] = useState(false);
   const [publishedId, setPublishedId] = useState(null);
@@ -104,7 +111,7 @@ const CodeBlock = ({ language, value }) => {
       </div>
       
       {!showPreview ? (
-        <pre className="p-4 overflow-x-auto bg-[#282c34] text-sm leading-6">
+        <pre className="p-4 overflow-x-auto bg-[#282c34] text-sm leading-6 max-h-[400px]">
           <code ref={codeRef} className={`language-${language}`}>{value}</code>
         </pre>
       ) : (
@@ -171,6 +178,8 @@ class ErrorBoundary extends Component {
 const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
   const { t } = useTranslation();
   const [previewImage, setPreviewImage] = useState(null);
+
+  const contextValue = React.useMemo(() => ({ content, isGenerating }), [content, isGenerating]);
 
   if (content === null || content === undefined) {
     return null;
@@ -272,16 +281,20 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
         ]}
         components={{
           code({ node, inline, className, children, ...props }) {
+            const { content: fullContent, isGenerating: totalGenerating } = useContext(MarkdownContext);
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : '';
             const value = String(children).replace(/\n$/, '');
             
+            // 计算代码块是否已完整（流式输出中，如果当前节点位置不是全文末尾，则认为该块已结束）
+            const isComplete = !totalGenerating || (node.position && node.position.end.offset < fullContent.length);
+
             if (language === 'mermaid') {
-              return <MermaidRenderer content={value} isGenerating={isGenerating} />;
+              return <MermaidRenderer content={value} isGenerating={totalGenerating} isBlockComplete={isComplete} />;
             }
             
             return !inline ? (
-              <CodeBlock language={language} value={value} />
+              <CodeBlock language={language} value={value} isComplete={isComplete} />
             ) : (
               <code className={className} {...props}>
                 {children}
@@ -368,6 +381,7 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
         <ImagePreviewModal src={previewImage} onClose={() => setPreviewImage(null)} />
       )}
     </div>
+    </MarkdownContext.Provider>
   );
 };
 
