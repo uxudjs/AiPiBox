@@ -32,6 +32,7 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const [lastTouchDistance, setLastTouchDistance] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showCode, setShowCode] = useState(false);
@@ -113,26 +114,51 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
     setIsDragging(false);
   };
 
+  /**
+   * 计算两点间的距离（用于捏合缩放）
+   */
+  const getTouchDistance = (touch1, touch2) => {
+    return Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+  };
+
   const handleTouchStart = (e) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
       const touch = e.touches[0];
       setLastMousePos({ x: touch.clientX, y: touch.clientY });
+    } else if (e.touches.length === 2) {
+      // 开始捏合缩放，停止平移
+      setIsDragging(false);
+      const dist = getTouchDistance(e.touches[0], e.touches[1]);
+      setLastTouchDistance(dist);
     }
   };
 
   const handleTouchMove = (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - lastMousePos.x;
-    const dy = touch.clientY - lastMousePos.y;
-    setPan(p => ({ x: p.x + dx, y: p.y + dy }));
-    setLastMousePos({ x: touch.clientX, y: touch.clientY });
+    // 阻止默认行为以防止页面滚动
     if (e.cancelable) e.preventDefault();
+
+    if (e.touches.length === 1 && isDragging) {
+      // 单指平移
+      const touch = e.touches[0];
+      const dx = touch.clientX - lastMousePos.x;
+      const dy = touch.clientY - lastMousePos.y;
+      setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+      setLastMousePos({ x: touch.clientX, y: touch.clientY });
+    } else if (e.touches.length === 2 && lastTouchDistance !== null) {
+      // 双指缩放
+      const dist = getTouchDistance(e.touches[0], e.touches[1]);
+      const delta = dist - lastTouchDistance;
+      // 根据距离变化调整缩放比例
+      const zoomFactor = delta * 0.01;
+      setScale(s => Math.min(Math.max(s + zoomFactor, 0.5), 5));
+      setLastTouchDistance(dist);
+    }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
+    setLastTouchDistance(null);
   };
 
   const handleCopyCode = () => {
@@ -313,7 +339,7 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
 
       <div 
         ref={containerRef}
-        className={`overflow-hidden relative ${isFullscreen ? 'flex-1' : 'h-[400px]'}`}
+        className={`overflow-hidden relative touch-none ${isFullscreen ? 'flex-1' : 'h-[400px]'}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -322,11 +348,10 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false }) => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onWheel={(e) => {
-          if (isFullscreen || e.ctrlKey) {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            setScale(s => Math.min(Math.max(s + delta, 0.5), 5));
-          }
+          // 无论是否全屏，滚轮都在此区域触发缩放而非页面滚动
+          e.preventDefault();
+          const delta = e.deltaY > 0 ? -0.1 : 0.1;
+          setScale(s => Math.min(Math.max(s + delta, 0.5), 5));
         }}
       >
         {showCode ? (
