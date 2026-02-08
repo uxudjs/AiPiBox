@@ -40,6 +40,25 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false, isBloc
   const containerRef = useRef(null);
   const chartRef = useRef(null);
 
+  // 处理滚轮缩放，使用原生事件以支持 { passive: false }
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+      // 无论是否全屏，滚轮都在此区域触发缩放而非页面滚动
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setScale(s => Math.min(Math.max(s + delta, 0.5), 5));
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [svg]); // 当 SVG 渲染完成后（container 挂载后）绑定事件
+
   /**
    * 自动修复 Mermaid 语法中常见的 AI 生成错误
    * @param {string} text - 原始文本
@@ -354,13 +373,6 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false, isBloc
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onWheel={(e) => {
-          // 无论是否全屏，滚轮都在此区域触发缩放而非页面滚动
-          e.preventDefault();
-          e.stopPropagation();
-          const delta = e.deltaY > 0 ? -0.1 : 0.1;
-          setScale(s => Math.min(Math.max(s + delta, 0.5), 5));
-        }}
       >
         {showCode ? (
           <div className="absolute inset-0 overflow-auto p-4 bg-muted/30 font-mono text-sm text-black dark:text-gray-300">
