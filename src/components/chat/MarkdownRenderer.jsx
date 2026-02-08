@@ -6,17 +6,11 @@
 
 import React, { useEffect, useState, useRef, Component, createContext, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
-
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-
-/**
- * Markdown 上下文，用于传递渲染状态
- */
-const MarkdownContext = createContext({ content: '', isGenerating: false });
 import { 
   Copy, Play, ExternalLink, Check, Info, Image as ImageIcon
 } from 'lucide-react';
@@ -27,6 +21,11 @@ import ImagePreviewModal from '../ui/ImagePreviewModal';
 import MermaidRenderer from './MermaidRenderer';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/atom-one-dark.css';
+
+/**
+ * Markdown 上下文，用于传递渲染状态
+ */
+const MarkdownContext = createContext({ content: '', isGenerating: false });
 
 /**
  * 代码块增强展示组件
@@ -249,138 +248,139 @@ const MarkdownRendererContent = ({ content = '', isGenerating = false }) => {
   const mainContent = safeContent.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
 
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none 
-      prose-headings:font-bold prose-headings:text-foreground
-      prose-p:text-foreground prose-p:leading-7
-      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-      prose-strong:text-foreground prose-strong:font-bold
-      prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
-      prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0
-      prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground
-      prose-ul:text-foreground prose-ol:text-foreground
-      prose-li:text-foreground prose-li:marker:text-muted-foreground
-      prose-table:text-foreground prose-th:text-foreground prose-td:text-foreground
-      prose-hr:border-border
-      prose-img:rounded-lg prose-img:shadow-md">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[
-          rehypeKatex, 
-          rehypeRaw,
-          [rehypeSanitize, {
-            ...defaultSchema,
-            attributes: {
-              ...defaultSchema.attributes,
-              code: [...(defaultSchema.attributes?.code || []), 'className'],
-              span: [...(defaultSchema.attributes?.span || []), 'className', 'style'],
-              div: [...(defaultSchema.attributes?.div || []), 'className', 'style'],
-              iframe: ['srcDoc', 'className', 'style', 'title', 'sandbox', 'width', 'height']
-            },
-            tagNames: [...(defaultSchema.tagNames || []), 'iframe']
-          }]
-        ]}
-        components={{
-          code({ node, inline, className, children, ...props }) {
-            const { content: fullContent, isGenerating: totalGenerating } = useContext(MarkdownContext);
-            const match = /language-(\w+)/.exec(className || '');
-            const language = match ? match[1] : '';
-            const value = String(children).replace(/\n$/, '');
-            
-            // 计算代码块是否已完整（流式输出中，如果当前节点位置不是全文末尾，则认为该块已结束）
-            const isComplete = !totalGenerating || (node.position && node.position.end.offset < fullContent.length);
+    <MarkdownContext.Provider value={contextValue}>
+      <div className="prose prose-sm dark:prose-invert max-w-none 
+        prose-headings:font-bold prose-headings:text-foreground
+        prose-p:text-foreground prose-p:leading-7
+        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+        prose-strong:text-foreground prose-strong:font-bold
+        prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
+        prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0
+        prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground
+        prose-ul:text-foreground prose-ol:text-foreground
+        prose-li:text-foreground prose-li:marker:text-muted-foreground
+        prose-table:text-foreground prose-th:text-foreground prose-td:text-foreground
+        prose-hr:border-border
+        prose-img:rounded-lg prose-img:shadow-md">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[
+            rehypeKatex, 
+            rehypeRaw,
+            [rehypeSanitize, {
+              ...defaultSchema,
+              attributes: {
+                ...defaultSchema.attributes,
+                code: [...(defaultSchema.attributes?.code || []), 'className'],
+                span: [...(defaultSchema.attributes?.span || []), 'className', 'style'],
+                div: [...(defaultSchema.attributes?.div || []), 'className', 'style'],
+                iframe: ['srcDoc', 'className', 'style', 'title', 'sandbox', 'width', 'height']
+              },
+              tagNames: [...(defaultSchema.tagNames || []), 'iframe']
+            }]
+          ]}
+          components={{
+            code({ node, inline, className, children, ...props }) {
+              const { content: fullContent, isGenerating: totalGenerating } = useContext(MarkdownContext);
+              const match = /language-(\w+)/.exec(className || '');
+              const language = match ? match[1] : '';
+              const value = String(children).replace(/\n$/, '');
+              
+              // 计算代码块是否已完整（流式输出中，如果当前节点位置不是全文末尾，则认为该块已结束）
+              const isComplete = !totalGenerating || (node.position && node.position.end.offset < fullContent.length);
 
-            if (language === 'mermaid') {
-              return <MermaidRenderer content={value} isGenerating={totalGenerating} isBlockComplete={isComplete} />;
+              if (language === 'mermaid') {
+                return <MermaidRenderer content={value} isGenerating={totalGenerating} isBlockComplete={isComplete} />;
+              }
+              
+              return !inline ? (
+                <CodeBlock language={language} value={value} isComplete={isComplete} />
+              ) : (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            },
+            p({ children }) {
+              return <p className="mb-4 last:mb-0">{children}</p>;
+            },
+            h1({ children }) {
+              return <h1 className="text-2xl font-bold mt-6 mb-4 first:mt-0">{children}</h1>;
+            },
+            h2({ children }) {
+              return <h2 className="text-xl font-bold mt-5 mb-3 first:mt-0">{children}</h2>;
+            },
+            h3({ children }) {
+              return <h3 className="text-lg font-bold mt-4 mb-2 first:mt-0">{children}</h3>;
+            },
+            ul({ children }) {
+              return <ul className="list-disc list-outside ml-6 my-4 space-y-2">{children}</ul>;
+            },
+            ol({ children }) {
+              return <ol className="list-decimal list-outside ml-6 my-4 space-y-2">{children}</ol>;
+            },
+            li({ children }) {
+              return <li className="leading-7">{children}</li>;
+            },
+            blockquote({ children }) {
+              return <blockquote className="border-l-4 border-primary pl-4 my-4 italic text-muted-foreground">{children}</blockquote>;
+            },
+            table({ children }) {
+              return (
+                <div className="my-4 overflow-x-auto">
+                  <table className="min-w-full border-collapse border border-border">{children}</table>
+                </div>
+              );
+            },
+            thead({ children }) {
+              return <thead className="bg-muted">{children}</thead>;
+            },
+            tbody({ children }) {
+              return <tbody className="divide-y divide-border">{children}</tbody>;
+            },
+            tr({ children }) {
+              return <tr className="border-b border-border">{children}</tr>;
+            },
+            th({ children }) {
+              return <th className="px-4 py-2 text-left font-semibold border border-border">{children}</th>;
+            },
+            td({ children }) {
+              return <td className="px-4 py-2 border border-border">{children}</td>;
+            },
+            hr() {
+              return <hr className="my-6 border-border" />;
+            },
+            a({ href, children }) {
+              return (
+                <a 
+                  href={href} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  {children}
+                </a>
+              );
+            },
+            img({ src, alt }) {
+              return (
+                <img 
+                  src={src} 
+                  alt={alt} 
+                  loading="lazy"
+                  className="rounded-lg shadow-md max-w-full h-auto max-h-[500px] my-2 cursor-pointer hover:opacity-90 transition-opacity" 
+                  onClick={() => setPreviewImage(src)}
+                />
+              );
             }
-            
-            return !inline ? (
-              <CodeBlock language={language} value={value} isComplete={isComplete} />
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-          p({ children }) {
-            return <p className="mb-4 last:mb-0">{children}</p>;
-          },
-          h1({ children }) {
-            return <h1 className="text-2xl font-bold mt-6 mb-4 first:mt-0">{children}</h1>;
-          },
-          h2({ children }) {
-            return <h2 className="text-xl font-bold mt-5 mb-3 first:mt-0">{children}</h2>;
-          },
-          h3({ children }) {
-            return <h3 className="text-lg font-bold mt-4 mb-2 first:mt-0">{children}</h3>;
-          },
-          ul({ children }) {
-            return <ul className="list-disc list-outside ml-6 my-4 space-y-2">{children}</ul>;
-          },
-          ol({ children }) {
-            return <ol className="list-decimal list-outside ml-6 my-4 space-y-2">{children}</ol>;
-          },
-          li({ children }) {
-            return <li className="leading-7">{children}</li>;
-          },
-          blockquote({ children }) {
-            return <blockquote className="border-l-4 border-primary pl-4 my-4 italic text-muted-foreground">{children}</blockquote>;
-          },
-          table({ children }) {
-            return (
-              <div className="my-4 overflow-x-auto">
-                <table className="min-w-full border-collapse border border-border">{children}</table>
-              </div>
-            );
-          },
-          thead({ children }) {
-            return <thead className="bg-muted">{children}</thead>;
-          },
-          tbody({ children }) {
-            return <tbody className="divide-y divide-border">{children}</tbody>;
-          },
-          tr({ children }) {
-            return <tr className="border-b border-border">{children}</tr>;
-          },
-          th({ children }) {
-            return <th className="px-4 py-2 text-left font-semibold border border-border">{children}</th>;
-          },
-          td({ children }) {
-            return <td className="px-4 py-2 border border-border">{children}</td>;
-          },
-          hr() {
-            return <hr className="my-6 border-border" />;
-          },
-          a({ href, children }) {
-            return (
-              <a 
-                href={href} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                {children}
-              </a>
-            );
-          },
-          img({ src, alt }) {
-            return (
-              <img 
-                src={src} 
-                alt={alt} 
-                loading="lazy"
-                className="rounded-lg shadow-md max-w-full h-auto max-h-[500px] my-2 cursor-pointer hover:opacity-90 transition-opacity" 
-                onClick={() => setPreviewImage(src)}
-              />
-            );
-          }
-        }}
-      >
-        {mainContent}
-      </ReactMarkdown>
-      {previewImage && (
-        <ImagePreviewModal src={previewImage} onClose={() => setPreviewImage(null)} />
-      )}
-    </div>
+          }}
+        >
+          {mainContent}
+        </ReactMarkdown>
+        {previewImage && (
+          <ImagePreviewModal src={previewImage} onClose={() => setPreviewImage(null)} />
+        )}
+      </div>
     </MarkdownContext.Provider>
   );
 };
