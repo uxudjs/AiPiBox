@@ -11,6 +11,9 @@ import { logger } from '../services/logger';
 import { syncService } from '../services/syncService';
 import { useI18nStore } from '../i18n';
 
+// 恢复任务轮询最大重试次数，防止 generating 状态永久卡死导致无限递归
+const MAX_RESUME_RETRIES = 10;
+
 export const useChatStore = create((set, get) => ({
   currentConversationId: null,
   isIncognito: false,
@@ -466,7 +469,7 @@ export const useChatStore = create((set, get) => ({
 
       if (!title || typeof title !== 'string') return;
 
-      let cleanTitle = title.replace(/["'「」]/g, '').trim();
+      let cleanTitle = title.replace(/[\"'「」]/g, '').trim();
       if (cleanTitle.length >= 30) cleanTitle = cleanTitle.substring(0, 30);
       
       const isCurrentConversation = get().currentConversationId === id;
@@ -483,7 +486,89 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 获取当前对话路径下的有序消息序列
+   * 按分支树路径遍历消息，返回当前选中路径的有序序列（不截断完整版）
+   * 供内部逻辑（AI 发送、删除子节点收集等）使用，不受 200 条渲染限制。
+   * @param {string} conversationId - 对话 ID
+   * @returns {Promise<Array>} 完整路径消息数组
+   */
+  getFullMessagePath: async (conversationId) => {
+    try {
+      if (!conversationId || conversationId === 'incognito') return [];
+
+      const MESSAGE_FETCH_LIMIT = 5000;
+      const allMessages = await db.messages
+        .where('conversationId')
+        .equals(conversationId)
+        .limit(MESSAGE_FETCH_LIMIT)
+        .sortBy('timestamp');
+
+      if (!allMessages || allMessages.length === 0) return [];
+
+      const msgMap = new Map();
+      const childrenMap = new Map();
+
+      const normalizeId = (id) => (id === undefined || id === null) ? 'root' : String(id);
+
+      allMessages.forEach(m => {
+        if (m && m.id !== undefined && m.id !== null) {
+          const mid = normalizeId(m.id);
+          msgMap.set(mid, m);
+
+          const pid = normalizeId(m.parentId);
+          if (!childrenMap.has(pid)) childrenMap.set(pid, []);
+          childrenMap.get(pid).push(m);
+        }
+      });
+
+      childrenMap.forEach(children => children.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)));
+
+      const path = [];
+
+      let roots = childrenMap.get('root') || [];
+      if (roots.length === 0) {
+        const firstMsg = allMessages[0];
+        if (firstMsg) {
+          roots = [firstMsg];
+        } else {
+          return [];
+        }
+      }
+
+      let currentMsg = roots[0];
+      const visited = new Set();
+      const MAX_ITERATIONS = 5000;
+      let iterations = 0;
+
+      while (currentMsg && iterations < MAX_ITERATIONS) {
+        const currentMid = normalizeId(currentMsg.id);
+
+        if (visited.has(currentMid)) break;
+        visited.add(currentMid);
+        iterations++;
+
+        path.push(currentMsg);
+
+        const children = childrenMap.get(currentMid);
+        if (!children || children.length === 0) break;
+
+        let nextId = currentMsg.selectedChildId;
+        let nextMsg = nextId ? msgMap.get(normalizeId(nextId)) : null;
+
+        if (!nextMsg || normalizeId(nextMsg.parentId) !== currentMid) {
+          nextMsg = children[0];
+        }
+        currentMsg = nextMsg;
+      }
+
+      return path;
+    } catch (error) {
+      logger.error('useChatStore', 'Failed to get full message path:', error);
+      return [];
+    }
+  },
+
+  /**
+   * 获取当前对话路径下的有序消息序列（渲染用，超出 200 条时截断尾部）
    * 遍历多分支树并根据选中标识仅返回当前选中的路径分支。
    * @param {string} conversationId - 对话 ID
    * @returns {Promise<Array>} 消息路径数组
@@ -627,8 +712,10 @@ export const useChatStore = create((set, get) => ({
 
   /**
    * 恢复中断中的 AI 生成任务
+   * 通过重试计数防止 generating 状态永久卡死导致无限递归轮询。
+   * @param {number} [retryCount=0] - 当前已重试次数（内部递归使用）
    */
-  resumePendingTasks: async () => {
+  resumePendingTasks: async (retryCount = 0) => {
     const generatingMessages = await db.messages
       .where('status')
       .equals('generating')
@@ -667,7 +754,15 @@ export const useChatStore = create((set, get) => ({
           await get().updateMessageById(msg.id, {
             content: taskData.content
           });
-          setTimeout(() => get().resumePendingTasks(), 3000);
+
+          // 超过最大重试次数时，将任务标记为失败，终止轮询防止无限递归
+          if (retryCount >= MAX_RESUME_RETRIES) {
+            logger.warn('useChatStore', `Task ${msg.taskId} still generating after ${MAX_RESUME_RETRIES} retries, marking as failed`);
+            await get().updateMessageById(msg.id, { status: 'failed' });
+            await get().setConversationGenerating(msg.conversationId, false);
+          } else {
+            setTimeout(() => get().resumePendingTasks(retryCount + 1), 3000);
+          }
         }
       } catch (e) {
         logger.error('useChatStore', `Failed to resume task ${msg.taskId}:`, e);
@@ -756,12 +851,48 @@ export const useChatStore = create((set, get) => ({
   },
 
   /**
-   * 删除指定位置的消息
+   * 递归收集指定消息节点的所有后代消息 ID
+   * @param {string} messageId - 起始消息 ID（不含自身）
+   * @param {string} conversationId - 对话 ID
+   * @returns {Promise<Array<string>>} 所有后代消息 ID 列表
+   */
+  collectDescendantIds: async (messageId, conversationId) => {
+    const allMessages = await db.messages
+      .where('conversationId')
+      .equals(conversationId)
+      .toArray();
+
+    const childrenMap = new Map();
+    allMessages.forEach(m => {
+      if (m.parentId !== undefined && m.parentId !== null) {
+        const pid = String(m.parentId);
+        if (!childrenMap.has(pid)) childrenMap.set(pid, []);
+        childrenMap.get(pid).push(String(m.id));
+      }
+    });
+
+    const descendants = [];
+    const queue = [String(messageId)];
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      const children = childrenMap.get(current) || [];
+      for (const childId of children) {
+        descendants.push(childId);
+        queue.push(childId);
+      }
+    }
+
+    return descendants;
+  },
+
+  /**
+   * 删除指定位置的消息及其所有后代节点
    * @param {string} conversationId - 对话 ID
    * @param {number} messageIndex - 消息在路径中的索引
    */
   deleteMessage: async (conversationId, messageIndex) => {
-    const { isIncognito, incognitoMessages, getMessages } = get();
+    const { isIncognito, incognitoMessages, getMessages, collectDescendantIds } = get();
     
     if (isIncognito || conversationId === 'incognito') {
       const updatedMessages = incognitoMessages.filter((_, i) => i !== messageIndex);
@@ -771,10 +902,13 @@ export const useChatStore = create((set, get) => ({
       const msg = path[messageIndex];
       
       if (msg) {
-        await recordDeletion('messages', msg.id);
+        // 收集所有后代节点 ID，与自身一并删除，避免产生孤兒消息
+        const descendantIds = await collectDescendantIds(msg.id, conversationId);
+        const allIdsToDelete = [msg.id, ...descendantIds];
 
-        await db.messages.delete(msg.id);
-        
+        await recordBatchDeletion('messages', allIdsToDelete);
+        await db.messages.where('id').anyOf(allIdsToDelete).delete();
+
         if (msg.parentId) {
            const parent = await db.messages.get(msg.parentId);
            if (parent && parent.selectedChildId === msg.id) {
@@ -1014,6 +1148,7 @@ export const useChatStore = create((set, get) => ({
 
   /**
    * 获取发送给 AI 的消息负载
+   * 基于分支树路径过滤（而非全量 sortBy），确保多分支对话下上下文准确。
    * 自动过滤已压缩消息并注入最新的摘要节点。
    * @param {string} conversationId - 对话 ID
    * @returns {Promise<Array>} 处理后的消息列表
@@ -1021,24 +1156,23 @@ export const useChatStore = create((set, get) => ({
   getMessagesForAI: async (conversationId) => {
     try {
       const conversation = await db.conversations.get(conversationId);
-      const messages = await db.messages
-        .where('conversationId')
-        .equals(conversationId)
-        .sortBy('timestamp');
-      
+
+      // 使用树路径遍历而非 sortBy，保证多分支场景下只取当前选中路径
+      const pathMessages = await get().getFullMessagePath(conversationId);
+
       if (!conversation?.compressionData) {
-        return messages.filter(m => !m.isCompressed && !m.isCompressionSummary);
+        return pathMessages.filter(m => !m.isCompressed && !m.isCompressionSummary);
       }
       
       const { compressedContent, compressedMessageIds } = conversation.compressionData;
       
-      const uncompressedMessages = messages.filter(
+      const uncompressedMessages = pathMessages.filter(
         m => !compressedMessageIds.includes(m.id) && !m.isCompressionSummary && !m.isCompressed
       );
       
       let virtualTimestamp = Date.now();
       if (compressedMessageIds.length > 0) {
-        const firstCompressed = messages.find(m => m.id === compressedMessageIds[0]);
+        const firstCompressed = pathMessages.find(m => m.id === compressedMessageIds[0]);
         if (firstCompressed) virtualTimestamp = firstCompressed.timestamp;
       }
       
