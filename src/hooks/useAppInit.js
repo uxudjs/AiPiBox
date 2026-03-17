@@ -27,9 +27,14 @@ export const useAppInit = () => {
 
   useEffect(() => {
     const initBase = async () => {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(t('app.initTimeout') || '初始化超时')), APP_INIT_TIMEOUT)
-      );
+      // 保存 timer ID 以便竞赛结束后及时清除，避免资源泄漏
+      let timeoutId = null;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(t('app.initTimeout') || '初始化超时')),
+          APP_INIT_TIMEOUT
+        );
+      });
 
       const loadPromise = Promise.all([
         loadTheme().catch(err => logger.error('useAppInit', 'Theme load error', err)),
@@ -46,6 +51,8 @@ export const useAppInit = () => {
         logger.error('useAppInit', 'Base environment initialization failed', err);
         setInitError(err.message || t('app.initFailed'));
       } finally {
+        // 无论正常完成还是报错，均清除超时计时器，防止悬空 timer
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };
