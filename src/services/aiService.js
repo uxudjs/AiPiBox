@@ -124,12 +124,10 @@ const checkSecureConnection = (url) => {
 const buildTargetUrl = (baseUrl, endpoint, format, provider) => {
   let url = normalizeBaseUrl(baseUrl);
   checkSecureConnection(url);
-  
+
+  // Azure 的完整端点在 chatCompletion 中单独构建（含 deployment/api-version），此处直接返回
   if (provider === 'azure' || url.includes('openai.azure.com')) {
-    if (url.includes('/chat/completions') || url.includes('/models')) {
-      return url;
-    }
-    return url; 
+    return url;
   }
 
   if (format === 'gemini' || format === 'google') {
@@ -164,6 +162,16 @@ const buildTargetUrl = (baseUrl, endpoint, format, provider) => {
     return `${url}${endpoint}`;
   }
 
+  // 火山引擎 Ark 平台路径前缀为 /api/v3，而非标准 /v1
+  if (url.includes('volces.com')) {
+    return `${url}/api/v3${endpoint}`;
+  }
+
+  // 智谱 AI (ChatGLM) 路径前缀为 /api/paas/v4，而非标准 /v1
+  if (url.includes('open.bigmodel.cn')) {
+    return `${url}/api/paas/v4${endpoint}`;
+  }
+
   return `${url}/v1${endpoint}`;
 };
 
@@ -195,7 +203,8 @@ const formatters = {
     const { max_thinking_tokens, ...rest } = options;
     const payload = {
       model,
-      system: systemMessage?.content,
+      // system 为空字符串时 Anthropic 返回 400，需过滤
+      system: systemMessage?.content || undefined,
       messages: userAssistantMessages.map(m => {
         let content = m.content;
         if (Array.isArray(content)) {
@@ -272,14 +281,21 @@ const formatters = {
 
     return {
       contents: filteredContents,
-      system_instruction: systemMessage ? { parts: [{ text: systemMessage.content }] } : undefined,
+      // 官方字段名为驼峰式 systemInstruction，且需含 role 字段；蛇形 system_instruction 会被静默忽略
+      systemInstruction: systemMessage
+        ? { role: 'user', parts: [{ text: systemMessage.content }] }
+        : undefined,
       generationConfig: {
         maxOutputTokens: options.max_tokens,
         temperature: options.temperature,
         topP: options.top_p,
         topK: options.top_k,
         stopSequences: options.stop,
-        candidateCount: options.n
+        candidateCount: options.n,
+        // Gemini 2.5 系列思考功能通过 thinkingConfig.thinkingBudget 控制
+        ...(options.max_thinking_tokens
+          ? { thinkingConfig: { thinkingBudget: options.max_thinking_tokens } }
+          : {})
       }
     };
   }
@@ -332,8 +348,9 @@ const parsers = {
       let reasoning = '';
 
       parts.forEach((part) => {
-        if (part.thought === true || part.thought || part.reasoning_content || part.thought_process) {
-          reasoning += part.text || part.reasoning_content || part.thought_process || '';
+        // 官方字段为 thought: boolean，严格判断避免误分类
+        if (part.thought === true) {
+          reasoning += part.text || '';
         } else if (part.text) {
           content += part.text;
         }
@@ -403,17 +420,13 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
     headers['anthropic-version'] = '2023-06-01';
     headers['anthropic-dangerous-direct-browser-access'] = 'true';
   } else if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
-    if (baseUrl && baseUrl.includes('/chat/completions')) {
-      targetUrl = baseUrl;
-    } else {
-       targetUrl = baseUrl;
-    }
+    targetUrl = baseUrl;
     method = 'POST';
     data = { messages: [{role:'user', content:'hi'}], max_tokens: 1 };
     headers['api-key'] = apiKey;
   } else {
     targetUrl = buildTargetUrl(baseUrl, '/models', format, provider);
-    headers['Authorization'] = `Bearer ${apiKey}`;
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
   logger.debug('aiService', 'Testing connection to:', targetUrl, { useProxy: isProxy });
@@ -479,7 +492,7 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
     targetUrl = buildTargetUrl(baseUrl, '/models', format, provider) + `?key=${apiKey}`;
   } else {
     targetUrl = buildTargetUrl(baseUrl, '/models', format, provider);
-    headers['Authorization'] = `Bearer ${apiKey}`;
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
   logger.debug('aiService', 'Fetching models from:', targetUrl, { useProxy: isProxy });
@@ -771,7 +784,10 @@ export async function chatCompletion({
     headers['anthropic-version'] = '2023-06-01';
     headers['anthropic-dangerous-direct-browser-access'] = 'true';
   } else if (format !== 'gemini') {
-    headers['Authorization'] = `Bearer ${apiKey}`;
+    // Ollama/LM Studio 等本地服务通常无需认证，apiKey 为空时不附加头部
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
   }
 
   const formatter = formatters[format] || formatters['openai'];
@@ -954,7 +970,14 @@ export async function chatCompletion({
           return parts.map(p => p.text || '').join('');
         } else if (format === 'claude') {
           const contents = response.data.content || [];
-          return contents.map(c => c.text || '').join('');
+          // Extended Thinking 开启时 content 数组含 thinking 块，单独提取后触发回调
+          const thinkingBlocks = contents.filter(c => c.type === 'thinking');
+          const textBlocks = contents.filter(c => c.type === 'text');
+          if (thinkingBlocks.length > 0 && onThinking) {
+            onThinking(thinkingBlocks.map(c => c.thinking || '').join(''));
+            if (onThinkingEnd) onThinkingEnd();
+          }
+          return textBlocks.map(c => c.text || '').join('');
         }
         return response.data.choices[0].message.content;
       }
@@ -1062,9 +1085,8 @@ export async function generateImage({
   if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
     headers['api-key'] = apiKey;
   } else if (provider !== AI_PROVIDERS.GOOGLE && format !== 'gemini' && format !== 'google') {
-    if (provider === 'perplexity' || (baseUrl && baseUrl.includes('api.perplexity.ai'))) {
-      headers['Authorization'] = apiKey;
-    } else {
+    // 所有 OpenAI 兼容提供商（含 Perplexity）统一使用标准 Bearer 格式
+    if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
   }
