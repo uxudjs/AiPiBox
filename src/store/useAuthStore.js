@@ -4,49 +4,24 @@
  */
 
 import { create } from 'zustand';
-import { hashPassword } from '../utils/crypto';
+import { hashPassword, encryptData, decryptData } from '../utils/crypto';
 import { db } from '../db';
 import { logger } from '../services/logger';
 
 const STORAGE_KEY = 'aipibox_auth_persist';
-const OBFUSCATE_KEY = 'AiPiBox_Secure_Salt_v1';
 
 /**
- * 基础字符混淆
- * @param {string} text - 原始文本
- * @returns {string} 混淆后的十六进制字符串
+ * 派生本地设备绑定密钥
+ * 基于当前域名与 UserAgent 生成一个只在本环境有效的加密密钥，
+ * 确保 localStorage 数据即使被提取也无法在其他环境解密。
+ * @returns {Promise<string>} 十六进制指纹字符串
  */
-const obfuscate = (text) => {
-  try {
-    let result = '';
-    for (let i = 0; i < text.length; i++) {
-      const charCode = text.charCodeAt(i) ^ OBFUSCATE_KEY.charCodeAt(i % OBFUSCATE_KEY.length);
-      result += charCode.toString(16).padStart(4, '0');
-    }
-    return result;
-  } catch (e) {
-    logger.error('useAuthStore', 'Obfuscation failed', e);
-    return '';
-  }
-};
-
-/**
- * 还原混淆字符
- * @param {string} hex - 混淆后的字符串
- * @returns {string} 还原后的文本
- */
-const deobfuscate = (hex) => {
-  try {
-    let result = '';
-    for (let i = 0; i < hex.length; i += 4) {
-      const charCode = parseInt(hex.substring(i, i + 4), 16);
-      result += String.fromCharCode(charCode ^ OBFUSCATE_KEY.charCodeAt((i / 4) % OBFUSCATE_KEY.length));
-    }
-    return result;
-  } catch (e) {
-    logger.error('useAuthStore', 'Deobfuscation failed', e);
-    return '';
-  }
+const deriveDeviceKey = async () => {
+  const raw = `${location.origin}::${navigator.userAgent}`;
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest('SHA-256', enc.encode(raw));
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
 /**
@@ -78,11 +53,13 @@ export const useAuthStore = create((set, get) => ({
         try {
           const persisted = localStorage.getItem(STORAGE_KEY);
           if (persisted) {
-            const { p: encodedPass, e: expiry, m: mode } = JSON.parse(persisted);
+            const { c: encryptedPass, e: expiry, m: mode } = JSON.parse(persisted);
             
             if (expiry > Date.now()) {
-              const password = deobfuscate(encodedPass);
+              const deviceKey = await deriveDeviceKey();
+              const password = await decryptData(encryptedPass, deviceKey);
               const inputHash = await hashPassword(password);
+
               if (passwordHash.value === inputHash) {
                 set({ 
                   isInitialized: true, 
@@ -144,7 +121,7 @@ export const useAuthStore = create((set, get) => ({
    * 设置登录保持策略
    * @param {string} mode - 持久化模式标识
    */
-  setPersistence: (mode) => {
+  setPersistence: async (mode) => {
     const { sessionPassword, isAuthenticated } = get();
     
     if (!isAuthenticated || !sessionPassword) return;
@@ -155,18 +132,23 @@ export const useAuthStore = create((set, get) => ({
       return;
     }
 
-    const duration = PERSISTENCE_OPTIONS[mode];
-    const expiry = Date.now() + duration;
-    const encodedPass = obfuscate(sessionPassword);
-    
-    const data = {
-      p: encodedPass,
-      e: expiry,
-      m: mode
-    };
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    set({ persistenceMode: mode });
+    try {
+      const duration = PERSISTENCE_OPTIONS[mode];
+      const expiry = Date.now() + duration;
+      const deviceKey = await deriveDeviceKey();
+      const encryptedPass = await encryptData(sessionPassword, deviceKey);
+      
+      const data = {
+        c: encryptedPass,
+        e: expiry,
+        m: mode
+      };
+      
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      set({ persistenceMode: mode });
+    } catch (e) {
+      logger.error('useAuthStore', 'Failed to persist login state', e);
+    }
   },
 
   /**
@@ -186,4 +168,5 @@ export const useAuthStore = create((set, get) => ({
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     return regex.test(password);
   }
+}));
 }));
