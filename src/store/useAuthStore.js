@@ -169,4 +169,3 @@ export const useAuthStore = create((set, get) => ({
     return regex.test(password);
   }
 }));
-}));
