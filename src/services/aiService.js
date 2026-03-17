@@ -35,6 +35,19 @@ export const AI_PROVIDERS = {
 };
 
 /**
+ * 不支持图像生成的提供商列表
+ * 这些提供商没有独立的图像生成 API 端点
+ */
+const IMAGE_UNSUPPORTED_PROVIDERS = new Set([
+  AI_PROVIDERS.DEEPSEEK,   // 无图像生成 API
+  AI_PROVIDERS.GROQ,       // 仅支持图像理解（Vision），不支持生成
+  AI_PROVIDERS.PERPLEXITY, // 无图像生成端点
+  AI_PROVIDERS.MISTRAL,    // 仅通过 Agents API Beta 工具支持，无独立端点
+  AI_PROVIDERS.LMSTUDIO,   // REST API 无图像生成端点
+  AI_PROVIDERS.OLLAMA,     // 图像生成为实验性 CLI 功能，无稳定 REST 端点
+]);
+
+/**
  * 自动请求重试包装器
  * @param {Function} fn - 待执行的异步函数
  * @param {number} retries - 剩余重试次数
@@ -46,30 +59,30 @@ async function withRetry(fn, retries = 3, delay = 1000) {
     return await fn();
   } catch (error) {
     if (error.name === 'AbortError') throw error;
-    
+
     let status = error.response?.status;
     if (!status && error.message) {
       const match = error.message.match(/HTTP Error (\d+)/);
       if (match) status = parseInt(match[1], 10);
     }
-    
+
     if (status) {
       if (status >= 400 && status < 500 && status !== 429) {
         logger.warn('aiService', `Client error (${status}), no retry:`, error.message);
         throw error;
       }
     }
-    
+
     if (error.noRetry) {
       logger.warn('aiService', `Error marked as non-retryable:`, error.message);
       throw error;
     }
-    
+
     if (retries <= 0) {
       logger.error('aiService', `Retry limit reached, request failed:`, error.message);
       throw error;
     }
-    
+
     // 处理 429 限流后的 Retry-After 标头
     let nextDelay = delay;
     if (status === 429) {
@@ -136,24 +149,24 @@ const buildTargetUrl = (baseUrl, endpoint, format, provider) => {
     }
     return `${url}${endpoint}`;
   }
-  
+
   if (format === 'claude') {
     if (!url.includes('/v1')) {
       url += '/v1';
     }
     return `${url}${endpoint}`;
   }
-  
+
   if (url.includes('/chat/completions')) {
     if (endpoint === '/models') {
-       return url.replace('/chat/completions', '/models');
+      return url.replace('/chat/completions', '/models');
     }
     return url;
   }
-  
+
   const lastPart = url.split('?')[0].split('/').pop();
   const hasVersion = /^v\d+/.test(lastPart) || lastPart === 'beta' || url.includes('/v1/');
-  
+
   if (hasVersion) {
     return `${url}${endpoint}`;
   }
@@ -187,19 +200,19 @@ const formatters = {
     }, {});
 
     const payload = { model, messages, ...filteredOptions };
-    
+
     const lowerModel = String(model).toLowerCase();
     if ((lowerModel.includes('o1') || lowerModel.includes('o3')) && payload.max_tokens) {
       payload.max_completion_tokens = payload.max_tokens;
       delete payload.max_tokens;
     }
-    
+
     return payload;
   },
   [AI_PROVIDERS.ANTHROPIC]: (messages, model, options) => {
     const systemMessage = messages.find(m => m.role === 'system');
     const userAssistantMessages = messages.filter(m => m.role !== 'system');
-    
+
     const { max_thinking_tokens, ...rest } = options;
     const payload = {
       model,
@@ -233,7 +246,7 @@ const formatters = {
       max_tokens: rest.max_tokens || 4096,
       ...rest
     };
-    
+
     if (max_thinking_tokens) {
       payload.thinking = { type: 'enabled', budget_tokens: max_thinking_tokens };
       if (payload.max_tokens <= max_thinking_tokens) {
@@ -245,7 +258,7 @@ const formatters = {
   [AI_PROVIDERS.GOOGLE]: (messages, model, options) => {
     const systemMessage = messages.find(m => m.role === 'system');
     const userModelMessages = messages.filter(m => m.role !== 'system');
-    
+
     const filteredContents = [];
     userModelMessages.forEach((m) => {
       const role = m.role === 'user' ? 'user' : 'model';
@@ -266,7 +279,7 @@ const formatters = {
       } else {
         parts = [{ text: m.content }];
       }
-      
+
       if (filteredContents.length > 0 && filteredContents[filteredContents.length - 1].role === role) {
         const lastContent = filteredContents[filteredContents.length - 1];
         lastContent.parts = [...lastContent.parts, ...parts];
@@ -377,7 +390,7 @@ function getProxyUrl(proxyConfig = {}) {
   if (proxyConfig.cloudUrl) {
     return proxyConfig.cloudUrl;
   }
-  
+
   try {
     const autoUrl = getProxyApiUrl();
     logger.debug('aiService', 'Auto-detected proxy URL:', autoUrl);
@@ -400,7 +413,7 @@ function getProxyUrl(proxyConfig = {}) {
 export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}, format = 'openai') {
   const isProxy = proxyConfig.enabled === true;
   const proxyUrl = isProxy ? getProxyUrl(proxyConfig) : null;
-  
+
   let targetUrl;
   let headers = { 'Content-Type': 'application/json' };
   let method = 'GET';
@@ -411,10 +424,10 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
   } else if (format === 'claude') {
     targetUrl = buildTargetUrl(baseUrl, '/messages', format, provider);
     method = 'POST';
-    data = { 
-      model: 'claude-3-haiku-20240307', 
-      max_tokens: 1, 
-      messages: [{role:'user', content:'hi'}] 
+    data = {
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 1,
+      messages: [{ role: 'user', content: 'hi' }]
     };
     headers['x-api-key'] = apiKey;
     headers['anthropic-version'] = '2023-06-01';
@@ -422,7 +435,7 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
   } else if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
     targetUrl = baseUrl;
     method = 'POST';
-    data = { messages: [{role:'user', content:'hi'}], max_tokens: 1 };
+    data = { messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 };
     headers['api-key'] = apiKey;
   } else {
     targetUrl = buildTargetUrl(baseUrl, '/models', format, provider);
@@ -433,14 +446,14 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
 
   try {
     if (isProxy && proxyUrl) {
-      const res = await axios.post(proxyUrl, { 
-        url: targetUrl, 
+      const res = await axios.post(proxyUrl, {
+        url: targetUrl,
         method,
         headers,
         data
-      }, { 
+      }, {
         headers: { 'Content-Type': 'application/json' },
-        timeout: (proxyConfig.timeout || 30) * 1000 
+        timeout: (proxyConfig.timeout || 30) * 1000
       });
       return res.status === 200;
     }
@@ -455,7 +468,7 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
   } catch (error) {
     logger.error('aiService', 'Test connection failed:', error);
     let detail = error.response?.data?.error?.message || error.message;
-    
+
     if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
       if (isProxy) {
         detail = 'Unable to connect to cloud proxy server. Please check if the application is properly deployed and the proxy API is accessible.';
@@ -479,7 +492,7 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
  */
 export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, format = 'openai') {
   if (provider === 'azure') {
-    return []; 
+    return [];
   }
 
   const isProxy = proxyConfig.enabled === true;
@@ -503,61 +516,61 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
       try {
         let response;
         if (isProxy && proxyUrl) {
-          response = await axios.post(proxyUrl, { 
-            url: targetUrl, 
-            method: 'GET', 
-            headers: headers 
-          }, { 
+          response = await axios.post(proxyUrl, {
+            url: targetUrl,
+            method: 'GET',
+            headers: headers
+          }, {
             headers: { 'Content-Type': 'application/json' },
-            timeout: (proxyConfig.timeout || 30) * 1000 
+            timeout: (proxyConfig.timeout || 30) * 1000
           });
         } else {
           response = await axios.get(targetUrl, { headers });
         }
 
-    if (format === 'gemini') {
-      const geminiModels = response.data?.models || [];
-      if (!Array.isArray(geminiModels)) return [];
-          
-      return geminiModels.map(m => {
-        const id = String(m.name || '').split('/').pop() || 'unknown';
-        let displayName = m.displayName || m.display_name || m.displayname;
-        
-        if (!displayName) {
-          const inferredName = inferModelDisplayName(id, provider);
-          displayName = inferredName || id;
-        }
-        
-        const inferredCapabilities = inferModelCapabilities(id);
-            
-        return {
-          id: id,
-          name: displayName,
-          selected: false,
-          customId: '',
-          capabilities: {
-            tools: Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'),
-            thinking: inferredCapabilities.thinking,
-            multimodal: inferredCapabilities.multimodal || (m.inputTokenLimit || 0) > 0
-          }
-        };
-      });
-    }
+        if (format === 'gemini') {
+          const geminiModels = response.data?.models || [];
+          if (!Array.isArray(geminiModels)) return [];
 
-    const models = response.data.data || response.data;
-    if (!Array.isArray(models)) return [];
+          return geminiModels.map(m => {
+            const id = String(m.name || '').split('/').pop() || 'unknown';
+            let displayName = m.displayName || m.display_name || m.displayname;
+
+            if (!displayName) {
+              const inferredName = inferModelDisplayName(id, provider);
+              displayName = inferredName || id;
+            }
+
+            const inferredCapabilities = inferModelCapabilities(id);
+
+            return {
+              id: id,
+              name: displayName,
+              selected: false,
+              customId: '',
+              capabilities: {
+                tools: Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'),
+                thinking: inferredCapabilities.thinking,
+                multimodal: inferredCapabilities.multimodal || (m.inputTokenLimit || 0) > 0
+              }
+            };
+          });
+        }
+
+        const models = response.data.data || response.data;
+        if (!Array.isArray(models)) return [];
 
         return models.map(m => {
           const id = m.id || m.name;
           let displayName = m.displayName || m.display_name || m.displayname || m.display;
-          
+
           if (!displayName) {
             const inferredName = inferModelDisplayName(id, provider);
             displayName = inferredName || id;
           }
-          
+
           const capabilities = inferModelCapabilities(id);
-          
+
           return {
             id: id,
             name: displayName,
@@ -568,7 +581,7 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
         });
       } catch (error) {
         logger.error('aiService', 'Fetch models failed:', error);
-        
+
         if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
           if (isProxy) {
             const detail = 'Unable to connect to cloud proxy server. Please check if the application is properly deployed and the proxy API is accessible.';
@@ -594,9 +607,9 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
  */
 export async function search(query, engine, apiKey) {
   logger.info('aiService', 'Starting search:', { query, engine });
-  
+
   const { t } = useTranslation();
-  
+
   if (!query || !query.trim()) throw new Error(t('services.search.queryEmpty'));
 
   try {
@@ -750,12 +763,12 @@ export async function chatCompletion({
   };
 
   logger.debug('aiService', 'Processing chat request:', { provider, model, messageCount: messages?.length });
-  
+
   const isProxy = proxyConfig.enabled === true;
   const proxyUrl = isProxy ? getProxyUrl(proxyConfig) : null;
 
   let targetUrl;
-  
+
   if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
     const normalizedUrl = normalizeBaseUrl(baseUrl);
     if (normalizedUrl.includes('/chat/completions')) {
@@ -772,11 +785,11 @@ export async function chatCompletion({
   } else {
     targetUrl = buildTargetUrl(baseUrl, '/chat/completions', format, provider);
   }
-  
+
   logger.debug('aiService', 'Target URL:', targetUrl);
-  
+
   const headers = { 'Content-Type': 'application/json' };
-  
+
   if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
     headers['api-key'] = apiKey;
   } else if (format === 'claude') {
@@ -792,18 +805,18 @@ export async function chatCompletion({
 
   const formatter = formatters[format] || formatters['openai'];
   const payload = formatter(messages, model, options);
-  
+
   if (onStream && format !== 'gemini') {
     payload.stream = true;
   }
-  
+
   /**
    * 执行实际的请求逻辑
    */
   const executeRequest = async () => {
     let hasStreamedData = false;
     let done = false;
-    
+
     try {
       if (onStream) {
         const fetchUrl = (isProxy && proxyUrl) ? proxyUrl : targetUrl;
@@ -822,9 +835,9 @@ export async function chatCompletion({
           body: JSON.stringify(fetchBody),
           signal: signal || AbortSignal.timeout((proxyConfig.timeout || 300) * 1000)
         };
-        
+
         const response = await fetch(fetchUrl, fetchOptions);
-        
+
         if (!response.ok) {
           let errorMsg = `HTTP Error ${response.status}`;
           try {
@@ -838,7 +851,7 @@ export async function chatCompletion({
           } catch (e) {}
           throw new Error(errorMsg);
         }
-        
+
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         const parser = parsers[format] || parsers['openai'];
@@ -853,7 +866,7 @@ export async function chatCompletion({
           const { value, done: readerDone } = await reader.read();
           if (value) {
             buffer += decoder.decode(value, { stream: true });
-            
+
             let lineIndex;
             while ((lineIndex = buffer.indexOf('\n')) !== -1) {
               const line = buffer.slice(0, lineIndex).trim();
@@ -867,7 +880,7 @@ export async function chatCompletion({
               try {
                 const result = parser(line);
                 if (result?.done) { done = true; break; }
-                
+
                 if (result?.content) {
                   if (hasNativeReasoning && onThinkingEnd && !isReasoningEnded) {
                     onThinkingEnd();
@@ -876,7 +889,7 @@ export async function chatCompletion({
 
                   const currentContent = result.content;
                   detectionChunkCount++;
-                  
+
                   if (isAccumulativeMode === null && detectionChunkCount <= DETECTION_CHUNKS) {
                     if (detectionChunkCount === 1) {
                       accumulatedContent = currentContent;
@@ -927,7 +940,7 @@ export async function chatCompletion({
                     hasStreamedData = true;
                   }
                 }
-                
+
                 if (result?.reasoning && onThinking) {
                   hasNativeReasoning = true;
                   onThinking(result.reasoning);
@@ -939,7 +952,7 @@ export async function chatCompletion({
           }
           if (readerDone || done) break;
         }
-        
+
         if (buffer) {
           try {
             const result = parser(buffer.trim());
@@ -956,15 +969,15 @@ export async function chatCompletion({
           headers: headers,
           data: payload,
         } : payload;
-        
-        const axiosOptions = { 
+
+        const axiosOptions = {
           headers: isProxy ? { 'Content-Type': 'application/json' } : headers,
           timeout: (proxyConfig.timeout || 30) * 1000,
           signal: signal
         };
-        
+
         const response = await axios.post(axiosUrl, axiosData, axiosOptions);
-        
+
         if (format === 'gemini') {
           const parts = response.data.candidates?.[0]?.content?.parts || [];
           return parts.map(p => p.text || '').join('');
@@ -1044,10 +1057,10 @@ export async function compressMessages(params) {
     },
     {
       role: 'user',
-      content: `Please compress:\n\n${messages.map((m, i) => `[${i+1}] ${m.role}: ${JSON.stringify(m.content)}`).join('\n')}`
+      content: `Please compress:\n\n${messages.map((m, i) => `[${i + 1}] ${m.role}: ${JSON.stringify(m.content)}`).join('\n')}`
     }
   ];
-  
+
   try {
     const res = await chatCompletion({
       provider, model, messages: compressionMessages, apiKey, baseUrl, proxyConfig, format,
@@ -1060,9 +1073,71 @@ export async function compressMessages(params) {
 }
 
 /**
+ * 轮询阿里云 DashScope 异步图像生成任务直到完成
+ * @param {string} taskId - 任务 ID
+ * @param {string} apiKey - API 密钥
+ * @param {string} baseUrl - 基础地址（用于判断国内/国际端点）
+ * @param {object} proxyConfig - 代理配置
+ * @returns {Promise<Array>} 图像 URL 列表
+ */
+async function pollAliyunImageTask(taskId, apiKey, baseUrl, proxyConfig) {
+  const isProxy = proxyConfig.enabled === true;
+  const proxyUrl = isProxy ? getProxyUrl(proxyConfig) : null;
+
+  // 国际版端点
+  const dashscopeBase = (baseUrl && baseUrl.includes('dashscope.aliyuncs.com'))
+    ? normalizeBaseUrl(baseUrl)
+    : 'https://dashscope-intl.aliyuncs.com';
+  const taskUrl = `${dashscopeBase}/api/v1/tasks/${taskId}`;
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`
+  };
+
+  const maxAttempts = 30;
+  const pollInterval = 3000;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, attempt === 0 ? 1000 : pollInterval));
+
+    let response;
+    if (isProxy && proxyUrl) {
+      response = await axios.post(proxyUrl, {
+        url: taskUrl,
+        method: 'GET',
+        headers
+      }, { headers: { 'Content-Type': 'application/json' }, timeout: 30000 });
+    } else {
+      response = await axios.get(taskUrl, { headers, timeout: 30000 });
+    }
+
+    const taskData = response.data?.output || response.data;
+    const status = taskData?.task_status;
+
+    if (status === 'SUCCEEDED') {
+      const results = taskData?.results || [];
+      const urls = results
+        .filter(r => r.url && !r.code)
+        .map(r => r.url);
+      if (urls.length === 0) throw new Error('Aliyun image task succeeded but no images returned');
+      return urls;
+    }
+
+    if (status === 'FAILED') {
+      const reason = taskData?.message || 'Unknown error';
+      throw new Error(`Aliyun image generation task failed: ${reason}`);
+    }
+
+    logger.debug('aiService', `Aliyun image task ${taskId} status: ${status}, attempt ${attempt + 1}/${maxAttempts}`);
+  }
+
+  throw new Error('Aliyun image generation task timed out after polling');
+}
+
+/**
  * AI 图像生成接口
  * @param {object} params - 包含 prompt, model, provider 等配置
- * @returns {Promise<Array>} 生成的图像 URL 列表 (Base64 或 远程地址)
+ * @returns {Promise<Array>} 生成的图像 URL 列表（Base64 data URI 或远程 URL）
  */
 export async function generateImage({
   provider,
@@ -1075,84 +1150,241 @@ export async function generateImage({
   proxyConfig = {},
   format = 'openai'
 }) {
+  // 前置检查：不支持图像生成的提供商直接抛出友好错误
+  if (IMAGE_UNSUPPORTED_PROVIDERS.has(provider)) {
+    throw new Error(`Image generation is not supported by ${provider}. This provider does not offer an image generation API.`);
+  }
+
   const isProxy = proxyConfig.enabled === true;
   const proxyUrl = isProxy ? getProxyUrl(proxyConfig) : null;
-  
+
   let targetUrl;
   let payload;
   const headers = { 'Content-Type': 'application/json' };
 
-  if (provider === 'azure' || (baseUrl && baseUrl.includes('openai.azure.com'))) {
+  // ─── 认证头 ──────────────────────────────────────────────────────────────
+  if (provider === AI_PROVIDERS.AZURE || (baseUrl && baseUrl.includes('openai.azure.com'))) {
     headers['api-key'] = apiKey;
+  } else if (provider === AI_PROVIDERS.ALIYUN) {
+    // DashScope 使用标准 Bearer 认证，异步任务还需额外头部（在请求体中处理）
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+    headers['X-DashScope-Async'] = 'enable';
   } else if (provider !== AI_PROVIDERS.GOOGLE && format !== 'gemini' && format !== 'google') {
-    // 所有 OpenAI 兼容提供商（含 Perplexity）统一使用标准 Bearer 格式
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  const width = options.width || 1024;
+  const height = options.height || 1024;
+  const batchSize = options.batchSize || 1;
+  const seed = (options.seed != null && options.seed !== -1)
+    ? options.seed
+    : Math.floor(Math.random() * 2147483647);
+
+  // ─── Google ──────────────────────────────────────────────────────────────
+  if (provider === AI_PROVIDERS.GOOGLE || format === 'gemini' || format === 'google') {
+    const isImagenModel = /^imagen-/i.test(model);
+
+    if (isImagenModel) {
+      // Imagen 系列：使用专属 :predict 端点
+      targetUrl = buildTargetUrl(baseUrl, `/models/${model}:predict`, format, provider) + `?key=${apiKey}`;
+      payload = {
+        instances: [{ prompt }],
+        parameters: {
+          sampleCount: batchSize,
+          ...(negativePrompt ? { negativePrompt } : {}),
+          ...(options.aspectRatio ? { aspectRatio: options.aspectRatio } : {}),
+          ...(options.seed != null && options.seed !== -1 ? { seed } : {})
+        }
+      };
+    } else {
+      // Gemini native 图像生成（gemini-*-image-preview 等）：使用 generateContent
+      // 必须携带 responseModalities: ["TEXT","IMAGE"] 才会返回图像
+      targetUrl = buildTargetUrl(baseUrl, `/models/${model}:generateContent`, format, provider) + `?key=${apiKey}`;
+      const parts = [];
+      if (options.image) {
+        const matches = options.image.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches) parts.push({ inline_data: { mime_type: matches[1], data: matches[2] } });
+      }
+      if (prompt) parts.push({ text: prompt });
+      if (negativePrompt) parts.push({ text: `Negative prompt: ${negativePrompt}` });
+
+      payload = {
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          ...(options.aspectRatio || options.imageSize ? {
+            imageConfig: {
+              ...(options.aspectRatio ? { aspectRatio: options.aspectRatio } : {}),
+              ...(options.imageSize ? { imageSize: options.imageSize } : {})
+            }
+          } : {})
+        }
+      };
     }
   }
 
-  const size = `${options.width || 1024}x${options.height || 1024}`;
-  const batchSize = options.batchSize || 1;
-  const seed = options.seed === -1 ? Math.floor(Math.random() * 2147483647) : options.seed;
+  // ─── Aliyun DashScope（异步任务制） ───────────────────────────────────────
+  else if (provider === AI_PROVIDERS.ALIYUN) {
+    const dashscopeBase = (baseUrl && normalizeBaseUrl(baseUrl).includes('dashscope.aliyuncs.com'))
+      ? normalizeBaseUrl(baseUrl)
+      : 'https://dashscope-intl.aliyuncs.com';
+    // 根据模型名选择服务路径：wanx 系列走 text2image，其他走通用 image-synthesis
+    const servicePath = /^wanx/i.test(model)
+      ? '/api/v1/services/aigc/text2image/image-synthesis'
+      : '/api/v1/services/aigc/image2image/image-synthesis';
+    targetUrl = `${dashscopeBase}${servicePath}`;
 
-  if (provider === AI_PROVIDERS.GOOGLE || format === 'gemini') {
-    targetUrl = buildTargetUrl(baseUrl, `/models/${model}:generateContent`, format, provider) + `?key=${apiKey}`;
-    const parts = [];
-    if (options.image) {
-       const matches = options.image.match(/^data:([^;]+);base64,(.+)$/);
-       if (matches) parts.push({ inline_data: { mime_type: matches[1], data: matches[2] } });
-    }
-    if (prompt) parts.push({ text: prompt });
-    if (negativePrompt) parts.push({ text: `Negative prompt: ${negativePrompt}` });
+    // size 格式：阿里云用 width*height（星号分隔）
+    payload = {
+      model,
+      input: {
+        prompt,
+        ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
+        ...(options.image ? { base_image_url: options.image } : {})
+      },
+      parameters: {
+        size: `${width}*${height}`,
+        n: batchSize,
+        ...(options.seed != null && options.seed !== -1 ? { seed } : {}),
+        ...(options.steps ? { steps: options.steps } : {}),
+        prompt_extend: true,
+        watermark: false
+      }
+    };
+  }
+
+  // ─── OpenRouter（走 chat/completions + modalities） ───────────────────────
+  else if (provider === AI_PROVIDERS.OPENROUTER) {
+    targetUrl = buildTargetUrl(baseUrl, '/chat/completions', 'openai', provider);
+    payload = {
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      modalities: ['image'],
+      ...(options.aspectRatio || options.imageSize ? {
+        image_config: {
+          ...(options.aspectRatio ? { aspect_ratio: options.aspectRatio } : {}),
+          ...(options.imageSize ? { image_size: options.imageSize } : {})
+        }
+      } : {})
+    };
+  }
+
+  // ─── Azure DALL-E ────────────────────────────────────────────────────────
+  else if (provider === AI_PROVIDERS.AZURE || (baseUrl && baseUrl.includes('openai.azure.com'))) {
+    const normalizedBase = normalizeBaseUrl(baseUrl);
+    // Azure 图像生成端点格式：{endpoint}/openai/deployments/{deployment}/images/generations?api-version=...
+    targetUrl = normalizedBase.includes('/images/generations')
+      ? normalizedBase
+      : `${normalizedBase}/openai/deployments/${model}/images/generations?api-version=2024-02-01`;
+
+    // Azure DALL-E 3 仅支持三个固定尺寸，超出范围回退到 1024x1024
+    const azureValidSizes = ['1792x1024', '1024x1024', '1024x1792'];
+    const requestedSize = `${width}x${height}`;
+    const azureSize = azureValidSizes.includes(requestedSize) ? requestedSize : '1024x1024';
 
     payload = {
-      contents: [{ parts }],
-      generationConfig: { candidateCount: batchSize }
+      prompt,
+      n: 1, // Azure DALL-E 3 固定为 1
+      size: azureSize,
+      quality: options.quality || 'standard',
+      style: options.style || 'vivid'
     };
-  } 
+  }
+
+  // ─── OpenAI ──────────────────────────────────────────────────────────────
   else if (provider === AI_PROVIDERS.OPENAI) {
     targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
+
+    const isGptImage = /^gpt-image/i.test(model);
+    const isDallE3 = model.includes('dall-e-3');
+    const isDallE2 = model.includes('dall-e-2');
+
     payload = {
       model,
       prompt,
-      n: batchSize,
-      size: size,
-      response_format: 'b64_json',
-      ...(!model.includes('dall-e-3') && { seed, steps: options.steps, cfg_scale: options.cfgScale })
+      n: isDallE3 ? 1 : batchSize,
+      size: `${width}x${height}`,
+      // gpt-image-1 不支持 response_format 参数；dall-e-2/3 支持
+      ...((isDallE2 || isDallE3) ? { response_format: 'b64_json' } : {}),
+      // quality 参数：dall-e-3 和 gpt-image-1 支持
+      ...((isDallE3 || isGptImage) && options.quality ? { quality: options.quality } : {}),
+      // style 参数：仅 dall-e-3 支持
+      ...(isDallE3 && options.style ? { style: options.style } : {})
     };
-    if (model.includes('dall-e-3')) delete payload.n;
   }
+
+  // ─── SiliconFlow ──────────────────────────────────────────────────────────
   else if (provider === AI_PROVIDERS.SILICONFLOW) {
     targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
     payload = {
       model,
       prompt,
       negative_prompt: negativePrompt || '',
-      image_size: size,
+      image_size: `${width}x${height}`,
       batch_size: batchSize,
-      seed: seed,
       num_inference_steps: options.steps || 20,
       guidance_scale: options.cfgScale || 7.5,
+      // seed 为 0 时不传（0 在部分模型中有特殊含义），undefined 时也不传
+      ...(seed ? { seed } : {})
+      // 注意：SiliconFlow 不支持 response_format，默认直接返回 base64
+    };
+  }
+
+  // ─── xAI (Grok) ──────────────────────────────────────────────────────────
+  else if (provider === AI_PROVIDERS.XAI) {
+    targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
+    // xAI 仅支持 prompt、n、response_format，不支持 size/seed/steps/cfg_scale
+    payload = {
+      model,
+      prompt,
+      n: batchSize,
       response_format: 'b64_json'
     };
   }
+
+  // ─── ChatGLM (智谱 AI) CogView ────────────────────────────────────────────
+  else if (provider === AI_PROVIDERS.CHATGLM) {
+    targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
+    // CogView 系列仅支持 model、prompt、size，不支持 negative_prompt/seed/steps 等
+    payload = {
+      model,
+      prompt,
+      size: `${width}x${height}`
+    };
+  }
+
+  // ─── Volcengine（火山引擎 Seedream 系列） ─────────────────────────────────
+  else if (provider === AI_PROVIDERS.VOLCENGINE) {
+    targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
+    // 火山引擎用 image_size 字段，不是 size
+    payload = {
+      model,
+      prompt,
+      image_size: `${width}x${height}`,
+      ...(batchSize > 1 ? { n: batchSize } : {}),
+      ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
+      ...(options.cfgScale ? { guidance_scale: options.cfgScale } : {}),
+      ...(seed ? { seed } : {})
+    };
+  }
+
+  // ─── 通用 OpenAI 兼容端点（fallback） ────────────────────────────────────
   else {
     targetUrl = buildTargetUrl(baseUrl, '/images/generations', 'openai', provider);
     payload = {
       model,
       prompt,
       n: batchSize,
-      size: size,
-      negative_prompt: negativePrompt,
-      seed: seed,
-      num_inference_steps: options.steps,
-      guidance_scale: options.cfgScale,
-      response_format: 'b64_json'
+      size: `${width}x${height}`,
+      ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
+      ...(options.steps ? { num_inference_steps: options.steps } : {}),
+      ...(options.cfgScale ? { guidance_scale: options.cfgScale } : {}),
+      ...(seed ? { seed } : {})
     };
   }
 
   /**
-   * 执行图像生成请求
+   * 执行图像生成请求（含阿里云异步轮询）
    */
   const executeRequest = async () => {
     try {
@@ -1171,29 +1403,70 @@ export async function generateImage({
       });
 
       const data = response.data;
+
+      // 阿里云异步模式：先返回 task_id，需轮询获取最终结果
+      if (provider === AI_PROVIDERS.ALIYUN) {
+        const taskId = data?.output?.task_id;
+        if (!taskId) throw new Error('Aliyun image generation: no task_id in response');
+        logger.info('aiService', `Aliyun image task submitted: ${taskId}, polling...`);
+        return await pollAliyunImageTask(taskId, apiKey, baseUrl, proxyConfig);
+      }
+
       let imageUrls = [];
 
+      // OpenAI / xAI / DALL-E / Azure 格式：data[].b64_json 或 data[].url
       if (data.data && Array.isArray(data.data)) {
-        imageUrls = data.data.map(item => item.b64_json ? `data:image/png;base64,${item.b64_json}` : item.url);
-      } else if (data.output && Array.isArray(data.output.results)) {
-        imageUrls = data.output.results.map(res => res.url || res.b64_json);
-      } else if (data.output && data.output.choices && data.output.choices[0]?.message?.content) {
+        imageUrls = data.data.map(item =>
+          item.b64_json ? `data:image/png;base64,${item.b64_json}` : item.url
+        ).filter(Boolean);
+      }
+      // OpenRouter 格式：choices[0].message.images[].image_url.url
+      else if (data.choices?.[0]?.message?.images) {
+        imageUrls = data.choices[0].message.images
+          .map(img => img?.image_url?.url)
+          .filter(Boolean);
+      }
+      // Google Imagen 格式：predictions[].bytesBase64Encoded
+      else if (data.predictions && Array.isArray(data.predictions)) {
+        imageUrls = data.predictions
+          .filter(p => p.bytesBase64Encoded)
+          .map(p => `data:${p.mimeType || 'image/png'};base64,${p.bytesBase64Encoded}`);
+      }
+      // Google Gemini native 图像生成格式：candidates[0].content.parts[].inlineData
+      else if (data.candidates?.[0]?.content?.parts) {
+        imageUrls = data.candidates[0].content.parts
+          .filter(p => p.inlineData?.data)
+          .map(p => `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`);
+      }
+      // 阿里云同步格式兜底（部分模型可能直接返回）：output.results[].url
+      else if (data.output && Array.isArray(data.output.results)) {
+        imageUrls = data.output.results
+          .filter(res => res.url && !res.code)
+          .map(res => res.url);
+      }
+      // 阿里云旧格式：output.choices[0].message.content[].image
+      else if (data.output?.choices?.[0]?.message?.content) {
         const content = data.output.choices[0].message.content;
         if (Array.isArray(content)) {
           imageUrls = content.filter(item => item.image).map(item => item.image);
         }
-      } else if (data.images && Array.isArray(data.images)) {
-        imageUrls = data.images.map(img => typeof img === 'string' ? img : img.url);
-      } else if (data.url) {
+      }
+      // 通用格式：images[]
+      else if (data.images && Array.isArray(data.images)) {
+        imageUrls = data.images.map(img => typeof img === 'string' ? img : img.url).filter(Boolean);
+      }
+      // 单图 URL
+      else if (data.url) {
         imageUrls = [data.url];
       }
 
       if (imageUrls.length === 0) throw new Error('Failed to get generated image content');
       return imageUrls;
+
     } catch (error) {
       logger.error('aiService', 'Image generation failed:', error);
       let detail = error.response?.data?.error?.message || error.response?.data?.message || error.message;
-      
+
       if (error.message === 'Network Error' || error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
         if (isProxy) {
           detail = 'Unable to connect to proxy server. Please ensure the proxy service (npm run proxy) is running and accessible.';
@@ -1201,7 +1474,7 @@ export async function generateImage({
           detail = 'Network connection failed. This may be due to CORS restrictions or network blockage. Consider enabling proxy mode in settings.';
         }
       }
-      
+
       if (detail.includes('status code 404')) {
         detail = 'Requested image generation endpoint does not exist (404). This usually means the model does not support image generation or the API path is incorrect.';
       } else if (detail.includes('status code 401')) {
@@ -1209,7 +1482,7 @@ export async function generateImage({
       } else if (detail.includes('status code 403')) {
         detail = 'Permission denied (403). Your API Key may not have permission to use this specific model.';
       }
-      
+
       throw new Error(`Image generation failed: ${detail}`);
     }
   };
