@@ -105,10 +105,11 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
     updateCloudSync,
     updateConversationPresets,
     updateConversationSettings,
-    setPersistence
+    // ✅ 修复：从 useConfigStore 中移除 setPersistence（该方法不存在于此 store）
   } = useConfigStore();
   const { retrievalSettings: storeRetrievalSettings, updateRetrievalSettings } = useKnowledgeBaseStore();
-  const { sessionPassword, logout, persistenceMode } = useAuthStore();
+  // ✅ 修复：从正确的 useAuthStore 解构 setPersistence
+  const { sessionPassword, logout, persistenceMode, setPersistence } = useAuthStore();
 
   useEffect(() => {
     if (isOpen) {
@@ -121,7 +122,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
         conversationPresets: { ...storeConversationPresets },
         conversationSettings: JSON.parse(JSON.stringify(storeConversationSettings)),
         cloudSync: { ...storeCloudSync },
-        retrievalSettings: { ...storeRetrievalSettings }
+        retrievalSettings: { ...storeRetrievalSettings },
+        // ✅ 修复：在 localConfig 初始化时正确载入 persistenceMode
+        persistenceMode: persistenceMode,
       });
     } else {
       setLocalConfig(null);
@@ -470,8 +473,9 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
       
       updateRetrievalSettings(retrievalSettings);
       
+      // ✅ 修复：setPersistence 现在来自 useAuthStore，调用正确
       if (localConfig.persistenceMode) {
-        setPersistence(localConfig.persistenceMode);
+        await setPersistence(localConfig.persistenceMode);
       }
 
       await saveConfig(sessionPassword);
