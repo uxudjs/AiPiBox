@@ -1,23 +1,10 @@
 /**
  * 同步数据下载接口
- * 负责从云端获取加密的同步数据，支持基于版本的增量同步。
+ * 负责从云端获取加密的同步数据。
  */
 
 const { query }      = require('../db-config');
 const { verifyAuth } = require('../auth');
-
-/**
- * 允许的数据类型白名单
- */
-const VALID_DATA_TYPES = [
-  'config',
-  'conversations',
-  'messages',
-  'images',
-  'published',
-  'knowledgeBases',
-  'systemLogs'
-];
 
 /**
  * 下载处理程序
@@ -32,110 +19,46 @@ module.exports = async (req, res) => {
     });
   }
 
-  const { userId, dataType, sinceVersion } = req.query;
+  // syncId 来自路由参数 /api/sync/:id，由 vercel.json rewrite 注入 req.query.id
+  const syncId = req.query.id;
 
-  // 必填字段校验须在 verifyAuth 之前执行。
-  // verifyAuth 会将请求头中的 userId 与 bodyUserId 做一致性比对，
-  // 若 bodyUserId 为 undefined，该比对会被静默跳过，导致越权校验失效。
-  if (!userId) {
+  if (!syncId) {
     return res.status(400).json({
       success: false,
-      error: 'Missing required field: userId'
+      error: 'Missing required field: syncId'
     });
   }
 
-  // 身份认证校验
-  if (!verifyAuth(req, res, userId)) {
+  if (!verifyAuth(req, res, syncId)) {
     return;
   }
 
   try {
-    // dataType 存在时须在白名单内，防止非法枚举
-    if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
-      });
-    }
-
-    const userExists = await query(
-      'SELECT id FROM users WHERE id = ?',
-      [userId]
+    const results = await query(
+      'SELECT data_content, updated_at FROM sync_data WHERE sync_id = ? LIMIT 1',
+      [syncId]
     );
 
-    if (userExists.length === 0) {
+    if (results.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'User not found',
-         []
+        error: 'No sync data found'
       });
     }
 
-    let sql      = 'SELECT data_type, data_content, version, checksum, updated_at FROM sync_data WHERE user_id = ?';
-    const params = [userId];
-
-    if (dataType) {
-      sql += ' AND data_type = ?';
-      params.push(dataType);
-    }
-
-    if (sinceVersion) {
-      const parsed = parseInt(sinceVersion, 10);
-      if (!isNaN(parsed)) {
-        sql += ' AND version > ?';
-        params.push(parsed);
-      }
-    }
-
-    sql += ' ORDER BY version ASC';
-
-    const results = await query(sql, params);
-
-    const data = results.map(row => ({
-      dataType:      row.data_type,
-      encryptedData: row.data_content,
-      version:       row.version,
-      checksum:      row.checksum,
-      timestamp:     row.updated_at
-    }));
-
-    await query(
-      'UPDATE users SET last_sync_at = NOW() WHERE id = ?',
-      [userId]
-    );
-
-    const dataTypes = dataType || data.map(d => d.dataType).join(',');
-    await query(
-      `INSERT INTO sync_history (user_id, sync_type, data_types, status, sync_timestamp) 
-       VALUES (?, 'download', ?, 'success', NOW())`,
-      [userId, dataTypes]
-    );
+    const row = results[0];
 
     return res.status(200).json({
       success:   true,
-            data,
-      count:     data.length,
-      timestamp: new Date().toISOString()
+      data:      row.data_content,
+      timestamp: row.updated_at
     });
 
   } catch (error) {
     console.error('Download error:', error);
-
-    try {
-      if (userId) {
-        await query(
-          `INSERT INTO sync_history (user_id, sync_type, data_types, status, error_message, sync_timestamp) 
-           VALUES (?, 'download', ?, 'failed', ?, NOW())`,
-          [userId, dataType || 'all', error.message]
-        );
-      }
-    } catch (logError) {
-      console.error('Failed to log sync error history:', logError);
-    }
-
     return res.status(500).json({
-      success: false,
-      error:   'An internal error occurred. Please try again later.',
+      success:   false,
+      error:     'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     });
   }
