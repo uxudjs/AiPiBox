@@ -39,19 +39,22 @@ module.exports = async (req, res) => {
 
   const { userId, dataType, encryptedData, version, checksum } = req.body;
 
+  // 必填字段校验须在 verifyAuth 之前执行。
+  // verifyAuth 会将请求头中的 userId 与 bodyUserId 做一致性比对，
+  // 若 bodyUserId 为 undefined，该比对会被静默跳过，导致越权校验失效。
+  if (!userId || !dataType || !encryptedData) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: userId, dataType, encryptedData'
+    });
+  }
+
   // 身份认证校验
   if (!verifyAuth(req, res, userId)) {
     return;
   }
 
   try {
-    if (!userId || !dataType || !encryptedData) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields: userId, dataType, encryptedData'
-      });
-    }
-
     // 数据大小校验，防止超大请求耗尽存储资源
     if (Buffer.byteLength(String(encryptedData), 'utf8') > MAX_ENCRYPTED_DATA_BYTES) {
       return res.status(413).json({
@@ -118,10 +121,10 @@ module.exports = async (req, res) => {
       await transaction.commit();
 
       return res.status(200).json({
-        success: true,
-        version: newVersion,
-        timestamp: new Date().toISOString(),
-        dataType: dataType
+        success:   true,
+        version:   newVersion,
+        dataType:  dataType,
+        timestamp: new Date().toISOString()
       });
 
     } catch (error) {
@@ -146,7 +149,7 @@ module.exports = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      error: 'An internal error occurred. Please try again later.',
+      error:   'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     });
   }
