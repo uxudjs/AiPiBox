@@ -1,6 +1,7 @@
 /**
- * 健康检查接口
- * 用于监控服务在线状态及所在边缘节点，支持跨域访问。
+ * 健康检查接口（Cloudflare Workers 版）
+ * GET /api/health
+ * 用于监控服务在线状态及所在边缘节点。
  */
 
 /**
@@ -9,26 +10,30 @@
  * @returns {Response} HTTP 响应
  */
 export async function onRequest(context) {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,HEAD,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-
   if (context.request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204 });
+  }
+
+  if (context.request.method !== 'GET') {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Method not allowed'
+    }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   return new Response(JSON.stringify({
-    status: 'ok',
+    success:  true,
+    status:   'ok',
     platform: 'cloudflare-pages',
-    version: '1.0.0',
-    time: new Date().toISOString(),
-    region: context.request.cf?.colo || 'unknown'
+    version:  '1.0.0',
+    time:     new Date().toISOString(),
+    region:   context.request.cf?.colo || 'unknown'
   }), {
     status: 200,
-    headers: { 
-      ...corsHeaders,
+    headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache'
     }
