@@ -54,7 +54,7 @@ const RATE_LIMIT = {
 /**
  * 检查并更新请求速率限制。
  * 过期条目在此函数内随机清理，避免内存无限增长。
- * @param {string} ip         - 客户端 IP 地址
+ * @param {string} ip          - 客户端 IP 地址
  * @param {number} maxRequests - 本次生效的最大请求数
  * @returns {{ allowed: boolean, remaining: number, resetAt: number }}
  */
@@ -120,8 +120,8 @@ function maskUrl(url) {
 
 /**
  * 构造 JSON 响应
- * @param {object} body   - 响应体对象
- * @param {number} status - HTTP 状态码
+ * @param {object} body           - 响应体对象
+ * @param {number} status         - HTTP 状态码
  * @param {object} [extraHeaders] - 额外响应头
  * @returns {Response}
  */
@@ -142,15 +142,15 @@ export async function onRequest(context) {
 
   if (request.method !== 'POST') {
     return jsonResponse({
-      error: 'Method Not Allowed',
+      error:   'Method Not Allowed',
       message: 'This endpoint only accepts POST requests'
     }, 405);
   }
 
-  const startTime  = Date.now();
-  const requestId  = request.headers.get('x-request-id') ||
-                     `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-  const clientIp   = getClientIp(request);
+  const startTime   = Date.now();
+  const requestId   = request.headers.get('x-request-id') ||
+                      `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  const clientIp    = getClientIp(request);
   const maxRequests = parseInt(env.PROXY_RATE_LIMIT || String(RATE_LIMIT.maxRequests), 10);
 
   // 速率限制检查
@@ -164,8 +164,8 @@ export async function onRequest(context) {
   if (!rateResult.allowed) {
     console.warn(`[${requestId}] [RateLimit] Blocked IP: ${clientIp}`);
     return jsonResponse({
-      error: 'Too Many Requests',
-      message: 'Rate limit exceeded. Please slow down your requests.',
+      error:      'Too Many Requests',
+      message:    'Rate limit exceeded. Please slow down your requests.',
       retryAfter: Math.ceil((rateResult.resetAt - Date.now()) / 1000)
     }, 429, rateLimitHeaders);
   }
@@ -176,7 +176,7 @@ export async function onRequest(context) {
 
     if (!url) {
       return jsonResponse({
-        error: 'Bad Request',
+        error:   'Bad Request',
         message: 'Target URL is required'
       }, 400, rateLimitHeaders);
     }
@@ -192,7 +192,7 @@ export async function onRequest(context) {
       if (!isAllowed && !isAzure) {
         console.warn(`[${requestId}] [Security Alert] Blocked request to unauthorized host: ${targetHost}`);
         return jsonResponse({
-          error: 'Forbidden',
+          error:   'Forbidden',
           message: `Domain ${targetHost} is not in the allowlist.`
         }, 403, rateLimitHeaders);
       }
@@ -224,37 +224,40 @@ export async function onRequest(context) {
         status: response.status,
         headers: {
           ...rateLimitHeaders,
-          'Content-Type':    'text/event-stream',
-          'Cache-Control':   'no-cache, no-transform',
-          'Connection':      'keep-alive',
-          'X-Request-ID':    requestId
+          'Content-Type':  'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection':    'keep-alive',
+          'X-Request-ID':  requestId
         }
       });
     }
 
-    const response  = await fetch(url, fetchOptions);
+    const response = await fetch(url, fetchOptions);
     const duration  = Date.now() - startTime;
 
     console.log(`[${requestId}] Completed: ${response.status} in ${duration}ms`);
 
     const contentType = response.headers.get('content-type');
-    let responseData;
+    const meta = {
+      requestId,
+      duration,
+      status:    response.status,
+      timestamp: new Date().toISOString()
+    };
+
+    let responseBody;
 
     if (contentType && contentType.includes('application/json')) {
-      responseData = await response.json();
+      // JSON 响应：展开后附加 _meta
+      const responseData = await response.json();
+      responseBody = { ...responseData, _meta: meta };
     } else {
-      responseData = await response.text();
+      // 非 JSON 响应（纯文本、HTML 等）：原文保留在 body 字段，避免展开丢失内容
+      const responseData = await response.text();
+      responseBody = { body: responseData, _meta: meta };
     }
 
-    return new Response(JSON.stringify({
-      ...responseData,
-      _meta: {
-        requestId,
-        duration,
-        status:    response.status,
-        timestamp: new Date().toISOString()
-      }
-    }), {
+    return new Response(JSON.stringify(responseBody), {
       status: response.status,
       headers: {
         ...rateLimitHeaders,
