@@ -3,7 +3,21 @@
  * 负责从云端获取加密的同步数据，支持基于版本的增量同步。
  */
 
-const { query } = require('../db-config');
+const { query }      = require('../db-config');
+const { verifyAuth } = require('../auth');
+
+/**
+ * 允许的数据类型白名单
+ */
+const VALID_DATA_TYPES = [
+  'config',
+  'conversations',
+  'messages',
+  'images',
+  'published',
+  'knowledgeBases',
+  'systemLogs'
+];
 
 /**
  * 下载处理程序
@@ -18,13 +32,26 @@ module.exports = async (req, res) => {
     });
   }
 
-  try {
-    const { userId, dataType, sinceVersion } = req.query;
+  const { userId, dataType, sinceVersion } = req.query;
 
+  // 身份认证校验
+  if (!verifyAuth(req, res, userId)) {
+    return;
+  }
+
+  try {
     if (!userId) {
       return res.status(400).json({
         success: false,
         error: 'Missing required field: userId'
+      });
+    }
+
+    // dataType 存在时须在白名单内，防止非法枚举
+    if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
       });
     }
 
@@ -41,7 +68,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    let sql = 'SELECT data_type, data_content, version, checksum, updated_at FROM sync_data WHERE user_id = ?';
+    let sql      = 'SELECT data_type, data_content, version, checksum, updated_at FROM sync_data WHERE user_id = ?';
     const params = [userId];
 
     if (dataType) {
@@ -50,8 +77,11 @@ module.exports = async (req, res) => {
     }
 
     if (sinceVersion) {
-      sql += ' AND version > ?';
-      params.push(parseInt(sinceVersion));
+      const parsed = parseInt(sinceVersion, 10);
+      if (!isNaN(parsed)) {
+        sql += ' AND version > ?';
+        params.push(parsed);
+      }
     }
 
     sql += ' ORDER BY version ASC';
@@ -59,11 +89,11 @@ module.exports = async (req, res) => {
     const results = await query(sql, params);
 
     const data = results.map(row => ({
-      dataType: row.data_type,
+      dataType:      row.data_type,
       encryptedData: row.data_content,
-      version: row.version,
-      checksum: row.checksum,
-      timestamp: row.updated_at
+      version:       row.version,
+      checksum:      row.checksum,
+      timestamp:     row.updated_at
     }));
 
     await query(
@@ -79,9 +109,9 @@ module.exports = async (req, res) => {
     );
 
     return res.status(200).json({
-      success: true,
-      data: data,
-      count: data.length,
+      success:   true,
+      data:      data,
+      count:     data.length,
       timestamp: new Date().toISOString()
     });
 
@@ -89,7 +119,6 @@ module.exports = async (req, res) => {
     console.error('Download error:', error);
 
     try {
-      const { userId, dataType } = req.query;
       if (userId) {
         await query(
           `INSERT INTO sync_history (user_id, sync_type, data_types, status, error_message, sync_timestamp) 
@@ -103,7 +132,7 @@ module.exports = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error:   'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     });
   }
