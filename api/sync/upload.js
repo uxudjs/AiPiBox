@@ -12,19 +12,6 @@ const { verifyAuth }              = require('../auth');
 const MAX_ENCRYPTED_DATA_BYTES = 10 * 1024 * 1024;
 
 /**
- * 允许的数据类型白名单
- */
-const VALID_DATA_TYPES = [
-  'config',
-  'conversations',
-  'messages',
-  'images',
-  'published',
-  'knowledgeBases',
-  'systemLogs'
-];
-
-/**
  * 上传处理程序
  * @param {object} req - HTTP 请求对象
  * @param {object} res - HTTP 响应对象
@@ -37,93 +24,57 @@ module.exports = async (req, res) => {
     });
   }
 
-  const { userId, dataType, encryptedData, version, checksum } = req.body;
+  // 前端上传时 body 字段为 { id, data, timestamp }
+  const { id: syncId, data: encryptedData, timestamp } = req.body;
 
-  // 必填字段校验须在 verifyAuth 之前执行。
-  // verifyAuth 会将请求头中的 userId 与 bodyUserId 做一致性比对，
-  // 若 bodyUserId 为 undefined，该比对会被静默跳过，导致越权校验失效。
-  if (!userId || !dataType || !encryptedData) {
+  // 必填字段校验须在 verifyAuth 之前执行，
+  // 确保 syncId 非空后再传入 verifyAuth 做签名校验。
+  if (!syncId || !encryptedData) {
     return res.status(400).json({
       success: false,
-      error: 'Missing required fields: userId, dataType, encryptedData'
+      error: 'Missing required fields: id, data'
     });
   }
 
-  // 身份认证校验
-  if (!verifyAuth(req, res, userId)) {
+  if (!verifyAuth(req, res, syncId)) {
     return;
   }
 
   try {
-    // 数据大小校验，防止超大请求耗尽存储资源
     if (Buffer.byteLength(String(encryptedData), 'utf8') > MAX_ENCRYPTED_DATA_BYTES) {
       return res.status(413).json({
         success: false,
-        error: 'Payload too large: encryptedData exceeds the 10 MB limit'
+        error: 'Payload too large: data exceeds the 10 MB limit'
       });
     }
 
-    if (!VALID_DATA_TYPES.includes(dataType)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
-      });
-    }
+    const version = timestamp || Date.now();
 
     const transaction = await beginTransaction();
 
     try {
-      const userExists = await transaction.query(
-        'SELECT id FROM users WHERE id = ?',
-        [userId]
+      const existing = await transaction.query(
+        'SELECT sync_id FROM sync_data WHERE sync_id = ?',
+        [syncId]
       );
 
-      if (userExists.length === 0) {
+      if (existing.length > 0) {
         await transaction.query(
-          'INSERT INTO users (id, created_at, last_sync_at) VALUES (?, NOW(), NOW())',
-          [userId]
+          'UPDATE sync_data SET data_content = ?, version = ?, updated_at = NOW() WHERE sync_id = ?',
+          [encryptedData, version, syncId]
         );
       } else {
         await transaction.query(
-          'UPDATE users SET last_sync_at = NOW() WHERE id = ?',
-          [userId]
+          'INSERT INTO sync_data (sync_id, data_content, version, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
+          [syncId, encryptedData, version]
         );
       }
-
-      const existingData = await transaction.query(
-        'SELECT id, version FROM sync_data WHERE user_id = ? AND data_type = ?',
-        [userId, dataType]
-      );
-
-      const newVersion = version || Date.now();
-
-      if (existingData.length > 0) {
-        await transaction.query(
-          `UPDATE sync_data 
-           SET data_content = ?, version = ?, checksum = ?, updated_at = NOW() 
-           WHERE user_id = ? AND data_type = ?`,
-          [encryptedData, newVersion, checksum, userId, dataType]
-        );
-      } else {
-        await transaction.query(
-          `INSERT INTO sync_data (user_id, data_type, data_content, version, checksum, created_at, updated_at) 
-           VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-          [userId, dataType, encryptedData, newVersion, checksum]
-        );
-      }
-
-      await transaction.query(
-        `INSERT INTO sync_history (user_id, sync_type, data_types, status, sync_timestamp) 
-         VALUES (?, 'upload', ?, 'success', NOW())`,
-        [userId, dataType]
-      );
 
       await transaction.commit();
 
       return res.status(200).json({
         success:   true,
-        version:   newVersion,
-        dataType:  dataType,
+        version:   version,
         timestamp: new Date().toISOString()
       });
 
@@ -134,22 +85,9 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('Upload error:', error);
-
-    try {
-      if (userId && dataType) {
-        await query(
-          `INSERT INTO sync_history (user_id, sync_type, data_types, status, error_message, sync_timestamp) 
-           VALUES (?, 'upload', ?, 'failed', ?, NOW())`,
-          [userId, dataType, error.message]
-        );
-      }
-    } catch (logError) {
-      console.error('Failed to log upload error history:', logError);
-    }
-
     return res.status(500).json({
-      success: false,
-      error:   'An internal error occurred. Please try again later.',
+      success:   false,
+      error:     'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     });
   }
