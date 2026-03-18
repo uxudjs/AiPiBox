@@ -1,15 +1,16 @@
 /**
  * 请求身份认证模块
- * 提供基于 HMAC-SHA256 签名的 userId 身份校验，防止越权访问同步接口。
+ * 基于 syncId 所有权校验，防止越权访问他人同步数据。
  *
  * 认证方式：
- *   客户端在请求头中携带以下三个字段：
- *   - X-User-Id:    用户 ID
- *   - X-Auth-Token: HMAC-SHA256(userId + ":" + timestamp, AUTH_SECRET)，十六进制编码
+ *   客户端在请求头中携带以下两个字段：
+ *   - X-Sync-Token: HMAC-SHA256(syncId + ":" + timestamp, syncId)，十六进制编码
  *   - X-Timestamp:  Unix 时间戳（毫秒），用于防重放攻击
  *
- * 环境变量：
- *   AUTH_SECRET  用于签名的密钥，生产环境必须设置
+ * 设计说明：
+ *   syncId 由用户主密码经 PBKDF2 单向派生，对每个用户唯一且不可逆推密码。
+ *   以 syncId 自身作为签名密钥，服务端用路径中的 syncId 验签，
+ *   只有能派生出正确 syncId 的客户端才能通过校验，无需在服务端存储任何共享密钥。
  */
 
 const crypto = require('crypto');
@@ -38,36 +39,39 @@ function computeHmac(message, secret) {
 /**
  * 校验请求中的身份认证信息
  *
- * @param {object} req        - HTTP 请求对象
- * @param {object} res        - HTTP 响应对象
- * @param {string} bodyUserId - 从请求体或查询参数中提取的 userId
+ * @param {object} req    - HTTP 请求对象
+ * @param {object} res    - HTTP 响应对象
+ * @param {string} syncId - 从路径参数或请求体中提取的 syncId
  * @returns {boolean} 校验通过返回 true，否则已写入响应并返回 false
  */
-function verifyAuth(req, res, bodyUserId) {
-  const secret = process.env.AUTH_SECRET;
-
-  if (!secret) {
-    console.error('[Auth] AUTH_SECRET is not configured');
-    res.status(500).json({
+function verifyAuth(req, res, syncId) {
+  if (!syncId) {
+    res.status(400).json({
       success: false,
-      error: 'Server configuration error'
+      error: 'Missing required field: syncId'
     });
     return false;
   }
 
-  const headerUserId = req.headers['x-user-id'];
-  const token        = req.headers['x-auth-token'];
-  const timestamp    = req.headers['x-timestamp'];
+  if (typeof syncId !== 'string' || !HEX_REGEX.test(syncId) || syncId.length < 32) {
+    res.status(400).json({
+      success: false,
+      error: 'Invalid syncId format'
+    });
+    return false;
+  }
 
-  if (!headerUserId || !token || !timestamp) {
+  const token     = req.headers['x-sync-token'];
+  const timestamp = req.headers['x-timestamp'];
+
+  if (!token || !timestamp) {
     res.status(401).json({
       success: false,
-      error: 'Missing authentication headers: X-User-Id, X-Auth-Token, X-Timestamp'
+      error: 'Missing authentication headers: X-Sync-Token, X-Timestamp'
     });
     return false;
   }
 
-  // 校验时间戳，防止重放攻击
   const ts = parseInt(timestamp, 10);
   if (isNaN(ts) || Math.abs(Date.now() - ts) > TIMESTAMP_WINDOW_MS) {
     res.status(401).json({
@@ -77,12 +81,8 @@ function verifyAuth(req, res, bodyUserId) {
     return false;
   }
 
-  // 计算期望签名
-  const expected = computeHmac(`${headerUserId}:${timestamp}`, secret);
+  const expected = computeHmac(`${syncId}:${timestamp}`, syncId);
 
-  // 校验 token 格式：必须是合法十六进制字符串，且长度与期望签名一致。
-  // timingSafeEqual 要求两端 Buffer 长度完全相同，否则抛 RangeError。
-  // 提前做格式与长度校验，避免异常并防止时序侧信道攻击。
   if (
     typeof token !== 'string' ||
     !HEX_REGEX.test(token) ||
@@ -95,7 +95,6 @@ function verifyAuth(req, res, bodyUserId) {
     return false;
   }
 
-  // 使用恒定时间比较，防止时序攻击
   const tokenBuf    = Buffer.from(token,    'hex');
   const expectedBuf = Buffer.from(expected, 'hex');
 
@@ -103,15 +102,6 @@ function verifyAuth(req, res, bodyUserId) {
     res.status(401).json({
       success: false,
       error: 'Invalid authentication token'
-    });
-    return false;
-  }
-
-  // 校验请求体 userId 与请求头 userId 一致，防止越权操作他人数据
-  if (bodyUserId && headerUserId !== String(bodyUserId)) {
-    res.status(403).json({
-      success: false,
-      error: 'Forbidden: userId mismatch'
     });
     return false;
   }
