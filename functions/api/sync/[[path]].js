@@ -1,162 +1,273 @@
 /**
  * Cloudflare Workers 云端同步接口
- * 使用 KV 存储实现轻量级数据同步。
+ * 使用 KV 存储实现轻量级数据同步，提供身份认证、数据校验及访问控制。
  */
+
+import { verifyAuth, jsonResponse } from '../auth.js';
+
+/**
+ * 允许的数据类型白名单
+ */
+const VALID_DATA_TYPES = [
+  'config',
+  'conversations',
+  'messages',
+  'images',
+  'published',
+  'knowledgeBases',
+  'systemLogs'
+];
+
+/**
+ * 请求体中加密数据字段允许的最大字节长度（10 MB）
+ */
+const MAX_DATA_BYTES = 10 * 1024 * 1024;
 
 /**
  * 请求处理程序
  * @param {object} context - 请求上下文
- * @returns {Response} HTTP 响应
+ * @returns {Promise<Response>} HTTP 响应
  */
 export async function onRequest(context) {
   const { request, env, params } = context;
   const path = params.path?.[0] || '';
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,HEAD,POST,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-
   if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204 });
   }
 
   const KV = env.SYNC_DATA;
 
   if (!KV) {
-    return new Response(JSON.stringify({
-      error: 'KV namespace not configured',
-      message: 'Please bind a KV namespace named SYNC_DATA'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({
+      success: false,
+      error: 'KV namespace not configured. Please bind a KV namespace named SYNC_DATA.'
+    }, 500);
   }
 
-  let response;
   if (request.method === 'GET' && path) {
-    response = await handleDownload(KV, path, request);
-  } else if (request.method === 'POST' && !path) {
-    response = await handleUpload(KV, request);
-  } else if (request.method === 'DELETE' && path) {
-    response = await handleDelete(KV, path);
-  } else {
-    response = new Response(JSON.stringify({
-      error: 'Invalid request'
-    }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return handleDownload(KV, path, request, env);
   }
 
-  const newResponse = new Response(response.body, response);
-  Object.keys(corsHeaders).forEach(key => {
-    newResponse.headers.set(key, corsHeaders[key]);
-  });
-  return newResponse;
+  if (request.method === 'POST' && !path) {
+    return handleUpload(KV, request, env);
+  }
+
+  if (request.method === 'DELETE' && path) {
+    return handleDelete(KV, path, request, env);
+  }
+
+  return jsonResponse({ success: false, error: 'Invalid request method or path' }, 400);
 }
 
 /**
  * 处理下载请求
- * @param {object} KV - KV 实例
- * @param {string} id - 资源标识符
+ * GET /api/sync/:userId
+ *
+ * @param {object}  KV      - KV 命名空间实例
+ * @param {string}  userId  - 用户 ID（来自路由参数）
  * @param {Request} request - 请求对象
- * @returns {Response} HTTP 响应
+ * @param {object}  env     - 环境变量对象
+ * @returns {Promise<Response>}
  */
-async function handleDownload(KV, id, request) {
-  try {
-    const data = await KV.get(`sync:${id}`, { type: 'json' });
+async function handleDownload(KV, userId, request, env) {
+  // 身份认证校验
+  const auth = await verifyAuth(request, env, userId);
+  if (!auth.ok) {
+    return auth.response;
+  }
 
-    if (!data) {
-      return new Response(JSON.stringify({
-        error: 'Data not found'
-      }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
+  const url      = new URL(request.url);
+  const dataType = url.searchParams.get('dataType');
+
+  // dataType 存在时须在白名单内，防止非法枚举
+  if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
+    return jsonResponse({
+      success: false,
+      error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
+    }, 400);
+  }
+
+  try {
+    if (dataType) {
+      // 获取指定类型的数据
+      const data = await KV.get(`sync:${userId}:${dataType}`, { type: 'json' });
+
+      if (!data) {
+        return jsonResponse({ success: true, data: [], count: 0, timestamp: new Date().toISOString() }, 200);
+      }
+
+      return jsonResponse({
+        success:   true,
+        data:      [data],
+        count:     1,
+        timestamp: new Date().toISOString()
+      }, 200);
     }
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // 获取该用户所有数据类型
+    const results = await Promise.all(
+      VALID_DATA_TYPES.map(async (type) => {
+        const item = await KV.get(`sync:${userId}:${type}`, { type: 'json' });
+        return item ? { dataType: type, ...item } : null;
+      })
+    );
+
+    const data = results.filter(Boolean);
+
+    return jsonResponse({
+      success:   true,
+      data:      data,
+      count:     data.length,
+      timestamp: new Date().toISOString()
+    }, 200);
+
   } catch (error) {
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      message: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error(`[Sync:Download] userId=${userId} error:`, error.message);
+    return jsonResponse({
+      success: false,
+      error:   'An internal error occurred. Please try again later.',
+      timestamp: new Date().toISOString()
+    }, 500);
   }
 }
 
 /**
  * 处理上传请求
- * @param {object} KV - KV 实例
+ * POST /api/sync
+ *
+ * @param {object}  KV      - KV 命名空间实例
  * @param {Request} request - 请求对象
- * @returns {Response} HTTP 响应
+ * @param {object}  env     - 环境变量对象
+ * @returns {Promise<Response>}
  */
-async function handleUpload(KV, request) {
+async function handleUpload(KV, request, env) {
+  let body;
   try {
-    const body = await request.json();
-    const { id, data, timestamp } = body;
+    body = await request.json();
+  } catch (e) {
+    return jsonResponse({ success: false, error: 'Invalid JSON body' }, 400);
+  }
 
-    if (!id || !data || !timestamp) {
-      return new Response(JSON.stringify({
-        error: 'Missing required fields'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+  const { userId, dataType, encryptedData, version, checksum } = body;
 
-    await KV.put(`sync:${id}`, JSON.stringify({ data, timestamp }), {
-      metadata: { lastUpdated: Date.now() }
-    });
+  // 身份认证校验
+  const auth = await verifyAuth(request, env, userId);
+  if (!auth.ok) {
+    return auth.response;
+  }
 
-    return new Response(JSON.stringify({
-      success: true,
-      timestamp: Date.now()
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  if (!userId || !dataType || !encryptedData) {
+    return jsonResponse({
+      success: false,
+      error: 'Missing required fields: userId, dataType, encryptedData'
+    }, 400);
+  }
+
+  // 数据大小校验，防止超大请求耗尽 KV 存储
+  const dataBytes = new TextEncoder().encode(String(encryptedData)).length;
+  if (dataBytes > MAX_DATA_BYTES) {
+    return jsonResponse({
+      success: false,
+      error: 'Payload too large: encryptedData exceeds the 10 MB limit'
+    }, 413);
+  }
+
+  if (!VALID_DATA_TYPES.includes(dataType)) {
+    return jsonResponse({
+      success: false,
+      error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
+    }, 400);
+  }
+
+  try {
+    const newVersion = version || Date.now();
+
+    await KV.put(`sync:${userId}:${dataType}`, JSON.stringify({
+      dataType,
+      encryptedData,
+      version:   newVersion,
+      checksum:  checksum || null,
+      timestamp: new Date().toISOString()
+    }));
+
+    return jsonResponse({
+      success:   true,
+      version:   newVersion,
+      dataType:  dataType,
+      timestamp: new Date().toISOString()
+    }, 200);
+
   } catch (error) {
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      message: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error(`[Sync:Upload] userId=${userId} dataType=${dataType} error:`, error.message);
+    return jsonResponse({
+      success: false,
+      error:   'An internal error occurred. Please try again later.',
+      timestamp: new Date().toISOString()
+    }, 500);
   }
 }
 
 /**
  * 处理删除请求
- * @param {object} KV - KV 实例
- * @param {string} id - 资源标识符
- * @returns {Response} HTTP 响应
+ * DELETE /api/sync/:userId
+ *
+ * @param {object}  KV      - KV 命名空间实例
+ * @param {string}  userId  - 用户 ID（来自路由参数）
+ * @param {Request} request - 请求对象
+ * @param {object}  env     - 环境变量对象
+ * @returns {Promise<Response>}
  */
-async function handleDelete(KV, id) {
-  try {
-    await KV.delete(`sync:${id}`);
+async function handleDelete(KV, userId, request, env) {
+  // 身份认证校验
+  const auth = await verifyAuth(request, env, userId);
+  if (!auth.ok) {
+    return auth.response;
+  }
 
-    return new Response(JSON.stringify({
-      success: true
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  let dataType;
+  try {
+    const body = await request.json();
+    dataType   = body.dataType;
+  } catch (e) {
+    // DELETE 请求体可选，解析失败时视为全量删除
+    dataType = null;
+  }
+
+  // dataType 存在时须在白名单内
+  if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
+    return jsonResponse({
+      success: false,
+      error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
+    }, 400);
+  }
+
+  try {
+    let deletedTypes = [];
+
+    if (dataType) {
+      await KV.delete(`sync:${userId}:${dataType}`);
+      deletedTypes = [dataType];
+    } else {
+      // 全量删除该用户所有数据类型
+      await Promise.all(
+        VALID_DATA_TYPES.map(type => KV.delete(`sync:${userId}:${type}`))
+      );
+      deletedTypes = VALID_DATA_TYPES;
+    }
+
+    return jsonResponse({
+      success:      true,
+      deletedTypes: deletedTypes,
+      timestamp:    new Date().toISOString()
+    }, 200);
+
   } catch (error) {
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      message: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error(`[Sync:Delete] userId=${userId} error:`, error.message);
+    return jsonResponse({
+      success: false,
+      error:   'An internal error occurred. Please try again later.',
+      timestamp: new Date().toISOString()
+    }, 500);
   }
 }
