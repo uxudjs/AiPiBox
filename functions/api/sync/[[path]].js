@@ -96,7 +96,7 @@ async function handleDownload(KV, userId, request, env) {
       if (!data) {
         return jsonResponse({
           success:   true,
-                [],
+                data:[],
           count:     0,
           timestamp: new Date().toISOString()
         }, 200);
@@ -104,7 +104,7 @@ async function handleDownload(KV, userId, request, env) {
 
       return jsonResponse({
         success:   true,
-              [data],
+              data:[data],
         count:     1,
         timestamp: new Date().toISOString()
       }, 200);
