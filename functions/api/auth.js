@@ -1,16 +1,17 @@
 /**
  * 请求身份认证模块（Cloudflare Workers 版）
- * 提供基于 HMAC-SHA256 签名的 userId 身份校验，防止越权访问同步接口。
+ * 基于 syncId 所有权校验，防止越权访问他人同步数据。
  * 使用 Web Crypto API，兼容 Cloudflare Workers 运行时。
  *
  * 认证方式：
- *   客户端在请求头中携带以下三个字段：
- *   - X-User-Id:    用户 ID
- *   - X-Auth-Token: HMAC-SHA256(userId + ":" + timestamp, AUTH_SECRET)，十六进制编码
+ *   客户端在请求头中携带以下两个字段：
+ *   - X-Sync-Token: HMAC-SHA256(syncId + ":" + timestamp, syncId)，十六进制编码
  *   - X-Timestamp:  Unix 时间戳（毫秒），用于防重放攻击
  *
- * 环境变量：
- *   AUTH_SECRET  用于签名的密钥，生产环境必须设置（通过 Cloudflare Pages 环境变量配置）
+ * 设计说明：
+ *   syncId 由用户主密码经 PBKDF2 单向派生，对每个用户唯一且不可逆推密码。
+ *   以 syncId 自身作为签名密钥，服务端用路径中的 syncId 验签，
+ *   只有能派生出正确 syncId 的客户端才能通过校验，无需在服务端存储任何共享密钥。
  */
 
 /**
@@ -23,19 +24,6 @@ const TIMESTAMP_WINDOW_MS = 5 * 60 * 1000;
  * 合法十六进制字符串校验正则
  */
 const HEX_REGEX = /^[0-9a-f]+$/i;
-
-/**
- * 将十六进制字符串转换为 Uint8Array
- * @param {string} hex - 十六进制字符串
- * @returns {Uint8Array}
- */
-function hexToUint8Array(hex) {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
-  }
-  return bytes;
-}
 
 /**
  * 将 Uint8Array 转换为十六进制字符串
@@ -56,31 +44,25 @@ function uint8ArrayToHex(bytes) {
  */
 async function computeHmac(message, secret) {
   const encoder   = new TextEncoder();
-  const keyData   = encoder.encode(secret);
-  const msgData   = encoder.encode(message);
-
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    keyData,
+    encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
   );
-
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message));
   return uint8ArrayToHex(new Uint8Array(signature));
 }
 
 /**
- * 使用恒定时间比较两个十六进制字符串，防止时序攻击
+ * 使用恒定时间比较两个等长字符串，防止时序攻击
  * @param {string} a
  * @param {string} b
  * @returns {boolean}
  */
 function timingSafeEqual(a, b) {
-  if (a.length !== b.length) {
-    return false;
-  }
+  if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -91,39 +73,40 @@ function timingSafeEqual(a, b) {
 /**
  * 校验请求中的身份认证信息
  *
- * @param {Request} request    - Cloudflare Workers Request 对象
- * @param {object}  env        - Cloudflare Workers 环境变量对象
- * @param {string}  bodyUserId - 从请求体或查询参数中提取的 userId
+ * @param {Request} request - Cloudflare Workers Request 对象
+ * @param {string}  syncId  - 从路径参数中提取的 syncId
  * @returns {Promise<{ ok: boolean, response: Response|null }>}
  *   ok 为 true 时校验通过，response 为 null；
  *   ok 为 false 时校验失败，response 为已构造的错误响应。
  */
-async function verifyAuth(request, env, bodyUserId) {
-  const secret = env.AUTH_SECRET;
-
-  if (!secret) {
-    console.error('[Auth] AUTH_SECRET is not configured');
+async function verifyAuth(request, syncId) {
+  if (!syncId) {
     return {
       ok: false,
-      response: jsonResponse({ success: false, error: 'Server configuration error' }, 500)
+      response: jsonResponse({ success: false, error: 'Missing required field: syncId' }, 400)
     };
   }
 
-  const headerUserId = request.headers.get('x-user-id');
-  const token        = request.headers.get('x-auth-token');
-  const timestamp    = request.headers.get('x-timestamp');
+  if (typeof syncId !== 'string' || !HEX_REGEX.test(syncId) || syncId.length < 32) {
+    return {
+      ok: false,
+      response: jsonResponse({ success: false, error: 'Invalid syncId format' }, 400)
+    };
+  }
 
-  if (!headerUserId || !token || !timestamp) {
+  const token     = request.headers.get('x-sync-token');
+  const timestamp = request.headers.get('x-timestamp');
+
+  if (!token || !timestamp) {
     return {
       ok: false,
       response: jsonResponse({
         success: false,
-        error: 'Missing authentication headers: X-User-Id, X-Auth-Token, X-Timestamp'
+        error: 'Missing authentication headers: X-Sync-Token, X-Timestamp'
       }, 401)
     };
   }
 
-  // 校验时间戳，防止重放攻击
   const ts = parseInt(timestamp, 10);
   if (isNaN(ts) || Math.abs(Date.now() - ts) > TIMESTAMP_WINDOW_MS) {
     return {
@@ -132,11 +115,8 @@ async function verifyAuth(request, env, bodyUserId) {
     };
   }
 
-  // 计算期望签名
-  const expected = await computeHmac(`${headerUserId}:${timestamp}`, secret);
+  const expected = await computeHmac(`${syncId}:${timestamp}`, syncId);
 
-  // 校验 token 格式：必须是合法十六进制字符串，且长度与期望签名一致。
-  // 提前做格式与长度校验，避免异常并防止时序侧信道攻击。
   if (
     typeof token !== 'string' ||
     !HEX_REGEX.test(token) ||
@@ -148,19 +128,10 @@ async function verifyAuth(request, env, bodyUserId) {
     };
   }
 
-  // 使用恒定时间比较，防止时序攻击
   if (!timingSafeEqual(token.toLowerCase(), expected.toLowerCase())) {
     return {
       ok: false,
       response: jsonResponse({ success: false, error: 'Invalid authentication token' }, 401)
-    };
-  }
-
-  // 校验请求体 userId 与请求头 userId 一致，防止越权操作他人数据
-  if (bodyUserId && headerUserId !== String(bodyUserId)) {
-    return {
-      ok: false,
-      response: jsonResponse({ success: false, error: 'Forbidden: userId mismatch' }, 403)
     };
   }
 
