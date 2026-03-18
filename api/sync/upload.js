@@ -4,6 +4,25 @@
  */
 
 const { query, beginTransaction } = require('../db-config');
+const { verifyAuth }              = require('../auth');
+
+/**
+ * 请求体中 encryptedData 字段允许的最大字节长度（10 MB）
+ */
+const MAX_ENCRYPTED_DATA_BYTES = 10 * 1024 * 1024;
+
+/**
+ * 允许的数据类型白名单
+ */
+const VALID_DATA_TYPES = [
+  'config',
+  'conversations',
+  'messages',
+  'images',
+  'published',
+  'knowledgeBases',
+  'systemLogs'
+];
 
 /**
  * 上传处理程序
@@ -18,9 +37,14 @@ module.exports = async (req, res) => {
     });
   }
 
-  try {
-    const { userId, dataType, encryptedData, version, checksum } = req.body;
+  const { userId, dataType, encryptedData, version, checksum } = req.body;
 
+  // 身份认证校验
+  if (!verifyAuth(req, res, userId)) {
+    return;
+  }
+
+  try {
     if (!userId || !dataType || !encryptedData) {
       return res.status(400).json({
         success: false,
@@ -28,20 +52,18 @@ module.exports = async (req, res) => {
       });
     }
 
-    const validDataTypes = [
-      'config',
-      'conversations',
-      'messages',
-      'images',
-      'published',
-      'knowledgeBases',
-      'systemLogs'
-    ];
+    // 数据大小校验，防止超大请求耗尽存储资源
+    if (Buffer.byteLength(String(encryptedData), 'utf8') > MAX_ENCRYPTED_DATA_BYTES) {
+      return res.status(413).json({
+        success: false,
+        error: 'Payload too large: encryptedData exceeds the 10 MB limit'
+      });
+    }
 
-    if (!validDataTypes.includes(dataType)) {
+    if (!VALID_DATA_TYPES.includes(dataType)) {
       return res.status(400).json({
         success: false,
-        error: `Invalid dataType. Must be one of: ${validDataTypes.join(', ')}`
+        error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
       });
     }
 
@@ -111,7 +133,6 @@ module.exports = async (req, res) => {
     console.error('Upload error:', error);
 
     try {
-      const { userId, dataType } = req.body;
       if (userId && dataType) {
         await query(
           `INSERT INTO sync_history (user_id, sync_type, data_types, status, error_message, sync_timestamp) 
@@ -125,7 +146,7 @@ module.exports = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error: 'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     });
   }
