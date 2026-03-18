@@ -23,6 +23,11 @@ const VALID_DATA_TYPES = [
  */
 const MAX_DATA_BYTES = 10 * 1024 * 1024;
 
+/**
+ * 请求处理程序
+ * @param {object} context - 请求上下文
+ * @returns {Promise<Response>} HTTP 响应
+ */
 export async function onRequest(context) {
   const { request, env, params } = context;
   const path = params.path?.[0] || '';
@@ -55,7 +60,18 @@ export async function onRequest(context) {
   return jsonResponse({ success: false, error: 'Invalid request method or path' }, 400);
 }
 
+/**
+ * 处理下载请求
+ * GET /api/sync/:userId
+ *
+ * @param {object}  KV      - KV 命名空间实例
+ * @param {string}  userId  - 用户 ID（来自路由参数）
+ * @param {Request} request - 请求对象
+ * @param {object}  env     - 环境变量对象
+ * @returns {Promise<Response>}
+ */
 async function handleDownload(KV, userId, request, env) {
+  // userId 来自路由参数，已由路由匹配保证非空，可直接传入做一致性校验
   const auth = await verifyAuth(request, env, userId);
   if (!auth.ok) {
     return auth.response;
@@ -64,6 +80,7 @@ async function handleDownload(KV, userId, request, env) {
   const url      = new URL(request.url);
   const dataType = url.searchParams.get('dataType');
 
+  // dataType 存在时须在白名单内，防止非法枚举
   if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
     return jsonResponse({
       success: false,
@@ -73,12 +90,13 @@ async function handleDownload(KV, userId, request, env) {
 
   try {
     if (dataType) {
+      // 获取指定类型的数据
       const data = await KV.get(`sync:${userId}:${dataType}`, { type: 'json' });
 
       if (!data) {
         return jsonResponse({
           success:   true,
-                [],       // ← 修复：补回  键名
+                [],
           count:     0,
           timestamp: new Date().toISOString()
         }, 200);
@@ -86,12 +104,13 @@ async function handleDownload(KV, userId, request, env) {
 
       return jsonResponse({
         success:   true,
-              [data],    // ← 修复：补回  键名
+              [data],
         count:     1,
         timestamp: new Date().toISOString()
       }, 200);
     }
 
+    // 获取该用户所有数据类型
     const results = await Promise.all(
       VALID_DATA_TYPES.map(async (type) => {
         const item = await KV.get(`sync:${userId}:${type}`, { type: 'json' });
@@ -103,7 +122,7 @@ async function handleDownload(KV, userId, request, env) {
 
     return jsonResponse({
       success:   true,
-            data,        // ← 修复：补回  键名
+            data,
       count:     data.length,
       timestamp: new Date().toISOString()
     }, 200);
@@ -118,6 +137,15 @@ async function handleDownload(KV, userId, request, env) {
   }
 }
 
+/**
+ * 处理上传请求
+ * POST /api/sync
+ *
+ * @param {object}  KV      - KV 命名空间实例
+ * @param {Request} request - 请求对象
+ * @param {object}  env     - 环境变量对象
+ * @returns {Promise<Response>}
+ */
 async function handleUpload(KV, request, env) {
   let body;
   try {
@@ -128,6 +156,8 @@ async function handleUpload(KV, request, env) {
 
   const { userId, dataType, encryptedData, version, checksum } = body;
 
+  // 必填字段校验须在 verifyAuth 之前执行。
+  // 若 bodyUserId 为 undefined，将跳过 userId 一致性校验，存在越权风险。
   if (!userId || !dataType || !encryptedData) {
     return jsonResponse({
       success: false,
@@ -135,11 +165,13 @@ async function handleUpload(KV, request, env) {
     }, 400);
   }
 
+  // 身份认证校验
   const auth = await verifyAuth(request, env, userId);
   if (!auth.ok) {
     return auth.response;
   }
 
+  // 数据大小校验，防止超大请求耗尽 KV 存储
   const dataBytes = new TextEncoder().encode(String(encryptedData)).length;
   if (dataBytes > MAX_DATA_BYTES) {
     return jsonResponse({
@@ -183,7 +215,18 @@ async function handleUpload(KV, request, env) {
   }
 }
 
+/**
+ * 处理删除请求
+ * DELETE /api/sync/:userId
+ *
+ * @param {object}  KV      - KV 命名空间实例
+ * @param {string}  userId  - 用户 ID（来自路由参数）
+ * @param {Request} request - 请求对象
+ * @param {object}  env     - 环境变量对象
+ * @returns {Promise<Response>}
+ */
 async function handleDelete(KV, userId, request, env) {
+  // userId 来自路由参数，可直接用于一致性校验
   const auth = await verifyAuth(request, env, userId);
   if (!auth.ok) {
     return auth.response;
@@ -194,6 +237,7 @@ async function handleDelete(KV, userId, request, env) {
     const body = await request.json();
     dataType   = body.dataType;
   } catch (e) {
+    // DELETE 请求体可选，解析失败时视为全量删除
     dataType = null;
   }
 
