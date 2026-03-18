@@ -4,6 +4,20 @@
  */
 
 const { query, beginTransaction } = require('../db-config');
+const { verifyAuth }              = require('../auth');
+
+/**
+ * 允许的数据类型白名单
+ */
+const VALID_DATA_TYPES = [
+  'config',
+  'conversations',
+  'messages',
+  'images',
+  'published',
+  'knowledgeBases',
+  'systemLogs'
+];
 
 /**
  * 删除处理程序
@@ -18,13 +32,26 @@ module.exports = async (req, res) => {
     });
   }
 
-  try {
-    const { userId, dataType } = req.body;
+  const { userId, dataType } = req.body;
 
+  // 身份认证校验
+  if (!verifyAuth(req, res, userId)) {
+    return;
+  }
+
+  try {
     if (!userId) {
       return res.status(400).json({
         success: false,
         error: 'Missing required field: userId'
+      });
+    }
+
+    // dataType 存在时须在白名单内，防止非法枚举
+    if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
       });
     }
 
@@ -81,10 +108,10 @@ module.exports = async (req, res) => {
       await transaction.commit();
 
       return res.status(200).json({
-        success: true,
+        success:      true,
         deletedCount: deletedCount,
         deletedTypes: deletedTypes,
-        timestamp: new Date().toISOString()
+        timestamp:    new Date().toISOString()
       });
 
     } catch (error) {
@@ -96,7 +123,6 @@ module.exports = async (req, res) => {
     console.error('Delete error:', error);
 
     try {
-      const { userId, dataType } = req.body;
       if (userId) {
         await query(
           `INSERT INTO sync_history (user_id, sync_type, data_types, status, error_message, sync_timestamp) 
@@ -110,7 +136,7 @@ module.exports = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error:   'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     });
   }
