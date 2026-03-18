@@ -10,21 +10,28 @@
 const DB_CONFIG = {
   // 数据库引擎类型: 'mysql' | 'postgres'
   type: process.env.DB_TYPE || 'mysql',
-  
+
   // 网络连接信息
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || (process.env.DB_TYPE === 'postgres' ? 5432 : 3306),
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  
+
   // 连接池设置
   connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
-  
-  // SSL 安全连接配置
-  ssl: process.env.DB_SSL === 'true' ? {
-    rejectUnauthorized: false
-  } : false
+
+  /**
+   * SSL 安全连接配置
+   * rejectUnauthorized 默认为 true，强制校验服务端证书，防止中间人攻击。
+   * 如需信任自签名证书（仅限受控内网环境），可将环境变量 DB_SSL_REJECT_UNAUTHORIZED 设为 false。
+   * 不建议在生产环境中关闭此校验。
+   */
+  ssl: process.env.DB_SSL === 'true'
+    ? {
+        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
+      }
+    : false
 };
 
 /**
@@ -44,7 +51,6 @@ async function getPool() {
   const dbType = DB_CONFIG.type;
 
   if (dbType === 'mysql') {
-    // MySQL 连接
     const mysql = require('mysql2/promise');
     pool = mysql.createPool({
       host: DB_CONFIG.host,
@@ -58,7 +64,6 @@ async function getPool() {
       queueLimit: 0
     });
   } else if (dbType === 'postgres') {
-    // PostgreSQL 连接
     const { Pool } = require('pg');
     pool = new Pool({
       host: DB_CONFIG.host,
@@ -78,8 +83,8 @@ async function getPool() {
 
 /**
  * 执行标准化查询
- * @param {string} sql SQL 语句
- * @param {Array} params 参数化查询数组
+ * @param {string} sql    SQL 语句
+ * @param {Array}  params 参数化查询数组
  * @returns {Promise<Array>} 返回结果行数组
  */
 async function query(sql, params = []) {
@@ -177,22 +182,20 @@ async function healthCheck() {
 async function closePool() {
   if (pool) {
     const dbType = DB_CONFIG.type;
-    
-    if (dbType === 'mysql') {
-      await pool.end();
-    } else if (dbType === 'postgres') {
+
+    if (dbType === 'mysql' || dbType === 'postgres') {
       await pool.end();
     }
-    
+
     pool = null;
   }
 }
 
+// 移除 DB_CONFIG 的暴露，防止敏感配置在其他模块中被意外打印或访问
 module.exports = {
   query,
   beginTransaction,
   healthCheck,
   closePool,
-  getPool,
-  DB_CONFIG
+  getPool
 };
