@@ -72,6 +72,7 @@ export async function onRequest(context) {
  */
 async function handleDownload(KV, userId, request, env) {
   // 身份认证校验
+  // userId 来自路由参数，已由路由匹配保证非空，可直接传入做一致性校验
   const auth = await verifyAuth(request, env, userId);
   if (!auth.ok) {
     return auth.response;
@@ -90,16 +91,20 @@ async function handleDownload(KV, userId, request, env) {
 
   try {
     if (dataType) {
-      // 获取指定类型的数据
       const data = await KV.get(`sync:${userId}:${dataType}`, { type: 'json' });
 
       if (!data) {
-        return jsonResponse({ success: true, data: [], count: 0, timestamp: new Date().toISOString() }, 200);
+        return jsonResponse({
+          success:   true,
+                [],
+          count:     0,
+          timestamp: new Date().toISOString()
+        }, 200);
       }
 
       return jsonResponse({
         success:   true,
-        data:      [data],
+              [data],
         count:     1,
         timestamp: new Date().toISOString()
       }, 200);
@@ -117,7 +122,7 @@ async function handleDownload(KV, userId, request, env) {
 
     return jsonResponse({
       success:   true,
-      data:      data,
+            data,
       count:     data.length,
       timestamp: new Date().toISOString()
     }, 200);
@@ -125,8 +130,8 @@ async function handleDownload(KV, userId, request, env) {
   } catch (error) {
     console.error(`[Sync:Download] userId=${userId} error:`, error.message);
     return jsonResponse({
-      success: false,
-      error:   'An internal error occurred. Please try again later.',
+      success:   false,
+      error:     'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     }, 500);
   }
@@ -151,17 +156,20 @@ async function handleUpload(KV, request, env) {
 
   const { userId, dataType, encryptedData, version, checksum } = body;
 
-  // 身份认证校验
-  const auth = await verifyAuth(request, env, userId);
-  if (!auth.ok) {
-    return auth.response;
-  }
-
+  // 必填字段校验须在 verifyAuth 之前执行。
+  // verifyAuth 会将请求头中的 userId 与 bodyUserId 做一致性比对，
+  // 若 bodyUserId 为 undefined，该比对会被静默跳过，导致越权校验失效。
   if (!userId || !dataType || !encryptedData) {
     return jsonResponse({
       success: false,
       error: 'Missing required fields: userId, dataType, encryptedData'
     }, 400);
+  }
+
+  // 身份认证校验
+  const auth = await verifyAuth(request, env, userId);
+  if (!auth.ok) {
+    return auth.response;
   }
 
   // 数据大小校验，防止超大请求耗尽 KV 存储
@@ -201,8 +209,8 @@ async function handleUpload(KV, request, env) {
   } catch (error) {
     console.error(`[Sync:Upload] userId=${userId} dataType=${dataType} error:`, error.message);
     return jsonResponse({
-      success: false,
-      error:   'An internal error occurred. Please try again later.',
+      success:   false,
+      error:     'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     }, 500);
   }
@@ -220,6 +228,7 @@ async function handleUpload(KV, request, env) {
  */
 async function handleDelete(KV, userId, request, env) {
   // 身份认证校验
+  // userId 来自路由参数，已由路由匹配保证非空，可直接传入做一致性校验
   const auth = await verifyAuth(request, env, userId);
   if (!auth.ok) {
     return auth.response;
@@ -234,7 +243,7 @@ async function handleDelete(KV, userId, request, env) {
     dataType = null;
   }
 
-  // dataType 存在时须在白名单内
+  // dataType 存在时须在白名单内，防止非法枚举
   if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
     return jsonResponse({
       success: false,
@@ -265,8 +274,8 @@ async function handleDelete(KV, userId, request, env) {
   } catch (error) {
     console.error(`[Sync:Delete] userId=${userId} error:`, error.message);
     return jsonResponse({
-      success: false,
-      error:   'An internal error occurred. Please try again later.',
+      success:   false,
+      error:     'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     }, 500);
   }
