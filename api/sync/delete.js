@@ -34,19 +34,22 @@ module.exports = async (req, res) => {
 
   const { userId, dataType } = req.body;
 
+  // 必填字段校验须在 verifyAuth 之前执行。
+  // verifyAuth 会将请求头中的 userId 与 bodyUserId 做一致性比对，
+  // 若 bodyUserId 为 undefined，该比对会被静默跳过，导致越权校验失效。
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required field: userId'
+    });
+  }
+
   // 身份认证校验
   if (!verifyAuth(req, res, userId)) {
     return;
   }
 
   try {
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required field: userId'
-      });
-    }
-
     // dataType 存在时须在白名单内，防止非法枚举
     if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
       return res.status(400).json({
@@ -80,6 +83,14 @@ module.exports = async (req, res) => {
         );
         deletedCount = result.affectedRows || 0;
         deletedTypes.push(dataType);
+
+        // 写入历史记录
+        await transaction.query(
+          `INSERT INTO sync_history (user_id, sync_type, data_types, status, sync_timestamp) 
+           VALUES (?, 'delete', ?, 'success', NOW())`,
+          [userId, deletedTypes.join(',')]
+        );
+
       } else {
         const existingData = await transaction.query(
           'SELECT DISTINCT data_type FROM sync_data WHERE user_id = ?',
@@ -93,17 +104,20 @@ module.exports = async (req, res) => {
         );
         deletedCount = result.affectedRows || 0;
 
+        // 写入历史记录须在 DELETE FROM users 之前执行。
+        // 若 sync_history 存在指向 users.id 的外键约束，
+        // 在用户记录删除后插入历史会因外键缺失报错并触发回滚。
+        await transaction.query(
+          `INSERT INTO sync_history (user_id, sync_type, data_types, status, sync_timestamp) 
+           VALUES (?, 'delete', ?, 'success', NOW())`,
+          [userId, deletedTypes.join(',') || 'all']
+        );
+
         await transaction.query(
           'DELETE FROM users WHERE id = ?',
           [userId]
         );
       }
-
-      await transaction.query(
-        `INSERT INTO sync_history (user_id, sync_type, data_types, status, sync_timestamp) 
-         VALUES (?, 'delete', ?, 'success', NOW())`,
-        [userId, deletedTypes.join(',') || 'all']
-      );
 
       await transaction.commit();
 
