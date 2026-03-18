@@ -1,23 +1,10 @@
 /**
  * 云端同步数据删除接口
- * 支持全量删除或按数据类型删除。
+ * 删除指定 syncId 对应的全部云端数据。
  */
 
 const { query, beginTransaction } = require('../db-config');
 const { verifyAuth }              = require('../auth');
-
-/**
- * 允许的数据类型白名单
- */
-const VALID_DATA_TYPES = [
-  'config',
-  'conversations',
-  'messages',
-  'images',
-  'published',
-  'knowledgeBases',
-  'systemLogs'
-];
 
 /**
  * 删除处理程序
@@ -32,99 +19,34 @@ module.exports = async (req, res) => {
     });
   }
 
-  const { userId, dataType } = req.body;
+  // syncId 来自路由参数 /api/sync/:id，由 vercel.json rewrite 注入 req.query.id
+  const syncId = req.query.id;
 
-  // 必填字段校验须在 verifyAuth 之前执行。
-  // verifyAuth 会将请求头中的 userId 与 bodyUserId 做一致性比对，
-  // 若 bodyUserId 为 undefined，该比对会被静默跳过，导致越权校验失效。
-  if (!userId) {
+  if (!syncId) {
     return res.status(400).json({
       success: false,
-      error: 'Missing required field: userId'
+      error: 'Missing required field: syncId'
     });
   }
 
-  // 身份认证校验
-  if (!verifyAuth(req, res, userId)) {
+  if (!verifyAuth(req, res, syncId)) {
     return;
   }
 
   try {
-    // dataType 存在时须在白名单内，防止非法枚举
-    if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid dataType. Must be one of: ${VALID_DATA_TYPES.join(', ')}`
-      });
-    }
-
-    const userExists = await query(
-      'SELECT id FROM users WHERE id = ?',
-      [userId]
-    );
-
-    if (userExists.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
     const transaction = await beginTransaction();
 
     try {
-      let deletedCount = 0;
-      let deletedTypes = [];
-
-      if (dataType) {
-        const result = await transaction.query(
-          'DELETE FROM sync_data WHERE user_id = ? AND data_type = ?',
-          [userId, dataType]
-        );
-        deletedCount = result.affectedRows || 0;
-        deletedTypes.push(dataType);
-
-        // 写入历史记录
-        await transaction.query(
-          `INSERT INTO sync_history (user_id, sync_type, data_types, status, sync_timestamp) 
-           VALUES (?, 'delete', ?, 'success', NOW())`,
-          [userId, deletedTypes.join(',')]
-        );
-
-      } else {
-        const existingData = await transaction.query(
-          'SELECT DISTINCT data_type FROM sync_data WHERE user_id = ?',
-          [userId]
-        );
-        deletedTypes = existingData.map(row => row.data_type);
-
-        const result = await transaction.query(
-          'DELETE FROM sync_data WHERE user_id = ?',
-          [userId]
-        );
-        deletedCount = result.affectedRows || 0;
-
-        // 写入历史记录须在 DELETE FROM users 之前执行。
-        // 若 sync_history 存在指向 users.id 的外键约束，
-        // 在用户记录删除后插入历史会因外键缺失报错并触发回滚。
-        await transaction.query(
-          `INSERT INTO sync_history (user_id, sync_type, data_types, status, sync_timestamp) 
-           VALUES (?, 'delete', ?, 'success', NOW())`,
-          [userId, deletedTypes.join(',') || 'all']
-        );
-
-        await transaction.query(
-          'DELETE FROM users WHERE id = ?',
-          [userId]
-        );
-      }
+      const result = await transaction.query(
+        'DELETE FROM sync_data WHERE sync_id = ?',
+        [syncId]
+      );
 
       await transaction.commit();
 
       return res.status(200).json({
         success:      true,
-        deletedCount: deletedCount,
-        deletedTypes: deletedTypes,
+        deletedCount: result.affectedRows || 0,
         timestamp:    new Date().toISOString()
       });
 
@@ -135,22 +57,9 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('Delete error:', error);
-
-    try {
-      if (userId) {
-        await query(
-          `INSERT INTO sync_history (user_id, sync_type, data_types, status, error_message, sync_timestamp) 
-           VALUES (?, 'delete', ?, 'failed', ?, NOW())`,
-          [userId, dataType || 'all', error.message]
-        );
-      }
-    } catch (logError) {
-      console.error('Failed to log error history:', logError);
-    }
-
     return res.status(500).json({
-      success: false,
-      error:   'An internal error occurred. Please try again later.',
+      success:   false,
+      error:     'An internal error occurred. Please try again later.',
       timestamp: new Date().toISOString()
     });
   }
