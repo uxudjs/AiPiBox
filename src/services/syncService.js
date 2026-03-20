@@ -279,7 +279,6 @@ class SyncService {
     }
 
     const { sessionPassword, isAuthenticated } = AuthStore.getState();
-    const { cloudSync } = useConfigStore.getState();
 
     if (!isAuthenticated || !sessionPassword || !cloudSync?.enabled) {
       return;
@@ -413,7 +412,6 @@ class SyncService {
     }
 
     const { sessionPassword, isAuthenticated } = AuthStore.getState();
-    const { cloudSync } = useConfigStore.getState();
 
     if (!isAuthenticated || !sessionPassword || !cloudSync?.enabled) {
       return;

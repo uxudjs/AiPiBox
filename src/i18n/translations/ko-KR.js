@@ -646,13 +646,16 @@ export const koKR = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: '입력을 요약하여 짧고 정확한 제목(10단어 이하)을 생성하세요\n규칙:\n1. 제목만 출력(구두점/설명 제외)\n2. 한국어로 요약\n3. 요약 불가 시 "새 대화" 출력',
+      titleGeneratorPrompt: '입력을 읽고 간결하고 정확한 제목 생성(10자 이내)\n규칙:\n1. 제목을 직접 출력, 구두점/설명 텍스트 없음\n2. 핵심 주제 요약, 한국어 사용\n3. 요약 불가능 시 "새 대화" 출력',
       titleGeneratorUser: '입력: {message}\n제목:',
-      cannotCompressIncognito: '시크릿 모드 대화를 압축할 수 없습니다',
-      conversationIdRequired: '대화 ID가 지정되지 않았습니다',
-      conversationEmpty: '대화가 비어 있습니다. 압축이 필요하지 않습니다',
-      cannotApplyCompressionIncognito: '시크릿 모드 대화에 압축을 적용할 수 없습니다',
-      compressedMessageNotFound: '마지막으로 압축된 메시지를 찾을 수 없습니다'
+      cannotCompressIncognito: '시크릿 모드 대화는 압축할 수 없음',
+      conversationIdRequired: '대화 ID가 지정되지 않음',
+      conversationEmpty: '대화가 비어 있어 압축이 필요하지 않음',
+      cannotApplyCompressionIncognito: '시크릿 모드 대화에 압축을 적용할 수 없음',
+      compressedMessageNotFound: '마지막으로 압축된 메시지를 찾을 수 없음'
+    },
+    auth: {
+      autoLoginFailed: '자동 로그인 실패: 자격 증명이 유효하지 않거나 기기 환경이 변경됨'
     },
     knowledgeBase: {
       untitled: '제목 없는 지식 베이스'

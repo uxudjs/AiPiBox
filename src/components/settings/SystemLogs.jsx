@@ -10,7 +10,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { logger } from '../../services/logger';
 import VirtualList from '../ui/VirtualList';
-import { Download, Trash2, AlertCircle, Info, Bug, AlertTriangle, X, Copy } from 'lucide-react';
+import { Download, Trash2, AlertCircle, Info, Bug, AlertTriangle, X, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../i18n';
@@ -51,6 +51,8 @@ const getLevelIcon = (level) => {
  */
 const LogDetailsModal = ({ log, onClose }) => {
   const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+  
   if (!log) return null;
   
   /**
@@ -58,6 +60,8 @@ const LogDetailsModal = ({ log, onClose }) => {
    */
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(log, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return createPortal(
@@ -77,9 +81,9 @@ const LogDetailsModal = ({ log, onClose }) => {
             <button 
               onClick={handleCopy}
               className="p-1.5 hover:bg-accent rounded-md transition-colors text-muted-foreground hover:text-foreground"
-              title={t('settings.logs.copyLogs')}
+              title={copied ? t('markdown.copied') : t('settings.logs.copyLogs')}
             >
-              <Copy className="w-4 h-4" />
+              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
             </button>
             <button 
               onClick={onClose}

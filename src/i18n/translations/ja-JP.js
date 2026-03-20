@@ -650,16 +650,19 @@ export const jaJP = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: '入力を要約し、短く正確なタイトル(10文字以内)を生成せよ\nルール：\n1. タイトルのみ出力（句読点/説明不要）\n2. 日本語で要約\n3. 不可時は「新しい会話」と出力',
-      titleGeneratorUser: '入力: {message}\nタイトル:',
-      cannotCompressIncognito: 'シークレットモードの会話を圧縮できません',
+      titleGeneratorPrompt: '入力を読み、簡潔で正確なタイトルを生成（10文字以内）\nルール：\n1. タイトルを直接出力、句読点や説明文は不要\n2. 核心となるテーマを要約し、日本語を使用\n3. 要約できない場合は「新規チャット」を出力',
+      titleGeneratorUser: '入力：{message}\nタイトル：',
+      cannotCompressIncognito: 'シークレットモードの会話は圧縮できません',
       conversationIdRequired: '会話IDが指定されていません',
-      conversationEmpty: '会話が空です。圧縮は不要です',
+      conversationEmpty: '会話が空のため、圧縮は不要です',
       cannotApplyCompressionIncognito: 'シークレットモードの会話に圧縮を適用できません',
       compressedMessageNotFound: '最後に圧縮されたメッセージが見つかりません'
     },
+    auth: {
+      autoLoginFailed: '自動ログインに失敗：認証情報が無効、またはデバイス環境が変更されました'
+    },
     knowledgeBase: {
-      untitled: '無題の知識ベース'
+      untitled: '無題のナレッジベース'
     },
     file: {
       documentPrefix: 'ドキュメント {index}'

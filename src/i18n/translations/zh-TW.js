@@ -648,15 +648,18 @@ export const zhTW = {
     clearData: '清除資料'
   },
 
-  store: {
+store: {
     chat: {
       titleGeneratorPrompt: '閱讀輸入，生成簡短精準標題(10字內)\n規則：\n1. 直接輸出標題，無標點/解釋性文字\n2. 概括核心主題，使用繁體中文\n3. 無法概括則輸出「新對話」',
       titleGeneratorUser: '輸入：{message}\n標題：',
-      cannotCompressIncognito: '無法壓縮隱身模式對話',
+      cannotCompressIncognito: '無法壓縮無痕模式對話',
       conversationIdRequired: '未指定對話ID',
       conversationEmpty: '對話為空，無需壓縮',
-      cannotApplyCompressionIncognito: '無法應用壓縮到隱身模式對話',
+      cannotApplyCompressionIncognito: '無法將壓縮套用至無痕模式對話',
       compressedMessageNotFound: '找不到最後一個被壓縮的訊息'
+    },
+    auth: {
+      autoLoginFailed: '自動登入失敗：憑證失效或裝置環境已變更'
     },
     knowledgeBase: {
       untitled: '未命名知識庫'

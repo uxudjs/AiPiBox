@@ -651,13 +651,16 @@ export const enUS = {
 
   store: {
     chat: {
-      titleGeneratorPrompt: 'Summarize input into a short, accurate title (max 10 words)\nRules:\n1. Output title only, no punctuation/explanation\n2. Summarize core topic in English\n3. Fallback: "New Conversation"',
+      titleGeneratorPrompt: 'Read input, generate a short and precise title (within 10 characters)\nRules:\n1. Output the title directly, no punctuation/explanatory text\n2. Summarize the core topic, use English\n3. If unable to summarize, output "New Chat"',
       titleGeneratorUser: 'Input: {message}\nTitle:',
       cannotCompressIncognito: 'Cannot compress incognito mode conversation',
       conversationIdRequired: 'Conversation ID not specified',
       conversationEmpty: 'Conversation is empty, no compression needed',
       cannotApplyCompressionIncognito: 'Cannot apply compression to incognito mode conversation',
-      compressedMessageNotFound: 'Cannot find the last compressed message'
+      compressedMessageNotFound: 'The last compressed message not found'
+    },
+    auth: {
+      autoLoginFailed: 'Auto-login failed: credentials invalid or device environment has changed'
     },
     knowledgeBase: {
       untitled: 'Untitled Knowledge Base'

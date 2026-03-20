@@ -7,17 +7,32 @@ import { create } from 'zustand';
 import { hashPassword, encryptData, decryptData } from '../utils/crypto';
 import { db } from '../db';
 import { logger } from '../services/logger';
+import { useI18nStore } from '../i18n';
 
 const STORAGE_KEY = 'aipibox_auth_persist';
 
 /**
  * 派生本地设备绑定密钥
- * 基于当前域名与 UserAgent 生成一个只在本环境有效的加密密钥，
- * 确保 localStorage 数据即使被提取也无法在其他环境解密。
+ * 基于当前域名、OS及主要浏览器名称生成一个只在本环境有效的加密密钥。
+ * 排除具体的浏览器版本号以增强跨版本稳定性。
  * @returns {Promise<string>} 十六进制指纹字符串
  */
 const deriveDeviceKey = async () => {
-  const raw = `${location.origin}::${navigator.userAgent}`;
+  const ua = navigator.userAgent;
+  let browser = 'Unknown';
+  if (ua.includes('Firefox')) browser = 'Firefox';
+  else if (ua.includes('Edg')) browser = 'Edge';
+  else if (ua.includes('Chrome')) browser = 'Chrome';
+  else if (ua.includes('Safari')) browser = 'Safari';
+
+  let os = 'Unknown';
+  if (ua.includes('Win')) os = 'Windows';
+  else if (ua.includes('Mac')) os = 'MacOS';
+  else if (ua.includes('X11')) os = 'Linux';
+  else if (ua.includes('Android')) os = 'Android';
+  else if (ua.includes('iPhone')) os = 'iOS';
+
+  const raw = `${location.origin}::${os}::${browser}`;
   const enc = new TextEncoder();
   const hash = await crypto.subtle.digest('SHA-256', enc.encode(raw));
   return Array.from(new Uint8Array(hash))
@@ -70,19 +85,23 @@ export const useAuthStore = create((set, get) => ({
                 return;
               }
             }
+            // 凭据过期或无效，清除
             localStorage.removeItem(STORAGE_KEY);
           }
         } catch (e) {
-          logger.error('useAuthStore', 'Auto login failed', e);
+          // 自动登录失败通常是由于环境变更（如浏览器指纹变动）导致解密失败
+          // 此处使用 warn 记录，避免干扰正常错误监控
+          logger.warn('useAuthStore', useI18nStore.getState().t('store.auth.autoLoginFailed'), e);
           localStorage.removeItem(STORAGE_KEY);
         }
       }
 
       set({ isInitialized });
     } catch (error) {
+      // 数据库访问失败属于严重错误
       logger.error('useAuthStore', 'Failed to check initialization', error);
       set({ isInitialized: false });
-      throw new Error('无法访问数据库，请检查浏览器设置');
+      throw new Error(useI18nStore.getState().t('app.dbAccessError'));
     }
   },
 

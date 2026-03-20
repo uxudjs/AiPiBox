@@ -659,6 +659,9 @@ export const zhCN = {
       cannotApplyCompressionIncognito: '无法应用压缩到隐身模式对话',
       compressedMessageNotFound: '找不到最后一个被压缩的消息'
     },
+    auth: {
+      autoLoginFailed: '自动登录失败：凭据失效或设备环境已变更'
+    },
     knowledgeBase: {
       untitled: '未命名知识库'
     },
