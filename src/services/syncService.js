@@ -128,16 +128,21 @@ class SyncService {
           this.stopCloudPolling();
         }
 
-        if (state.cloudSync?.enabled && state.cloudSync?.autoSync) {
+        if (state.cloudSync?.enabled) {
           const importantKeys = ['providers', 'defaultModels', 'general', 'proxy', 'conversationPresets', 'cloudSync'];
           const hasChanged = importantKeys.some(key => {
             if (key === 'cloudSync') {
-              return state.cloudSync?.syncImages !== prevState.cloudSync?.syncImages;
+              // 检查 cloudSync 下的关键同步设置是否发生变化
+              return (
+                state.cloudSync?.syncImages !== prevState.cloudSync?.syncImages ||
+                state.cloudSync?.autoSync !== prevState.cloudSync?.autoSync ||
+                state.cloudSync?.apiUrl !== prevState.cloudSync?.apiUrl
+              );
             }
             return JSON.stringify(state[key]) !== JSON.stringify(prevState[key]);
           });
           
-          if (hasChanged) {
+          if (hasChanged && state.cloudSync?.autoSync) {
             this.debouncedSync();
           }
         }
@@ -243,6 +248,11 @@ class SyncService {
    */
   async syncToCloud(force = false) {
     if (this.isSyncing) return;
+
+    const { cloudSync } = useConfigStore.getState();
+    if (!force && !cloudSync?.autoSync) {
+      return;
+    }
 
     if (!this.hasSyncedOnce && !force) {
       logger.info('SyncService', 'Not synced with cloud yet. Upgrading to conflict resolution sync to prevent data loss.');
@@ -391,8 +401,9 @@ class SyncService {
 
   /**
    * 执行全量拉取同步
+   * @param {boolean} force - 是否强制从云端拉取
    */
-  async syncFromCloud() {
+  async syncFromCloud(force = false) {
     let AuthStore;
     try {
       const authModule = await import('../store/useAuthStore');
@@ -405,6 +416,10 @@ class SyncService {
     const { cloudSync } = useConfigStore.getState();
 
     if (!isAuthenticated || !sessionPassword || !cloudSync?.enabled) {
+      return;
+    }
+
+    if (!force && !cloudSync?.autoSync) {
       return;
     }
 
@@ -543,13 +558,25 @@ class SyncService {
             });
 
             if (!syncImages) {
+                // 如果当前设备未开启图片同步，则在应用云端消息时，尝试保留本地已有的图片数据
+                const ids = messagesToApply.map(m => m.id).filter(id => id !== undefined && id !== null);
+                const localMessages = await db.messages.where('id').anyOf(ids).toArray();
+                const localMsgMap = new Map(localMessages.map(m => [m.id, m]));
+
                 messagesToApply = messagesToApply.map(msg => {
-                    return {
-                        ...msg,
-                        content: Array.isArray(msg.content)
-                            ? msg.content.map(part => part.type === 'image_url' ? { ...part, image_url: { ...part.image_url, url: '' }, _sync_placeholder: true } : part)
-                            : msg.content
-                    };
+                    const localMsg = localMsgMap.get(msg.id);
+                    if (localMsg && Array.isArray(localMsg.content) && Array.isArray(msg.content)) {
+                        const newContent = msg.content.map((part, idx) => {
+                            const localPart = localMsg.content[idx];
+                            // 如果云端是占位符且本地有真实图片数据，则保留本地数据
+                            if (part.type === 'image_url' && (part._sync_placeholder || !part.image_url?.url) && localPart?.type === 'image_url' && localPart.image_url?.url) {
+                                return localPart;
+                            }
+                            return part;
+                        });
+                        return { ...msg, content: newContent };
+                    }
+                    return msg;
                 });
             } else {
                 const ids = messagesToApply.map(m => m.id).filter(id => id !== undefined && id !== null);
@@ -1143,12 +1170,23 @@ class SyncService {
             
             if (messagesToApply.length > 0) {
               if (!syncImages) {
-                messagesToApply = messagesToApply.map(msg => ({
-                  ...msg,
-                  content: Array.isArray(msg.content) 
-                    ? msg.content.map(part => part.type === 'image_url' ? { ...part, image_url: { ...part.image_url, url: '' }, _sync_placeholder: true } : part)
-                    : msg.content
-                }));
+                const localMsgs = await db.messages.where('id').anyOf(messagesToApply.map(m => m.id)).toArray();
+                const localMsgMap = new Map(localMsgs.map(m => [m.id, m]));
+                messagesToApply = messagesToApply.map(msg => {
+                  const localMsg = localMsgMap.get(msg.id);
+                  if (localMsg && Array.isArray(localMsg.content) && Array.isArray(msg.content)) {
+                      const newContent = msg.content.map((part, idx) => {
+                          const localPart = localMsg.content[idx];
+                          // 如果云端是占位符且本地有真实图片数据，则保留本地数据
+                          if (part.type === 'image_url' && (part._sync_placeholder || !part.image_url?.url) && localPart?.type === 'image_url' && localPart.image_url?.url) {
+                              return localPart;
+                          }
+                          return part;
+                      });
+                      return { ...msg, content: newContent };
+                  }
+                  return msg;
+                });
               } else {
                 const localMsgs = await db.messages.where('id').anyOf(messagesToApply.map(m => m.id)).toArray();
                 const localMsgMap = new Map(localMsgs.map(m => [m.id, m]));
