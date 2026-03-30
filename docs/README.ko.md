@@ -4,70 +4,52 @@
 
 [![简体中文](https://img.shields.io/badge/lang-简体中文-red.svg)](../README.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](./README.en.md)
-[![日本語](https://img.shields.io/badge/lang-日本語-green.svg)](./README.ja.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](./README.ja.md)
 [![繁體中文](https://img.shields.io/badge/lang-繁體中文-orange.svg)](./README.zh-TW.md)
 
 </div>
 
-강력하고 프라이버시 중심의 현대적인 AI 대화 어시스턴트 애플리케이션으로, 멀티 모델, 다국어, 지식 베이스 관리 및 이미지 생성을 지원합니다.
+강력하고 프라이버시를 중시하는 현대적인 AI 대화 어시스턴트 애플리케이션. 멀티 모델 통합, 지식 베이스 관리, 이미지 생성, 웹 게시 및 실시간 코드 미리보기를 지원합니다.
 
-## ✨ 주요 기능
+## ✨ 핵심 기능
 
 ### 🔐 프라이버시 및 보안
-- **로컬 우선 스토리지** - 모든 데이터가 브라우저 IndexedDB에 저장
-- **엔드투엔드 암호화** - API 키와 민감한 설정은 Web Crypto API를 사용한 하드웨어 수준 암호화
-- **선택적 클라우드 동기화** - 클라우드 데이터베이스에 암호화 백업, 데이터는 클라이언트에서 암호화 후 업로드
-- **서버 추적 없음** - 완전히 클라이언트 측에서 실행되어 사용자 프라이버시 보호
+- **로컬 우선 저장** - 모든 데이터는 브라우저의 IndexedDB에 저장되며, 마스터 비밀번호로 암호화됩니다.
+- **종단간 암호화** - API 키와 민감한 설정은 Web Crypto API(하드웨어 수준)를 사용하여 암호화됩니다.
+- **선택적 클라우드 동기화** - 클라우드 데이터베이스(MySQL/PostgreSQL/Cloudflare KV)로의 암호화된 백업을 지원합니다.
+- **서버 추적 없음** - 완전히 클라이언트 측에서 실행되어 사용자의 프라이버시를 보호합니다.
 
-### 💬 지능형 대화
-- **멀티 모델 지원** - OpenAI, Claude, Gemini, Azure, Groq, Perplexity 등 주류 AI 모델
-- **커스텀 프로바이더** - OpenAI API 호환 서비스 지원
-- **메시지 트리 구조** - 분기 대화 지원, 언제든지 다른 대화 경로 탐색 가능
-- **스트리밍 응답** - AI 응답 실시간 표시, 중단 기능 포함
-- **대화 압축** - 대화 기록의 자동 또는 수동 압축으로 컨텍스트 공간 절약
-- **자동 명명** - 대화 제목 지능형 생성
-- **컨텍스트 관리** - 대화 컨텍스트 길이의 스마트 제어
+### 💬 스마트 대화
+- **멀티 모델 지원** - OpenAI, Claude, Gemini, Azure, Groq, DeepSeek 등 주요 모델을 지원합니다.
+- **사용자 정의 제공자** - OpenAI API와 호환되는 모든 서비스를 추가할 수 있습니다.
+- **메시지 트리 구조** - 분기 대화를 지원하여 언제든지 다른 대화 경로를 탐색하고 되돌아갈 수 있습니다.
+- **스트리밍 응답** - AI의 응답을 실시간으로 표시하며 생성 중단이 가능합니다.
+- **자동 명명** - 대화 제목을 지능적으로 생성합니다.
+- **컨텍스트 관리** - **대화 압축** 기능을 통해 대화 컨텍스트 길이를 스마트하게 제어합니다.
 
-### 🌍 국제화
-- **다국어 인터페이스** - 간체 중국어, 번체 중국어, 영어, 일본어, 한국어
-- **AI 언어 제어** - 지정된 언어로 AI에 응답하도록 자동 지시
-- **현지화된 경험** - 완전한 인터페이스 번역 및 통일된 용어
+### 🎨 창작 및 강화
+- **Artifacts 미리보기** - HTML/CSS/JS/Tailwind 코드 블록을 자동으로 렌더링하여 실시간 대화형 미리보기를 제공합니다.
+- **원클릭 게시** - 대화 내용이나 코드 스니펫을 온라인 페이지로 게시하여 공유할 수 있습니다.
+- **이미지 생성** - DALL-E 3/2, Stable Diffusion을 통합하여 텍스트로 이미지 생성, 이미지로 이미지 생성을 지원합니다.
+- **웹 검색** - Tavily, Google, Bing 검색 엔진을 통합하여 실시간 정보를 가져옵니다.
 
-### 📚 지식 베이스
-- **문서 파싱** - PDF, Word, Excel, PowerPoint, TXT 등의 형식 지원
-- **로컬 처리** - 문서 내용은 완전히 브라우저 측에서 파싱 및 인덱싱, 원본 파일은 업로드되지 않음
-- **키워드 검색** - 키워드 기반 지능형 문서 검색
-- **대화 통합** - 지식 베이스 콘텐츠를 원활하게 참조하여 답변 강화
-- **일괄 관리** - 효율적인 문서 업로드 및 정리
-- **클라우드 동기화** - 지식 베이스의 메타데이터와 인덱스 구조만 동기화
-
-### 🎨 이미지 생성
-- **텍스트-이미지** - 텍스트 설명으로 이미지 생성
-- **이미지-이미지** - 참조 이미지를 기반으로 변형 생성
-- **모델 전환** - DALL-E 3, DALL-E 2, Stable Diffusion 등 지원
-- **파라미터 제어** - 크기, 품질, 스타일 등 세밀한 조정
-- **기록 관리** - 생성된 이미지 저장 및 관리
-- **다중 모드** - 표준, HD, 아트 등 다양한 생성 모드 지원
-
-### 🌐 웹 검색
-- **실시간 검색** - Google, Bing, DuckDuckGo와의 통합
-- **향상된 답변** - AI가 최신 정보를 결합하여 응답
-- **설정 가능한 엔진** - 검색 제공업체를 유연하게 선택
+### 📚 지식 베이스 및 처리
+- **로컬 처리** - 문서(PDF/Word/Excel/PPT/TXT)는 브라우저 측에서 파싱되며 원본 파일은 업로드되지 않습니다.
+- **시맨틱 검색** - 키워드 및 청크 기반의 지능형 검색으로 AI 답변을 강화합니다.
+- **긴 텍스트 최적화** - 긴 텍스트를 붙여넣을 때 자동으로 파일 첨부로 변환하여 대화를 깔끔하게 유지합니다.
+- **OCR 자동 폴백** - 모델이 멀티모달을 지원하지 않을 경우 자동으로 OCR을 활성화하여 이미지에서 텍스트를 추출합니다.
 
 ### 🎯 고급 기능
-- **깊은 사고 모드** - AI의 추론 체인 기능 활성화(o1, DeepSeek 등의 모델 지원)
-- **멀티모달 상호작용** - 이미지 업로드, 사진 촬영, OCR 텍스트 추출 지원
-- **코드 하이라이트** - 여러 프로그래밍 언어 지원
-- **수학 공식** - LaTeX/KaTeX 수학 공식 렌더링
-- **Mermaid 차트** - 순서도, 시퀀스 다이어그램 등 시각화
-- **향상된 Markdown** - GFM, 테이블, 작업 목록 등
+- **깊은 사고 모드** - AI 추론 체인(o1, DeepSeek 등 추론 모델 지원)을 활성화합니다.
+- **시크릿 모드** - 흔적을 남기지 않고 로컬에 저장되지 않는 비공개 대화입니다.
+- **다국어 인터페이스** - 한국어, 일본어, 영어, 간체 및 번체 중국어를 지원합니다.
+- **풍부한 렌더링** - Markdown, LaTeX 수식, Mermaid 차트를 완벽하게 지원합니다.
 
 ## 🚀 빠른 시작
 
 ### 요구 사항
 - Node.js >= 18.0
 - npm >= 9.0
-- 모던 브라우저(Chrome, Firefox, Edge, Safari)
 
 ### 로컬 개발
 
@@ -79,449 +61,75 @@ cd AiPiBox
 # 의존성 설치
 npm install
 
-# 개발 서버 시작
-npm run dev
+# 원커맨드 실행 (프록시 + 프론트엔드 서버)
+npm run dev:full
 
-# http://localhost:3000 방문
-```
-
-### 프로덕션 빌드
-
-```bash
-# 프로덕션용 빌드
-npm run build
-
-# 빌드 미리보기
-npm run preview
+# http://localhost:3000 접속
 ```
 
 ## 📦 배포
 
-AiPiBox는 여러 배포 방법을 지원하며, 모든 핵심 기능이 모든 플랫폼에서 작동합니다.
+AiPiBox는 다양한 배포 방식을 지원하며, 실행 환경을 자동으로 감지하여 API 경로를 구성합니다.
 
-### 플랫폼 비교
+| 플랫폼 | 명령어 | DB / 동기화 지원 | 추천도 |
+|--------|-------|------------------|--------|
+| **Vercel** | `npm run deploy:vercel` | MySQL / PostgreSQL | ⭐⭐⭐⭐⭐ |
+| **Netlify** | `npm run deploy:netlify` | MySQL / PostgreSQL | ⭐⭐⭐⭐⭐ |
+| **Cloudflare Pages** | `npm run deploy:cf` | Cloudflare KV | ⭐⭐⭐⭐⭐ |
+| **GitHub Pages** | `npm run build` | 외부 프록시 필요 | ⭐⭐⭐ |
 
-| 플랫폼 | AI 프록시 | 클라우드 동기화 | 이미지 생성 | 자동 배포 | 비용 | 평가 |
-|----------|----------|------------|-----------|-------------|------|--------|
-| Vercel | ✅ | ✅ | ✅ | ✅ | 무료 | ⭐⭐⭐⭐⭐ |
-| Netlify | ✅ | ✅ | ✅ | ✅ | 무료 | ⭐⭐⭐⭐⭐ |
-| Cloudflare Pages | ✅ | ✅ | ✅ | ✅ | 무료 | ⭐⭐⭐⭐⭐ |
-| GitHub Pages | ⚠️* | ⚠️* | ✅ | ❌ | 무료 | ⭐⭐⭐ |
-| 로컬 개발 | ✅ | ✅ | ✅ | - | - | ⭐⭐⭐⭐ |
+### 1️⃣ Vercel / Netlify (추천)
+1. 이 저장소를 포크하고 플랫폼에 연결합니다.
+2. 환경 변수(선택): `DB_TYPE`, `DB_HOST`, `DB_PASSWORD` 등 설정 (클라우드 동기화용).
+3. 플랫폼이 `api/` 디렉토리 내의 Serverless Functions를 자동으로 인식합니다.
 
-*GitHub Pages는 외부 API 서비스 설정이 필요합니다
+### 2️⃣ Cloudflare Pages
+1. [Cloudflare Dashboard](https://dash.cloudflare.com)에서 Pages 프로젝트를 생성합니다.
+2. 동기화를 위해 `SYNC_DATA`라는 이름의 **KV Namespace**를 바인딩합니다.
+3. `npm run deploy:cf`를 실행하거나 Git 연동으로 자동 배포합니다.
 
-### 1️⃣ Vercel(권장)
-
-**장점**: 간단한 배포, 강력한 성능, 자동 HTTPS, 글로벌 CDN
-
-#### CLI 배포(가장 빠름)
-
-```bash
-# 1. Vercel CLI 설치
-npm install -g vercel
-
-# 2. Vercel에 로그인
-vercel login
-
-# 3. 프로젝트 디렉토리에서 배포
-vercel --prod
-```
-
-#### 웹 인터페이스(초보자 친화적)
-
-1. 이 저장소를 GitHub 계정에 포크
-2. [vercel.com](https://vercel.com)에 방문하여 로그인
-3. "Add New Project" 클릭
-4. AiPiBox 저장소 선택
-5. 프레임워크 프리셋: `Vite` 선택
-6. 빌드 설정:
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Install Command: `npm install`
-7. "Deploy" 클릭
-
-배포 후 `https://your-project.vercel.app/api/health`에서 검증:
-```json
-{"status": "ok", "version": "1.0.0"}
-```
-
-### 2️⃣ Netlify
-
-#### CLI 배포
-
-```bash
-# 1. Netlify CLI 설치
-npm install -g netlify-cli
-
-# 2. Netlify에 로그인
-netlify login
-
-# 3. 프로젝트 초기화(최초 배포)
-netlify init
-
-# 4. 프로덕션에 배포
-netlify deploy --prod
-```
-
-#### 웹 인터페이스
-
-1. [netlify.com](https://netlify.com) 방문 후 로그인
-2. "Add new site" → "Import an existing project" 클릭
-3. GitHub 선택 및 인증
-4. AiPiBox 저장소 선택
-5. 빌드 설정:
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-6. "Deploy site" 클릭
-
-### 3️⃣ Cloudflare Pages
-
-**장점**: 세계에서 가장 빠른 CDN, 무제한 대역폭, Workers 통합
-
-#### CLI 배포
-
-```bash
-# 1. Wrangler CLI 설치
-npm install -g wrangler
-
-# 2. Cloudflare에 로그인
-wrangler login
-
-# 3. 프로젝트 빌드
-npm run build
-
-# 4. Cloudflare Pages에 배포
-wrangler pages deploy dist --project-name=aipibox
-```
-
-#### 웹 인터페이스
-
-1. [Cloudflare Dashboard](https://dash.cloudflare.com) 방문
-2. 왼쪽 메뉴에서 "Workers & Pages" 선택
-3. "Create application" → "Pages" → "Connect to Git" 클릭
-4. GitHub 선택 및 인증
-5. AiPiBox 저장소 선택
-6. 빌드 설정:
-   - Framework preset: `None` 또는 `Vite`
-   - Build command: `npm run build`
-   - Build output directory: `/dist`
-7. "Save and Deploy" 클릭
-
-#### KV Namespace 설정(클라우드 동기화)
-
-1. Cloudflare Dashboard에서 KV Namespace 생성
-2. Pages 프로젝트의 Settings → Functions → KV namespace bindings로 이동
-3. 바인딩 추가:
-   - Variable name: `SYNC_DATA`
-   - KV namespace: 방금 생성한 네임스페이스 선택
-4. 프로젝트 재배포
-
-### 4️⃣ GitHub Pages
-
-**주의**: GitHub Pages는 정적 파일만 호스팅할 수 있으며 백엔드 API를 실행할 수 없습니다. 추가 프록시 서비스 설정이 필요합니다.
-
-#### 배포 단계
-
-1. 이 저장소 포크
-2. 프로젝트 빌드:
-```bash
-npm install
-npm run build
-```
-
-3. gh-pages 도구로 배포:
-```bash
-npm install -g gh-pages
-gh-pages -d dist
-```
-
-4. GitHub Pages 활성화:
-   - 저장소의 Settings → Pages로 이동
-   - Source: `Deploy from a branch`
-   - Branch: `gh-pages` / `(root)`
-
-5. 방문: `https://<username>.github.io/AiPiBox/`
-
-#### 외부 API 서비스 설정
-
-Vercel 무료 플랜 사용 권장:
-
-1. Vercel에서 이 프로젝트 배포(API 전용)
-2. 배포 URL 획득: `https://aipibox-api.vercel.app`
-3. GitHub Pages 앱에서:
-   - 설정 → 네트워크 및 프록시 열기
-   - 클라우드 프록시 URL: `https://aipibox-api.vercel.app/api/ai-proxy`
-   - 저장 및 적용
-
-### 5️⃣ 로컬 개발
-
-```bash
-# 1. 프로젝트 클론
-git clone https://github.com/uxudjs/AiPiBox.git
-cd AiPiBox
-
-# 2. 의존성 설치
-npm install
-
-# 3. 원 커맨드 시작(프록시 + 개발 서버)
-npm run dev:full
-
-# 또는 별도로 시작:
-# 터미널 1: 프록시 서버 시작
-npm run proxy
-
-# 터미널 2: 프론트엔드 개발 서버 시작
-npm run dev
-```
-
-`http://localhost:3000`에 방문하여 사용.
-
-앱은 자동으로 로컬 환경을 감지하고 다음을 사용합니다:
-- 프록시 주소: `http://localhost:5000/api/proxy`
-- 동기화 주소: `http://localhost:5000/api/sync`
-
-### 🔧 배포 후 설정
-
-배포 방법에 관계없이 첫 방문 시 필요한 설정:
-
-1. **액세스 비밀번호 설정**: 로컬 데이터 암호화용
-2. **API 키 설정**:
-   - 설정 → 프로바이더 및 모델 열기
-   - OpenAI, Claude 등의 서비스 API 키 추가
-   - 연결 테스트로 검증
-   - 저장 및 적용
-3. **언어 선택**: 설정 → 일반 → 언어
-
-🎉 이제 사용을 시작할 수 있습니다!
-
----
-
-### 📚 추가 문서
-
-- [📖 전체 배포 가이드](../DEPLOYMENT_GUIDE.md)
-- [🌐 클라우드 프록시 설정](../CLOUD_PROXY_SETUP.md)
-- [💾 클라우드 동기화 설정](../CLOUD_SYNC_SETUP.md)
+### 3️⃣ GitHub Pages
+1. 빌드 실행: `npm run build`.
+2. `dist` 디렉토리를 `gh-pages` 브랜치에 업로드합니다.
+3. 앱 설정에서 **클라우드 프록시 URL**을 수동으로 지정합니다 (GH Pages는 백엔드 실행을 지원하지 않음).
 
 ## 🛠️ 기술 스택
 
-### 프론트엔드 프레임워크
-- **React 18** - UI 구축
-- **Vite** - 빠른 빌드 도구
-- **Tailwind CSS** - 유틸리티 우선 CSS 프레임워크
-
-### 상태 관리
-- **Zustand** - 경량 상태 관리
-- **Dexie.js** - 로컬 데이터 영속성을 위한 IndexedDB 래퍼
-
-### UI 컴포넌트
-- **Lucide React** - 아름다운 아이콘 라이브러리
-- **Framer Motion** - 부드러운 애니메이션
-- **React Markdown** - Markdown 렌더링
-- **Highlight.js** - 코드 구문 강조
-- **KaTeX** - 수학 공식 렌더링
-- **Mermaid** - 차트 시각화
-
-### 문서 처리
-- **PDF.js** - PDF 문서 파싱
-- **Mammoth** - Word 문서 파싱
-- **XLSX** - Excel 스프레드시트 처리
-
-### 백엔드 서비스
-- **Express** - 로컬 프록시 서버
-- **Serverless Functions** - 클라우드 API 배포(Vercel/Netlify/Cloudflare)
-
-### 데이터베이스 지원
-- **MySQL** - 관계형 데이터베이스(Vercel/Netlify)
-- **PostgreSQL** - 관계형 데이터베이스(Vercel/Netlify)
-- **Cloudflare KV** - 키-값 스토리지(Cloudflare Pages)
+- **프레임워크**: [React 18](https://react.dev/) + [Vite](https://vitejs.dev/)
+- **스타일링**: [Tailwind CSS](https://tailwindcss.com/) + [Framer Motion](https://www.framer.com/motion/)
+- **상태 관리**: [Zustand](https://github.com/pmndrs/zustand)
+- **데이터베이스**: [Dexie.js](https://dexie.org/) (IndexedDB)
+- **렌더링**: [React Markdown](https://github.com/remarkjs/react-markdown) + [KaTeX](https://katex.org/) + [Mermaid](https://mermaid.js.org/)
+- **백엔드**: Node.js (Vercel/Netlify) / Cloudflare Workers (Pages)
 
 ## 📁 프로젝트 구조
 
 ```
 AiPiBox/
-├── api/                      # Serverless API 엔드포인트
-│   ├── ai-proxy.js          # AI 요청 프록시
-│   ├── health.js            # 상태 확인
-│   ├── db-config.js         # 데이터베이스 설정
-│   └── sync/                # 클라우드 동기화 API
-│       ├── upload.js        # 데이터 업로드
-│       ├── download.js      # 데이터 다운로드
-│       └── delete.js        # 데이터 삭제
-├── functions/               # Cloudflare Functions
-│   ├── api/
-│   │   ├── ai-proxy.js     # AI 프록시(Cloudflare)
-│   │   └── health.js       # 상태 확인
-│   └── sync/[[path]].js    # 동적 경로 동기화
-├── proxy/                   # 로컬 프록시 서버
-│   └── server.js           # Express 프록시 서비스
-├── public/                  # 정적 자산
+├── api/                # Vercel/Netlify Serverless API
+├── functions/          # Cloudflare Pages Functions
+├── proxy/              # 로컬 프록시 서버
 ├── src/
-│   ├── components/          # React 컴포넌트
-│   │   ├── auth/           # 인증
-│   │   ├── chat/           # 채팅 컴포넌트
-│   │   ├── image/          # 이미지 생성
-│   │   ├── layout/         # 레이아웃 컴포넌트
-│   │   ├── settings/       # 설정 인터페이스
-│   │   ├── sync/           # 동기화 상태
-│   │   └── ui/             # 공통 UI 컴포넌트
-│   ├── db/                  # IndexedDB 데이터베이스
-│   │   └── index.js        # Dexie 설정
-│   ├── hooks/               # 커스텀 Hooks
-│   ├── i18n/                # 국제화
-│   │   ├── index.js        # i18n 설정
-│   │   └── translations/   # 번역 파일
-│   │       ├── zh-CN.js    # 간체 중국어
-│   │       ├── zh-TW.js    # 번체 중국어
-│   │       ├── en-US.js    # 영어
-│   │       ├── ja-JP.js    # 일본어
-│   │       └── ko-KR.js    # 한국어
-│   ├── router/              # 라우터 설정
-│   ├── services/            # 비즈니스 서비스
-│   │   ├── aiService.js    # AI 서비스 래퍼
-│   │   ├── documentParser.js # 문서 파싱
-│   │   ├── logger.js       # 로깅 시스템
-│   │   └── syncService.js  # 동기화 서비스
-│   ├── store/               # Zustand 상태 관리
-│   │   ├── useAuthStore.js # 인증 상태
-│   │   ├── useChatStore.js # 채팅 상태
-│   │   ├── useConfigStore.js # 설정 상태
-│   │   ├── useFileStore.js # 파일 상태
-│   │   ├── useImageGenStore.js # 이미지 생성 상태
-│   │   ├── useKnowledgeBaseStore.js # 지식 베이스
-│   │   └── useViewStore.js # UI 상태
-│   ├── utils/               # 유틸리티 함수
-│   │   ├── cn.js           # 스타일 유틸리티
-│   │   ├── conflictResolver.js # 충돌 해결
-│   │   ├── constants.js    # 상수
-│   │   ├── crypto.js       # 암호화 유틸리티
-│   │   ├── dataValidation.js # 데이터 검증
-│   │   ├── diagnostics.js  # 진단
-│   │   ├── envDetect.js    # 환경 감지
-│   │   ├── imageCompression.js # 이미지 압축
-│   │   ├── modelNameInference.js # 모델명 추론
-│   │   └── requestCache.js # 요청 캐싱
-│   ├── App.jsx              # 루트 컴포넌트
-│   ├── index.css            # 글로벌 스타일
-│   └── main.jsx             # 앱 진입점
-├── .env.example             # 환경 템플릿
-├── package.json             # 프로젝트 설정
-├── vite.config.js           # Vite 설정
-├── tailwind.config.js       # Tailwind 설정
-├── vercel.json              # Vercel 설정
-├── netlify.toml             # Netlify 설정
-└── README.md                # 문서
+│   ├── components/     # UI, 대화, 이미지, 지식 베이스 등 컴포넌트
+│   ├── services/       # AI 서비스, 동기화, 파서
+│   ├── store/          # 상태 관리
+│   ├── db/             # IndexedDB 설정
+│   └── i18n/           # 번역
+├── tailwind.config.js  # 스타일 설정
+└── vite.config.js      # 빌드 설정
 ```
 
-## 🔒 데이터 보안
+## 🔒 보안
 
-### 로컬 암호화
-- API 키는 Web Crypto API를 사용하여 암호화
-- 사용자 비밀번호에서 파생된 암호화 키(PBKDF2)
-- IndexedDB에 저장하기 전에 민감한 설정 암호화
+*   **마스터 비밀번호 보호**: 처음 사용 시 마스터 비밀번호를 설정하여 로컬에 저장되는 모든 민감한 정보를 암호화합니다.
+*   **종단간 암호화**: 클라우드로 동기화되는 데이터는 클라이언트 측에서 AES-GCM을 사용하여 암호화됩니다. 동기화 서버는 내용을 읽을 수 없습니다.
 
-### 클라우드 동기화
-- 업로드 전 클라이언트 측에서 데이터 암호화(AES-GCM)
-- 서버는 암호화된 데이터만 저장
-- 데이터 무결성을 위한 SHA-256 체크섬
-- 충돌 감지 및 해결 지원
+## 🤝 기여 및 피드백
 
-### 데이터 백업
-```javascript
-// 암호화된 백업 내보내기
-설정 > 보안 및 데이터 > 암호화된 백업 내보내기
+Pull Request와 [Issue](https://github.com/uxudjs/AiPiBox/issues)를 환영합니다!
 
-// 백업 가져오기
-설정 > 보안 및 데이터 > 백업 가져오기
-```
-
-## 🐛 문제 해결
-
-### 앱이 흰 화면이거나 로드되지 않음
-
-1. 브라우저 캐시 및 데이터 지우기
-2. F12를 눌러 개발자 도구를 열고 오류 확인
-3. 콘솔에서 진단 실행:
-```javascript
-window.__AiPiBoxDiagnostics.runDiagnostics()
-```
-
-### API 요청 실패
-
-- API 키가 올바른지 확인
-- 네트워크 연결 확인
-- 프록시 설정 확인(사용 중인 경우)
-- 시스템 로그 확인: 설정 > 시스템 로그
-
-### 데이터베이스 오류
-
-데이터베이스 관련 오류 발생 시:
-```javascript
-// 콘솔에서 실행
-localStorage.clear();
-indexedDB.deleteDatabase('AiPiBoxDB');
-location.reload();
-```
-
-### 클라우드 동기화 문제
-
-- 동기화 비밀번호가 올바른지 확인
-- 데이터베이스 연결 확인(클라우드 동기화 사용 중인 경우)
-- 자세한 오류 정보는 동기화 로그 확인
-- 수동 동기화를 시도하여 연결 테스트
-
-## 🤝 기여하기
-
-코드, 버그 리포트 또는 제안의 기여를 환영합니다!
-
-### 개발 워크플로
-
-1. 이 프로젝트 포크
-2. 기능 브랜치 생성(`git checkout -b feature/AmazingFeature`)
-3. 변경사항 커밋(`git commit -m 'Add some AmazingFeature'`)
-4. 브랜치에 푸시(`git push origin feature/AmazingFeature`)
-5. Pull Request 열기
-
-### 코드 규약
-
-- ESLint를 사용하여 코드 검사
-- 기존 코드 스타일 따르기
-- 필요한 주석 및 문서 추가
-- 모든 기능이 제대로 작동하는지 확인
-
-## 📄 라이센스
-
-이 프로젝트는 MIT 라이센스에 따라 라이센스가 부여됩니다 - 자세한 내용은 [LICENSE](https://github.com/uxudjs/AiPiBox/blob/main/LICENSE) 파일을 참조하세요
-
-## 🙏 감사의 말
-
-이 프로젝트는 다음 오픈소스 프로젝트를 사용합니다:
-
-- [React](https://react.dev/) - UI 프레임워크
-- [Vite](https://vitejs.dev/) - 빌드 도구
-- [Tailwind CSS](https://tailwindcss.com/) - CSS 프레임워크
-- [Zustand](https://github.com/pmndrs/zustand) - 상태 관리
-- [Dexie.js](https://dexie.org/) - IndexedDB 래퍼
-- [React Markdown](https://github.com/remarkjs/react-markdown) - Markdown 렌더링
-- [Lucide](https://lucide.dev/) - 아이콘 라이브러리
-- [Highlight.js](https://highlightjs.org/) - 코드 강조
-- [KaTeX](https://katex.org/) - 수학 공식
-- [Mermaid](https://mermaid.js.org/) - 차트 렌더링
-
-모든 오픈소스 기여자들께 감사드립니다!
-
-## 📞 연락처
-
-- 프로젝트 홈페이지: [https://github.com/uxudjs/AiPiBox](https://github.com/uxudjs/AiPiBox)
-- Issue Tracker: [https://github.com/uxudjs/AiPiBox/issues](https://github.com/uxudjs/AiPiBox/issues)
-- 토론: [https://github.com/uxudjs/AiPiBox/discussions](https://github.com/uxudjs/AiPiBox/discussions)
+라이선스: [MIT](./LICENSE). 모든 기여해 주신 분들께 감사드립니다!
 
 ---
 
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=uxudjs/AiPiBox&type=Date)](https://star-history.com/#uxudjs/AiPiBox&Date)
-
----
-
-**AI와의 지능형 대화 경험을 즐기세요!** 🚀
+**AI와 함께 스마트한 대화 경험을 즐겨보세요!** 🚀
