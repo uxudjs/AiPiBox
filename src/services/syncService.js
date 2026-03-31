@@ -236,10 +236,18 @@ class SyncService {
     const token = Array.from(new Uint8Array(signature))
       .map(b => b.toString(16).padStart(2, '0')).join('');
 
-    return {
+    const headers = {
       'X-Sync-Token': token,
       'X-Timestamp':  timestamp
     };
+
+    // 如果设置了访问授权码，则添加到头部
+    const { proxy } = useConfigStore.getState();
+    if (proxy?.accessCode) {
+      headers['X-Authorization'] = proxy.accessCode;
+    }
+
+    return headers;
   }
 
   /**

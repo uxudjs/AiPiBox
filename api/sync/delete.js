@@ -4,7 +4,7 @@
  */
 
 const { query, beginTransaction } = require('../db-config');
-const { verifyAuth }              = require('../auth');
+const { verifyAuth, verifyGlobalAuth } = require('../auth');
 
 /**
  * 删除处理程序
@@ -17,6 +17,11 @@ module.exports = async (req, res) => {
       success: false,
       error: 'Method not allowed'
     });
+  }
+
+  // 全局访问权限校验
+  if (!verifyGlobalAuth(req, res)) {
+    return;
   }
 
   // syncId 来自路由参数 /api/sync/:id，由 vercel.json rewrite 注入 req.query.id

@@ -1,40 +1,61 @@
-# Implementation Plan
+# Implementation Plan - Enable AUTH_SECRET Authentication
 
 [Overview]
-提高自动登录功能的密钥稳定性，减少因浏览器更新或环境微调导致的解密失败。
+Enable the `AUTH_SECRET` environment variable to protect the AI proxy and data sync API endpoints from unauthorized access.
 
-本实施计划旨在解决 `useAuthStore` 模块中自动登录失败（解密失败）的问题。目前系统使用 `location.origin` 和完整的 `navigator.userAgent` 派生设备密钥，由于 `userAgent` 包含高度变动的浏览器版本信息，导致浏览器更新后密钥不匹配。我们将通过简化 `userAgent` 信息来增强密钥的持久性，并优化错误处理机制。
+Currently, the AI proxy is open to anyone who knows the endpoint URL, and the sync API only verifies ownership via `syncId`. This plan introduces a global "Access Code" mechanism where the instance owner can set an `AUTH_SECRET` on the server, and users must provide the matching code in their settings to use the API.
 
-[Types]  
-本任务不涉及类型系统（TypeScript）的变更。
+[Types]
+No major type system changes, but the configuration state will be extended.
+
+- `ConfigStore.proxy`: Add `accessCode: string` field to store the user-provided secret.
 
 [Files]
-修改现有文件以优化密钥派生逻辑和错误处理。
+Detailed breakdown of file modifications:
 
-详细说明：
-- `src/store/useAuthStore.js`: 修改 `deriveDeviceKey` 函数，简化密钥生成逻辑；优化 `checkInit` 中的错误捕获与记录，区分“环境变更”与“真正错误”。
+- `src/store/useConfigStore.js`: Add `accessCode` to state and persistence.
+- `src/services/aiService.js`: Include access token in proxy requests.
+- `src/services/syncService.js`: Include access token in sync requests.
+- `src/components/settings/SettingsModal.jsx`: Add UI field for Access Code.
+- `src/i18n/translations/zh-CN.js`: Add translations for the new UI field.
+- `api/auth.js`: Implement global secret verification for Node.js.
+- `functions/api/auth.js`: Implement global secret verification for Cloudflare Workers.
+- `api/ai-proxy.js`: Protect endpoint with global auth.
+- `api/sync/upload.js`: Protect endpoint with global auth.
+- `api/sync/download.js`: Protect endpoint with global auth.
+- `api/sync/delete.js`: Protect endpoint with global auth.
+- `functions/api/ai-proxy.js`: Protect endpoint with global auth.
+- `functions/api/sync/[[path]].js`: Protect endpoint with global auth.
 
 [Functions]
-修改密钥派生和初始化检查函数。
+Detailed breakdown:
 
-详细说明：
-- `deriveDeviceKey` (src/store/useAuthStore.js): 修改函数实现，仅保留 `location.origin` 和 `userAgent` 中的操作系统及主要浏览器名称，剔除具体版本号。
-- `checkInit` (src/store/useAuthStore.js): 修改错误捕获逻辑。若解密失败，先尝试使用简化的错误处理（logger.warn），并确保清除旧的无效凭据。
+- New `verifyGlobalAuth(req/context)` in `api/auth.js` and `functions/api/auth.js`:
+  - Checks if `AUTH_SECRET` env var is set.
+  - If set, validates `X-Authorization` header against the secret.
+  - Returns boolean or error response.
+- Modified `aiService.chatCompletion`, `aiService.fetchModels`, `aiService.generateImage`:
+  - Fetch `accessCode` from store and add to headers.
+- Modified `syncService._buildAuthHeaders`:
+  - Add `X-Authorization` header if `accessCode` exists.
 
 [Classes]
-本任务不涉及类的变更。
+No new classes.
 
 [Dependencies]
-无需引入新的依赖包。
+No new dependencies.
 
 [Implementation Order]
-按照逻辑顺序修改认证存储模块。
-
-1. 修改 `src/store/useAuthStore.js` 中的 `deriveDeviceKey` 函数，实现更稳定的密钥派生。
-2. 修改 `src/store/useAuthStore.js` 中的 `checkInit` 函数，优化错误日志级别。
-3. 验证功能：模拟 `userAgent` 变更（通过手动修改代码模拟）确认系统能优雅处理并允许用户重新登录。
+1. Update `i18n` and `ConfigStore` to support the new `accessCode` field.
+2. Update the `SettingsModal` UI to allow users to input the code.
+3. Update `aiService` and `syncService` to send the token in headers.
+4. Implement `verifyGlobalAuth` in both Node.js and Cloudflare auth modules.
+5. Apply the verification to all relevant API handlers.
+6. Verify the implementation by testing with and without the secret.
 
 task_progress Items:
-- [ ] Step 1: 修改 `deriveDeviceKey` 为更稳定的实现方式
-- [ ] Step 2: 优化 `checkInit` 中的错误捕获和日志记录逻辑
-- [ ] Step 3: 手动验证自动登录失效时的处理流程
+- [ ] Step 1: Update i18n and ConfigStore state
+- [ ] Step 2: Add Access Code input to Settings UI
+- [ ] Step 3: Modify client-side services to send authentication headers
+- [ ] Step 4: Implement server-side global auth verification (Node.js & Workers)
+- [ ] Step 5: Protect all API endpoints with the new verification logic

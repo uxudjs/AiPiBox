@@ -4,7 +4,7 @@
 
 [![简体中文](https://img.shields.io/badge/lang-简体中文-red.svg)](../README.md)
 [![English](https://img.shields.io/badge/lang-English-blue.svg)](./README.en.md)
-[![日本語](https://img.shields.io/badge/lang-日本語-red.svg)](./README.ja.md)
+[![日本語](https://img.shields.io/badge/lang-日本語-green.svg)](./README.ja.md)
 [![繁體中文](https://img.shields.io/badge/lang-繁體中文-orange.svg)](./README.zh-TW.md)
 
 </div>
@@ -15,14 +15,14 @@
 
 ### 🔐 프라이버시 및 보안
 - **로컬 우선 저장** - 모든 데이터는 브라우저의 IndexedDB에 저장되며, 마스터 비밀번호로 암호화됩니다.
-- **종단간 암호화** - API 키와 민감한 설정은 Web Crypto API(하드웨어 수준)를 사용하여 암호화됩니다.
-- **선택적 클라우드 동기화** - 클라우드 데이터베이스(MySQL/PostgreSQL/Cloudflare KV)로의 암호화된 백업을 지원합니다.
+- **종단간 암호화** - API 키와 민감한 설정은 Web Crypto API를 사용하여 암호화됩니다.
+- **선택적 클라우드 동기화** - 클라우드 저장소(Cloudflare KV 또는 MySQL/PostgreSQL)로의 암호화된 백업을 지원합니다.
 - **서버 추적 없음** - 완전히 클라이언트 측에서 실행되어 사용자의 프라이버시를 보호합니다.
 
 ### 💬 스마트 대화
 - **멀티 모델 지원** - OpenAI, Claude, Gemini, Azure, Groq, DeepSeek 등 주요 모델을 지원합니다.
 - **사용자 정의 제공자** - OpenAI API와 호환되는 모든 서비스를 추가할 수 있습니다.
-- **메시지 트리 구조** - 분기 대화를 지원하여 언제든지 다른 대화 경로를 탐색하고 되돌아갈 수 있습니다.
+- **메시지 트리 구조** - 분기 대화를 지원하여 언제든지 다른 대화 경로를 탐색할 수 있습니다.
 - **스트리밍 응답** - AI의 응답을 실시간으로 표시하며 생성 중단이 가능합니다.
 - **자동 명명** - 대화 제목을 지능적으로 생성합니다.
 - **컨텍스트 관리** - **대화 압축** 기능을 통해 대화 컨텍스트 길이를 스마트하게 제어합니다.
@@ -40,9 +40,9 @@
 - **OCR 자동 폴백** - 모델이 멀티모달을 지원하지 않을 경우 자동으로 OCR을 활성화하여 이미지에서 텍스트를 추출합니다.
 
 ### 🎯 고급 기능
-- **깊은 사고 모드** - AI 추론 체인(o1, DeepSeek 등 추론 모델 지원)을 활성화합니다.
+- **깊은 사고 모드** - AI 추론 체인(o1, DeepSeek 등 추론 모델)을 활성화합니다.
 - **시크릿 모드** - 흔적을 남기지 않고 로컬에 저장되지 않는 비공개 대화입니다.
-- **다국어 인터페이스** - 한국어, 일본어, 영어, 간체 및 번체 중국어를 지원합니다.
+- **다국어 인터페이스** - 한국어, 영어, 일본어, 간체 및 번체 중국어를 지원합니다.
 - **풍부한 렌더링** - Markdown, LaTeX 수식, Mermaid 차트를 완벽하게 지원합니다.
 
 ## 🚀 빠른 시작
@@ -61,44 +61,69 @@ cd AiPiBox
 # 의존성 설치
 npm install
 
-# 원커맨드 실행 (프록시 + 프론트엔드 서버)
+# 원커맨드 실행 (로컬 프록시 + 프론트엔드 서버)
 npm run dev:full
 
 # http://localhost:3000 접속
 ```
 
-## 📦 배포
+## 📦 배포 및 설정
 
-AiPiBox는 다양한 배포 방식을 지원하며, 실행 환경을 자동으로 감지하여 API 경로를 구성합니다.
+AiPiBox는 다양한 배포 방식을 지원하며, 실행 환경을 자동으로 감지합니다. **기능의 완전한 작동을 위해 반드시 관련 환경 변수를 설정해 주세요.**
 
-| 플랫폼 | 명령어 | DB / 동기화 지원 | 추천도 |
-|--------|-------|------------------|--------|
-| **Vercel** | `npm run deploy:vercel` | MySQL / PostgreSQL | ⭐⭐⭐⭐⭐ |
-| **Netlify** | `npm run deploy:netlify` | MySQL / PostgreSQL | ⭐⭐⭐⭐⭐ |
-| **Cloudflare Pages** | `npm run deploy:cf` | Cloudflare KV | ⭐⭐⭐⭐⭐ |
-| **GitHub Pages** | `npm run build` | 외부 프록시 필요 | ⭐⭐⭐ |
+### 1️⃣ 환경 변수 설명 (공통)
 
-### 1️⃣ Vercel / Netlify (추천)
+어떤 배포 방식을 선택하든 보안과 성능 향상을 위해 다음 변수를 설정하는 것을 권장합니다:
+
+| 변수명 | 설명 | 권장 값 |
+|--------|------|--------|
+| `AUTH_SECRET` | API 인터페이스 보호를 위한 HMAC 서명용 키. | 32자 랜덤 문자열 |
+| `PROXY_RATE_LIMIT` | AI 프록시 인터페이스의 IP당 분당 최대 요청 수. | `60` |
+
+---
+
+### 2️⃣ Cloudflare Pages (추천)
+
+**단계:**
+1. [Cloudflare Dashboard](https://dash.cloudflare.com)에서 Pages 프로젝트를 생성합니다.
+2. **KV 바인딩**: 프로젝트 설정 -> Functions -> KV namespace bindings로 이동하여 다음 바인딩을 추가합니다:
+   - **Variable name**: `SYNC_DATA`
+   - **KV namespace**: 생성한 KV 네임스페이스를 선택합니다.
+3. **환경 변수**: 같은 설정 페이지의 "Environment variables" 섹션에 `AUTH_SECRET`과 `PROXY_RATE_LIMIT`을 추가합니다.
+4. **배포**: `npm run deploy:cf`를 실행하거나 Git 저장소를 연동합니다.
+
+---
+
+### 3️⃣ Vercel / Netlify
+
+**단계:**
 1. 이 저장소를 포크하고 플랫폼에 연결합니다.
-2. 환경 변수(선택): `DB_TYPE`, `DB_HOST`, `DB_PASSWORD` 등 설정 (클라우드 동기화용).
+2. **환경 변수**: 플랫폼 콘솔에서 `AUTH_SECRET` 및 다음 **클라우드 동기화** 관련 변수를 설정합니다:
+
+| 변수명 | 설명 | 예시 |
+|--------|------|------|
+| `DB_TYPE` | 데이터베이스 유형 | `mysql` 또는 `postgres` |
+| `DB_HOST` | 데이터베이스 호스트 주소 | `xxx.xxx.com` |
+| `DB_NAME` | 데이터베이스 이름 | `aipibox` |
+| `DB_USER` | 사용자 이름 | `admin` |
+| `DB_PASSWORD`| 비밀번호 | `******` |
+| `DB_SSL` | SSL 연결 활성화 여부 | `true` |
+
 3. 플랫폼이 `api/` 디렉토리 내의 Serverless Functions를 자동으로 인식합니다.
 
-### 2️⃣ Cloudflare Pages
-1. [Cloudflare Dashboard](https://dash.cloudflare.com)에서 Pages 프로젝트를 생성합니다.
-2. 동기화를 위해 `SYNC_DATA`라는 이름의 **KV Namespace**를 바인딩합니다.
-3. `npm run deploy:cf`를 실행하거나 Git 연동으로 자동 배포합니다.
+---
 
-### 3️⃣ GitHub Pages
+### 4️⃣ GitHub Pages (프론트엔드 전용)
 1. 빌드 실행: `npm run build`.
 2. `dist` 디렉토리를 `gh-pages` 브랜치에 업로드합니다.
-3. 앱 설정에서 **클라우드 프록시 URL**을 수동으로 지정합니다 (GH Pages는 백엔드 실행을 지원하지 않음).
+3. **주의**: 백엔드 스크립트를 지원하지 않으므로, 앱 설정에서 **클라우드 프록시 URL**을 수동으로 지정해야 합니다 (Vercel/Netlify 등에 배포된 API 주소).
 
 ## 🛠️ 기술 스택
 
 - **프레임워크**: [React 18](https://react.dev/) + [Vite](https://vitejs.dev/)
 - **스타일링**: [Tailwind CSS](https://tailwindcss.com/) + [Framer Motion](https://www.framer.com/motion/)
 - **상태 관리**: [Zustand](https://github.com/pmndrs/zustand)
-- **데이터베이스**: [Dexie.js](https://dexie.org/) (IndexedDB)
+- **데이터베이스**: [Dexie.js](https://dexie.org/) (로컬 IndexedDB)
 - **렌더링**: [React Markdown](https://github.com/remarkjs/react-markdown) + [KaTeX](https://katex.org/) + [Mermaid](https://mermaid.js.org/)
 - **백엔드**: Node.js (Vercel/Netlify) / Cloudflare Workers (Pages)
 
@@ -106,17 +131,17 @@ AiPiBox는 다양한 배포 방식을 지원하며, 실행 환경을 자동으�
 
 ```
 AiPiBox/
-├── api/                # Vercel/Netlify Serverless API
-├── functions/          # Cloudflare Pages Functions
-├── proxy/              # 로컬 프록시 서버
+├── api/                # Vercel/Netlify Serverless API (Node.js)
+├── functions/          # Cloudflare Pages Functions (Workers)
+├── proxy/              # 로컬 개발용 프록시 서버
 ├── src/
 │   ├── components/     # UI, 대화, 이미지, 지식 베이스 등 컴포넌트
-│   ├── services/       # AI 서비스, 동기화, 파서
-│   ├── store/          # 상태 관리
-│   ├── db/             # IndexedDB 설정
-│   └── i18n/           # 번역
-├── tailwind.config.js  # 스타일 설정
-└── vite.config.js      # 빌드 설정
+│   ├── services/       # AI 서비스, 동기화 서비스, 파서
+│   ├── store/          # Zustand 상태 관리 센터
+│   ├── db/             # IndexedDB 로컬 데이터베이스 설정
+│   └── i18n/           # 다국어 번역
+├── tailwind.config.js  # Tailwind CSS 설정
+└── vite.config.js      # Vite 빌드 설정
 ```
 
 ## 🔒 보안

@@ -139,6 +139,32 @@ async function verifyAuth(request, syncId) {
 }
 
 /**
+ * 校验全局访问密码 (AUTH_SECRET)
+ * 如果服务端配置了 AUTH_SECRET 环境变量，则要求客户端在 X-Authorization 中携带匹配的值。
+ *
+ * @param {Request} request - Cloudflare Workers Request 对象
+ * @param {object} env - 环境变量对象
+ * @returns {Promise<{ ok: boolean, response: Response|null }>}
+ */
+async function verifyGlobalAuth(request, env) {
+  const secret = env.AUTH_SECRET;
+  if (!secret) return { ok: true, response: null };
+
+  const authHeader = request.headers.get('x-authorization');
+  if (!authHeader || authHeader !== secret) {
+    return {
+      ok: false,
+      response: jsonResponse({
+        success: false,
+        error: 'Invalid or missing global access code'
+      }, 401)
+    };
+  }
+
+  return { ok: true, response: null };
+}
+
+/**
  * 构造 JSON 响应
  * @param {object} body   - 响应体对象
  * @param {number} status - HTTP 状态码
@@ -152,4 +178,4 @@ function jsonResponse(body, status, extraHeaders = {}) {
   });
 }
 
-export { verifyAuth, jsonResponse };
+export { verifyAuth, verifyGlobalAuth, jsonResponse };

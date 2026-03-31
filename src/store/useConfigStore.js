@@ -88,6 +88,7 @@ export const useConfigStore = create((set, get) => ({
     enabled: false, 
     url: '/api/proxy',
     cloudUrl: '',
+    accessCode: '',
     encryptKey: true,
     timeout: 30
   },

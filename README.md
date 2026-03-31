@@ -16,7 +16,7 @@
 ### 🔐 隐私与安全
 - **本地优先存储** - 所有数据存储在浏览器 IndexedDB 中，由主密码加密。
 - **端到端加密** - API 密钥和敏感配置采用 Web Crypto API 硬件级加密。
-- **可选云端同步** - 支持加密备份到云端数据库（MySQL/PostgreSQL/Cloudflare KV）。
+- **可选云端同步** - 支持加密备份到云端存储（Cloudflare KV 或 MySQL/PostgreSQL）。
 - **无服务器追踪** - 完全在客户端运行，保护用户隐私。
 
 ### 💬 智能对话
@@ -61,44 +61,69 @@ cd AiPiBox
 # 安装依赖
 npm install
 
-# 一键启动（代理服务器 + 前端服务器）
+# 一键启动（本地代理服务器 + 前端服务器）
 npm run dev:full
 
 # 访问 http://localhost:3000
 ```
 
-## 📦 部署
+## 📦 部署与配置
 
-AiPiBox 支持多种部署方式，应用会自动识别运行环境并配置 API 路径。
+AiPiBox 支持多种部署方式，应用会自动识别运行环境。**为确保功能完整，请务必配置相关环境变量。**
 
-| 平台 | 指令 | 数据库/同步支持 | 推荐度 |
-|------|------|----------------|--------|
-| **Vercel** | `npm run deploy:vercel` | MySQL / PostgreSQL | ⭐⭐⭐⭐⭐ |
-| **Netlify** | `npm run deploy:netlify` | MySQL / PostgreSQL | ⭐⭐⭐⭐⭐ |
-| **Cloudflare Pages** | `npm run deploy:cf` | Cloudflare KV | ⭐⭐⭐⭐⭐ |
-| **GitHub Pages** | `npm run build` | 需配置远程代理 | ⭐⭐⭐ |
+### 1️⃣ 环境变量说明 (通用)
 
-### 1️⃣ Vercel / Netlify (推荐)
+无论选择哪种部署方式，建议配置以下变量以增强安全性与性能：
+
+| 变量名 | 说明 | 推荐值 |
+|--------|------|--------|
+| `AUTH_SECRET` | 用于 HMAC 签名的密钥，保护 API 接口。 | 32位随机字符串 |
+| `PROXY_RATE_LIMIT` | AI 代理接口每 IP 每分钟最大请求数。 | `60` |
+
+---
+
+### 2️⃣ Cloudflare Pages (推荐)
+
+**步骤：**
+1. 在 [Cloudflare Dashboard](https://dash.cloudflare.com) 中创建 Pages 项目。
+2. **KV 绑定**：进入项目设置 -> Functions -> KV namespace bindings，添加一个绑定：
+   - **Variable name**: `SYNC_DATA`
+   - **KV namespace**: 选择您创建的 KV 命名空间。
+3. **环境变量**：在同一设置页面的 "Environment variables" 中添加 `AUTH_SECRET` 和 `PROXY_RATE_LIMIT`。
+4. **部署**：执行 `npm run deploy:cf` 或关联 Git 仓库。
+
+---
+
+### 3️⃣ Vercel / Netlify
+
+**步骤：**
 1. Fork 本仓库并关联至平台。
-2. 配置环境变量（可选）：`DB_TYPE`, `DB_HOST`, `DB_PASSWORD` 等（用于云端同步）。
+2. **环境变量**：在平台控制台配置 `AUTH_SECRET` 及以下**云端同步**相关变量：
+
+| 变量名 | 说明 | 示例 |
+|--------|------|------|
+| `DB_TYPE` | 数据库类型 | `mysql` 或 `postgres` |
+| `DB_HOST` | 数据库主机地址 | `xxx.xxx.com` |
+| `DB_NAME` | 数据库名称 | `aipibox` |
+| `DB_USER` | 用户名 | `admin` |
+| `DB_PASSWORD`| 密码 | `******` |
+| `DB_SSL` | 是否启用 SSL 连接 | `true` |
+
 3. 平台将自动识别 `api/` 目录下的 Serverless Functions。
 
-### 2️⃣ Cloudflare Pages
-1. 在 [Cloudflare Dashboard](https://dash.cloudflare.com) 中创建 Pages 项目。
-2. 绑定一个名为 `SYNC_DATA` 的 **KV Namespace** 以启用同步功能。
-3. 执行 `npm run deploy:cf` 或关联 Git 自动部署。
+---
 
-### 3️⃣ GitHub Pages
+### 4️⃣ GitHub Pages (仅前端)
 1. 构建项目：`npm run build`。
 2. 将 `dist` 目录上传至 `gh-pages` 分支。
-3. 在应用设置中手动指定 **云端代理 URL**（由于 GitHub Pages 不支持后端脚本）。
+3. **注意**：由于不支持后端脚本，必须在应用设置中手动指定**云端代理 URL**（可指向您在 Vercel 部署的 API 地址）。
 
 ## 🛠️ 技术栈
 
 - **框架**: [React 18](https://react.dev/) + [Vite](https://vitejs.dev/)
 - **样式**: [Tailwind CSS](https://tailwindcss.com/) + [Framer Motion](https://www.framer.com/motion/)
 - **状态管理**: [Zustand](https://github.com/pmndrs/zustand)
-- **数据库**: [Dexie.js](https://dexie.org/) (IndexedDB)
+- **数据库**: [Dexie.js](https://dexie.org/) (本地 IndexedDB)
 - **渲染**: [React Markdown](https://github.com/remarkjs/react-markdown) + [KaTeX](https://katex.org/) + [Mermaid](https://mermaid.js.org/)
 - **后端**: Node.js (Vercel/Netlify) / Cloudflare Workers (Pages)
 
@@ -106,17 +131,17 @@ AiPiBox 支持多种部署方式，应用会自动识别运行环境并配置 AP
 
 ```
 AiPiBox/
-├── api/                # Vercel/Netlify Serverless API
-├── functions/          # Cloudflare Pages Functions
-├── proxy/              # 本地代理服务器
+├── api/                # Vercel/Netlify Serverless API (Node.js)
+├── functions/          # Cloudflare Pages Functions (Workers)
+├── proxy/              # 本地开发代理服务器
 ├── src/
 │   ├── components/     # UI、对话、图像、知识库等组件
 │   ├── services/       # AI 服务、同步服务、解析器
-│   ├── store/          # 状态管理中心
-│   ├── db/             # IndexedDB 配置
-│   └── i18n/           # 多语言翻译
-├── tailwind.config.js  # 样式配置
-└── vite.config.js      # 构建配置
+│   ├── store/          # Zustand 状态管理中心
+│   ├── db/             # IndexedDB 本地数据库配置
+│   └── i18n/           # 多语言国际化翻译
+├── tailwind.config.js  # Tailwind CSS 配置
+└── vite.config.js      # Vite 构建配置
 ```
 
 ## 🔒 安全说明

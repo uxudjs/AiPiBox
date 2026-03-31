@@ -109,4 +109,28 @@ function verifyAuth(req, res, syncId) {
   return true;
 }
 
-module.exports = { verifyAuth };
+/**
+ * 校验全局访问密码 (AUTH_SECRET)
+ * 如果服务端配置了 AUTH_SECRET 环境变量，则要求客户端在 X-Authorization 中携带匹配的值。
+ *
+ * @param {object} req - HTTP 请求对象
+ * @param {object} res - HTTP 响应对象
+ * @returns {boolean} 校验通过返回 true，否则已写入响应并返回 false
+ */
+function verifyGlobalAuth(req, res) {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return true; // 未配置则默认通过
+
+  const authHeader = req.headers['x-authorization'];
+  if (!authHeader || authHeader !== secret) {
+    res.status(401).json({
+      success: false,
+      error: 'Invalid or missing global access code'
+    });
+    return false;
+  }
+
+  return true;
+}
+
+module.exports = { verifyAuth, verifyGlobalAuth };

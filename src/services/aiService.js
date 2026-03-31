@@ -446,13 +446,18 @@ export async function testConnection(provider, apiKey, baseUrl, proxyConfig = {}
 
   try {
     if (isProxy && proxyUrl) {
+      const proxyHeaders = { 'Content-Type': 'application/json' };
+      if (proxyConfig.accessCode) {
+        proxyHeaders['X-Authorization'] = proxyConfig.accessCode;
+      }
+
       const res = await axios.post(proxyUrl, {
         url: targetUrl,
         method,
         headers,
         data
       }, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: proxyHeaders,
         timeout: (proxyConfig.timeout || 30) * 1000
       });
       return res.status === 200;
@@ -516,12 +521,17 @@ export async function fetchModels(provider, apiKey, baseUrl, proxyConfig = {}, f
       try {
         let response;
         if (isProxy && proxyUrl) {
+          const proxyHeaders = { 'Content-Type': 'application/json' };
+          if (proxyConfig.accessCode) {
+            proxyHeaders['X-Authorization'] = proxyConfig.accessCode;
+          }
+
           response = await axios.post(proxyUrl, {
             url: targetUrl,
             method: 'GET',
             headers: headers
           }, {
-            headers: { 'Content-Type': 'application/json' },
+            headers: proxyHeaders,
             timeout: (proxyConfig.timeout || 30) * 1000
           });
         } else {
@@ -829,9 +839,14 @@ export async function chatCompletion({
           taskId
         } : payload;
 
+        const proxyHeaders = isProxy ? { 'Content-Type': 'application/json' } : headers;
+        if (isProxy && proxyConfig.accessCode) {
+          proxyHeaders['X-Authorization'] = proxyConfig.accessCode;
+        }
+
         const fetchOptions = {
           method: 'POST',
-          headers: isProxy ? { 'Content-Type': 'application/json' } : headers,
+          headers: proxyHeaders,
           body: JSON.stringify(fetchBody),
           signal: signal || AbortSignal.timeout((proxyConfig.timeout || 300) * 1000)
         };
@@ -970,8 +985,13 @@ export async function chatCompletion({
           data: payload,
         } : payload;
 
+        const proxyHeaders = isProxy ? { 'Content-Type': 'application/json' } : headers;
+        if (isProxy && proxyConfig.accessCode) {
+          proxyHeaders['X-Authorization'] = proxyConfig.accessCode;
+        }
+
         const axiosOptions = {
-          headers: isProxy ? { 'Content-Type': 'application/json' } : headers,
+          headers: proxyHeaders,
           timeout: (proxyConfig.timeout || 30) * 1000,
           signal: signal
         };
@@ -1396,6 +1416,10 @@ export async function generateImage({
         data: payload,
       } : payload;
       const axiosHeaders = isProxy ? { 'Content-Type': 'application/json' } : headers;
+
+      if (isProxy && proxyConfig.accessCode) {
+        axiosHeaders['X-Authorization'] = proxyConfig.accessCode;
+      }
 
       const response = await axios.post(axiosUrl, axiosData, {
         headers: axiosHeaders,

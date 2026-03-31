@@ -5,6 +5,7 @@
  */
 
 import axios from 'axios';
+import { verifyGlobalAuth } from './auth';
 
 /**
  * 允许转发的目标域名白名单
@@ -154,6 +155,11 @@ export default async function handler(req, res) {
   const startTime = Date.now();
   const requestId = req.headers['x-request-id'] || `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   const clientIp  = getClientIp(req);
+
+  // 全局访问权限校验
+  if (!verifyGlobalAuth(req, res)) {
+    return;
+  }
 
   // 速率限制检查
   const rateResult = checkRateLimit(clientIp);

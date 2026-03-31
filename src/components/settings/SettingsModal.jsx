@@ -1305,6 +1305,20 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'llm' }) => {
                         </p>
                       </div>
 
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">{t('settings.proxy.accessCode')}</label>
+                        <input 
+                          type="password" 
+                          value={proxy.accessCode || ''}
+                          onChange={(e) => updateLocalConfig('proxy', { accessCode: e.target.value })}
+                          placeholder="AUTH_SECRET"
+                          className="w-full px-4 py-3 bg-accent rounded-xl border-none focus:ring-2 focus:ring-primary text-sm font-mono"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t('settings.proxy.accessCodeHint')}
+                        </p>
+                      </div>
+
                       <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex gap-4">
                         <Shield className="w-6 h-6 text-green-500 flex-shrink-0" />
                         <div>

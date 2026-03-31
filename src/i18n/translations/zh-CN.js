@@ -303,6 +303,8 @@ export const zhCN = {
       proxyHint: '通过服务端转发 AI 请求，解决浏览器跨域限制，提升连接稳定性。支持后台持续生成及断线后自动恢复。',
       cloudProxyUrl: '代理服务地址',
       cloudProxyHint: '留空则使用当前域名的默认路径。仅在使用自定义域名或 GitHub Pages 等静态托管时需要手动配置。',
+      accessCode: '访问授权码 (Access Code)',
+      accessCodeHint: '如果服务端配置了访问权限，请输入授权码。留空则不发送授权头。',
       cloudSyncDepends: '云端同步功能依赖代理服务，禁用代理将导致同步失效'
     },
 

@@ -3,7 +3,7 @@
  * 使用 KV 存储实现轻量级数据同步，提供身份认证、数据校验及访问控制。
  */
 
-import { verifyAuth, jsonResponse } from '../auth.js';
+import { verifyAuth, verifyGlobalAuth, jsonResponse } from '../auth.js';
 
 /**
  * 请求体中加密数据字段允许的最大字节长度（10 MB）
@@ -21,6 +21,12 @@ export async function onRequest(context) {
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204 });
+  }
+
+  // 全局访问权限校验
+  const globalAuth = await verifyGlobalAuth(request, env);
+  if (!globalAuth.ok) {
+    return globalAuth.response;
   }
 
   const KV = env.SYNC_DATA;

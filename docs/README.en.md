@@ -15,8 +15,8 @@ A powerful, privacy-focused modern AI conversation assistant application. Suppor
 
 ### 🔐 Privacy & Security
 - **Local-First Storage** - All data stored in browser IndexedDB, encrypted by a master password.
-- **End-to-End Encryption** - API keys and sensitive configurations encrypted using Web Crypto API (hardware-level).
-- **Optional Cloud Sync** - Encrypted backup to cloud databases (MySQL/PostgreSQL/Cloudflare KV).
+- **End-to-End Encryption** - API keys and sensitive configurations encrypted using Web Crypto API.
+- **Optional Cloud Sync** - Encrypted backup to cloud storage (Cloudflare KV or MySQL/PostgreSQL).
 - **No Server Tracking** - Runs completely client-side, protecting user privacy.
 
 ### 💬 Intelligent Conversations
@@ -61,44 +61,69 @@ cd AiPiBox
 # Install dependencies
 npm install
 
-# One-command start (Proxy + Frontend server)
+# One-command start (Local Proxy + Frontend server)
 npm run dev:full
 
 # Visit http://localhost:3000
 ```
 
-## 📦 Deployment
+## 📦 Deployment & Configuration
 
-AiPiBox supports multiple deployment methods. The app automatically detects the environment and configures API paths.
+AiPiBox supports multiple deployment methods. The app automatically detects the environment. **Please ensure you configure the necessary environment variables for full functionality.**
 
-| Platform | Command | DB / Sync Support | Rating |
-|----------|---------|-------------------|--------|
-| **Vercel** | `npm run deploy:vercel` | MySQL / PostgreSQL | ⭐⭐⭐⭐⭐ |
-| **Netlify** | `npm run deploy:netlify` | MySQL / PostgreSQL | ⭐⭐⭐⭐⭐ |
-| **Cloudflare Pages** | `npm run deploy:cf` | Cloudflare KV | ⭐⭐⭐⭐⭐ |
-| **GitHub Pages** | `npm run build` | Requires remote proxy | ⭐⭐⭐ |
+### 1️⃣ Environment Variables (General)
 
-### 1️⃣ Vercel / Netlify (Recommended)
+Regardless of the platform, it is recommended to configure these variables for better security and performance:
+
+| Variable | Description | Recommended Value |
+|----------|-------------|-------------------|
+| `AUTH_SECRET` | Secret key for HMAC signatures to protect the API. | 32-char random string |
+| `PROXY_RATE_LIMIT` | Max requests per IP per minute for the AI proxy. | `60` |
+
+---
+
+### 2️⃣ Cloudflare Pages (Recommended)
+
+**Steps:**
+1. Create a Pages project in the [Cloudflare Dashboard](https://dash.cloudflare.com).
+2. **KV Binding**: Go to Project Settings -> Functions -> KV namespace bindings, and add:
+   - **Variable name**: `SYNC_DATA`
+   - **KV namespace**: Select your created KV namespace.
+3. **Env Vars**: In the same settings page, add `AUTH_SECRET` and `PROXY_RATE_LIMIT` under "Environment variables".
+4. **Deploy**: Run `npm run deploy:cf` or connect your Git repository.
+
+---
+
+### 3️⃣ Vercel / Netlify
+
+**Steps:**
 1. Fork this repo and connect to the platform.
-2. Set environment variables (optional): `DB_TYPE`, `DB_HOST`, `DB_PASSWORD`, etc. (for cloud sync).
+2. **Env Vars**: Configure `AUTH_SECRET` and the following **Cloud Sync** variables in the platform console:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DB_TYPE` | Database type | `mysql` or `postgres` |
+| `DB_HOST` | Database host address | `xxx.xxx.com` |
+| `DB_NAME` | Database name | `aipibox` |
+| `DB_USER` | Username | `admin` |
+| `DB_PASSWORD`| Password | `******` |
+| `DB_SSL` | Enable SSL connection | `true` |
+
 3. The platform will automatically recognize Serverless Functions in the `api/` directory.
 
-### 2️⃣ Cloudflare Pages
-1. Create a Pages project in the [Cloudflare Dashboard](https://dash.cloudflare.com).
-2. Bind a **KV Namespace** named `SYNC_DATA` to enable sync.
-3. Run `npm run deploy:cf` or connect Git for auto-deployment.
+---
 
-### 3️⃣ GitHub Pages
+### 4️⃣ GitHub Pages (Frontend Only)
 1. Build project: `npm run build`.
 2. Upload `dist` directory to the `gh-pages` branch.
-3. Manually specify **Cloud Proxy URL** in app settings (as GH Pages doesn't support backend scripts).
+3. **Note**: Since backend scripts are not supported, you must manually specify the **Cloud Proxy URL** in the app settings (pointing to your Vercel/Netlify API).
 
 ## 🛠️ Tech Stack
 
 - **Framework**: [React 18](https://react.dev/) + [Vite](https://vitejs.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [Framer Motion](https://www.framer.com/motion/)
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **Database**: [Dexie.js](https://dexie.org/) (IndexedDB)
+- **Database**: [Dexie.js](https://dexie.org/) (Local IndexedDB)
 - **Rendering**: [React Markdown](https://github.com/remarkjs/react-markdown) + [KaTeX](https://katex.org/) + [Mermaid](https://mermaid.js.org/)
 - **Backend**: Node.js (Vercel/Netlify) / Cloudflare Workers (Pages)
 
@@ -106,17 +131,17 @@ AiPiBox supports multiple deployment methods. The app automatically detects the 
 
 ```
 AiPiBox/
-├── api/                # Vercel/Netlify Serverless API
-├── functions/          # Cloudflare Pages Functions
-├── proxy/              # Local proxy server
+├── api/                # Vercel/Netlify Serverless API (Node.js)
+├── functions/          # Cloudflare Pages Functions (Workers)
+├── proxy/              # Local development proxy server
 ├── src/
 │   ├── components/     # UI, Chat, Image, Knowledge Base components
 │   ├── services/       # AI, Sync services, Parsers
-│   ├── store/          # Zustand store
-│   ├── db/             # IndexedDB config
-│   └── i18n/           # Translations
-├── tailwind.config.js  # Style config
-└── vite.config.js      # Build config
+│   ├── store/          # Zustand state management
+│   ├── db/             # IndexedDB local config
+│   └── i18n/           # Internationalization
+├── tailwind.config.js  # Tailwind CSS config
+└── vite.config.js      # Vite build config
 ```
 
 ## 🔒 Security

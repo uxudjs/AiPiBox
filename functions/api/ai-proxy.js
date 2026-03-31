@@ -3,6 +3,8 @@
  * 转发客户端 AI 服务请求，提供安全校验、日志记录、SSE 流式响应透传及 SSRF 防护。
  */
 
+import { verifyGlobalAuth } from './auth.js';
+
 /**
  * 允许代理的域名白名单，防止 SSRF 攻击
  */
@@ -139,6 +141,12 @@ function jsonResponse(body, status, extraHeaders = {}) {
  */
 export async function onRequest(context) {
   const { request, env } = context;
+
+  // 全局访问权限校验
+  const auth = await verifyGlobalAuth(request, env);
+  if (!auth.ok) {
+    return auth.response;
+  }
 
   if (request.method !== 'POST') {
     return jsonResponse({

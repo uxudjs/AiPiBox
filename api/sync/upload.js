@@ -4,7 +4,7 @@
  */
 
 const { query, beginTransaction } = require('../db-config');
-const { verifyAuth }              = require('../auth');
+const { verifyAuth, verifyGlobalAuth } = require('../auth');
 
 /**
  * 请求体中 encryptedData 字段允许的最大字节长度（10 MB）
@@ -26,6 +26,11 @@ module.exports = async (req, res) => {
 
   // 前端上传时 body 字段为 { id, data, timestamp }
   const { id: syncId, data: encryptedData, timestamp } = req.body;
+
+  // 全局访问权限校验
+  if (!verifyGlobalAuth(req, res)) {
+    return;
+  }
 
   // 必填字段校验须在 verifyAuth 之前执行，
   // 确保 syncId 非空后再传入 verifyAuth 做签名校验。
