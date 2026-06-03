@@ -47,6 +47,7 @@ const PublishedPage = ({ id: propId }) => {
   const srcDoc = language === 'html' ? content : `
     <html>
       <head>
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';">
         <style>${language === 'css' ? content : ''}</style>
       </head>
       <body>

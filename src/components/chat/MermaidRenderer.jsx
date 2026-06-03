@@ -97,7 +97,7 @@ const MermaidRenderer = ({ content, className = '', isGenerating = false, isBloc
           suppressErrorRendering: true,
         });
 
-        const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        const id = `mermaid-${Date.now()}-${crypto.randomUUID()}`;
         
         const { svg } = await mermaid.render(id, cleaned);
         setSvg(svg);

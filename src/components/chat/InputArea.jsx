@@ -250,7 +250,7 @@ const InputArea = () => {
       <div className="max-w-4xl mx-auto relative">
         {showCamera && <CameraCapture onCapture={img => {
           const [h, d] = img.split(','); const m = h.match(/:(.*?);/)[1]; const b = atob(d); let n = b.length; const u = new Uint8Array(n); while (n--) u[n] = b.charCodeAt(n);
-          setPendingImages(prev => [...prev, { id: Date.now() + Math.random(), data: img, file: new File([u], `photo_${Date.now()}.jpg`, { type: m }) }]);
+          setPendingImages(prev => [...prev, { id: `${Date.now()}_${crypto.randomUUID()}`, data: img, file: new File([u], `photo_${Date.now()}.jpg`, { type: m }) }]);
         }} onClose={() => setShowCamera(false)} initialImage={cameraInitialImage} />}
 
         <input type="file" ref={nativeCameraRef} accept="image/*" capture="environment" className="hidden" onChange={handleNativeCameraChange} />

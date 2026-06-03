@@ -66,7 +66,7 @@ const CodeBlock = ({ language, value, isComplete }) => {
   };
 
   const publishCode = async () => {
-    const id = Math.random().toString(36).slice(2, 10);
+    const id = crypto.randomUUID();
     await db.published.put({
       id,
       content: value,
@@ -116,7 +116,7 @@ const CodeBlock = ({ language, value, isComplete }) => {
       ) : (
         <div className="bg-white h-[400px]">
           <iframe
-            srcDoc={language === 'html' ? value : `<html><head><style>${language === 'css' ? value : ''}</style></head><body><script>${language === 'js' || language === 'javascript' ? value : ''}</script></body></html>`}
+            srcDoc={language === 'html' ? value : `<html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';"><style>${language === 'css' ? value : ''}</style></head><body><script>${language === 'js' || language === 'javascript' ? value : ''}</script></body></html>`}
             className="w-full h-full border-none"
             title="preview"
             sandbox="allow-scripts"

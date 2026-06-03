@@ -64,7 +64,9 @@ function checkRateLimit(ip, maxRequests) {
   const now = Date.now();
 
   // 以低概率（约 5%）顺带清理全部过期条目，防止内存增长
-  if (Math.random() < 0.05) {
+  const randArr = new Uint8Array(1);
+  crypto.getRandomValues(randArr);
+  if (randArr[0] < 13) { // 13/256 ≈ 5%
     for (const [key, record] of rateLimitStore.entries()) {
       if (now - record.windowStart >= RATE_LIMIT.windowMs) {
         rateLimitStore.delete(key);
@@ -157,7 +159,7 @@ export async function onRequest(context) {
 
   const startTime   = Date.now();
   const requestId   = request.headers.get('x-request-id') ||
-                      `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+                      `req_${Date.now()}_${crypto.randomUUID()}`;
   const clientIp    = getClientIp(request);
   const maxRequests = parseInt(env.PROXY_RATE_LIMIT || String(RATE_LIMIT.maxRequests), 10);
 
@@ -192,7 +194,9 @@ export async function onRequest(context) {
     try {
       const targetHost = new URL(url).hostname;
       const isAllowed  = ALLOWED_HOSTS.some(allowed =>
-        targetHost === allowed || targetHost.endsWith('.' + allowed)
+        targetHost === allowed ||
+        (targetHost.endsWith('.' + allowed) &&
+         !targetHost.slice(0, -allowed.length - 1).includes('.'))
       );
 
       const isAzure = targetHost.endsWith('.openai.azure.com');

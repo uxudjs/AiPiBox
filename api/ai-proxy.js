@@ -5,6 +5,7 @@
  */
 
 import axios from 'axios';
+import crypto from 'crypto';
 import { verifyGlobalAuth } from './auth';
 
 /**
@@ -64,7 +65,7 @@ function checkRateLimit(ip) {
   const now = Date.now();
 
   // 以低概率（约 5%）顺带清理全部过期条目，防止长存活实例内存增长
-  if (Math.random() < 0.05) {
+  if (crypto.randomInt(100) < 5) {
     for (const [key, record] of rateLimitStore.entries()) {
       if (now - record.windowStart >= RATE_LIMIT.windowMs) {
         rateLimitStore.delete(key);
@@ -153,7 +154,7 @@ export default async function handler(req, res) {
   }
 
   const startTime = Date.now();
-  const requestId = req.headers['x-request-id'] || `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+  const requestId = req.headers['x-request-id'] || `req_${Date.now()}_${crypto.randomUUID()}`;
   const clientIp  = getClientIp(req);
 
   // 全局访问权限校验
@@ -189,7 +190,9 @@ export default async function handler(req, res) {
     try {
       const targetHost = new URL(url).hostname;
       const isAllowed  = ALLOWED_HOSTS.some(allowed =>
-        targetHost === allowed || targetHost.endsWith('.' + allowed)
+        targetHost === allowed ||
+        (targetHost.endsWith('.' + allowed) &&
+         !targetHost.slice(0, -allowed.length - 1).includes('.'))
       );
 
       const isAzure = targetHost.endsWith('.openai.azure.com');

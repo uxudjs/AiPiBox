@@ -175,6 +175,41 @@ class SyncService {
   }
 
   /**
+   * 获取或生成 PBKDF2 盐值，存储在 IndexedDB 中。
+   * - 已有同步记录的用户：保留固定盐值保持向后兼容
+   * - 新用户：生成随机盐值
+   * @returns {Promise<Uint8Array>}
+   * @private
+   */
+  async _getOrCreateSalt() {
+    let saltRecord = await db.settings.get('syncSalt');
+    if (saltRecord && saltRecord.value) {
+      const bytes = new Uint8Array(saltRecord.value.length / 2);
+      for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(saltRecord.value.substr(i * 2, 2), 16);
+      }
+      return bytes;
+    }
+
+    // 检查是否为已有同步记录的用户，保留兼容性
+    const syncStatus = await db.settings.get('syncStatus');
+    const hasExistingSync = syncStatus?.value?.lastSyncTime;
+
+    let saltBytes;
+    if (hasExistingSync) {
+      saltBytes = new TextEncoder().encode('AiPiBox_Cloud_Sync_ID_v1');
+    } else {
+      saltBytes = crypto.getRandomValues(new Uint8Array(16));
+    }
+
+    const saltHex = Array.from(saltBytes)
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    await db.settings.put({ key: 'syncSalt', value: saltHex });
+
+    return saltBytes;
+  }
+
+  /**
    * 计算同步标识符 (Sync ID)
    * @param {string} password - 用户主密码
    * @returns {Promise<string|null>} 同步 ID
@@ -189,20 +224,20 @@ class SyncService {
       false,
       ['deriveBits']
     );
-    
-    const fixedSalt = new TextEncoder().encode("AiPiBox_Cloud_Sync_ID_v1");
-    
+
+    const salt = await this._getOrCreateSalt();
+
     const derivedBits = await crypto.subtle.deriveBits(
       {
         name: 'PBKDF2',
-        salt: fixedSalt,
+        salt: salt,
         iterations: 100000,
         hash: 'SHA-256'
       },
       keyMaterial,
       256
     );
-    
+
     return Array.from(new Uint8Array(derivedBits))
       .map(b => b.toString(16).padStart(2, '0')).join('');
   }

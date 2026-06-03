@@ -139,8 +139,45 @@ async function verifyAuth(request, syncId) {
 }
 
 /**
+ * 全局访问密码校验 — 独立速率限制
+ * 以客户端 IP 为键，防止暴力破解 AUTH_SECRET。
+ */
+const authRateLimitStore = new Map();
+const AUTH_RATE_LIMIT = { windowMs: 60 * 1000, maxAttempts: 5 };
+
+function checkAuthRateLimit(ip) {
+  const now = Date.now();
+
+  // 低概率清理过期条目，防止内存增长
+  const randArr = new Uint8Array(1);
+  crypto.getRandomValues(randArr);
+  if (randArr[0] < 13) {
+    for (const [key, record] of authRateLimitStore.entries()) {
+      if (now - record.windowStart >= AUTH_RATE_LIMIT.windowMs) {
+        authRateLimitStore.delete(key);
+      }
+    }
+  }
+
+  const record = authRateLimitStore.get(ip);
+
+  if (!record || now - record.windowStart >= AUTH_RATE_LIMIT.windowMs) {
+    authRateLimitStore.set(ip, { count: 1, windowStart: now });
+    return { allowed: true, remaining: AUTH_RATE_LIMIT.maxAttempts - 1 };
+  }
+
+  if (record.count >= AUTH_RATE_LIMIT.maxAttempts) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  record.count++;
+  return { allowed: true, remaining: AUTH_RATE_LIMIT.maxAttempts - record.count };
+}
+
+/**
  * 校验全局访问密码 (AUTH_SECRET)
  * 如果服务端配置了 AUTH_SECRET 环境变量，则要求客户端在 X-Authorization 中携带匹配的值。
+ * 使用恒定时间比较防时序攻击，并配有独立速率限制。
  *
  * @param {Request} request - Cloudflare Workers Request 对象
  * @param {object} env - 环境变量对象
@@ -150,8 +187,33 @@ async function verifyGlobalAuth(request, env) {
   const secret = env.AUTH_SECRET;
   if (!secret) return { ok: true, response: null };
 
+  const clientIp = request.headers.get('cf-connecting-ip')
+    || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || 'unknown';
+
+  const rateCheck = checkAuthRateLimit(clientIp);
+  if (!rateCheck.allowed) {
+    return {
+      ok: false,
+      response: jsonResponse({
+        success: false,
+        error: 'Too many authentication attempts. Please try again later.'
+      }, 429, { 'Retry-After': '60' })
+    };
+  }
+
   const authHeader = request.headers.get('x-authorization');
-  if (!authHeader || authHeader !== secret) {
+  if (!authHeader) {
+    return {
+      ok: false,
+      response: jsonResponse({
+        success: false,
+        error: 'Missing global access code'
+      }, 401)
+    };
+  }
+
+  if (!timingSafeEqual(authHeader, secret)) {
     return {
       ok: false,
       response: jsonResponse({

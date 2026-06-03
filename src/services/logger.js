@@ -88,7 +88,12 @@ class LoggerService {
     const cleanArgs = args.map(arg => this.formatContent(arg));
     const content = this.stripEmojis(cleanArgs.join(' '));
 
-    const sanitizedContent = content.replace(/(sk-proj-|sk-|key-|api_key=|Authorization:|Bearer\s)[a-zA-Z0-9_\-\.]{10,}/gi, '$1[REDACTED]');
+    const sanitizedContent = content
+      .replace(/(sk-(?:proj-|ant-api)?)[a-zA-Z0-9_-]{10,}/gi, '$1[REDACTED]')
+      .replace(/(AIzaSy)[a-zA-Z0-9_-]{10,}/gi, '$1[REDACTED]')
+      .replace(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi, '[AZURE_KEY_REDACTED]')
+      .replace(/(Bearer\s+|Authorization:\s*)[a-zA-Z0-9_\-\.\+]{10,}/gi, '$1[REDACTED]')
+      .replace(/(api[_-]?key[=:]\s*)[a-zA-Z0-9_\-\.]{8,}/gi, '$1[REDACTED]');
 
     const logEntry = {
       level,

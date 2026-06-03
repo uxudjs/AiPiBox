@@ -1198,7 +1198,7 @@ export async function generateImage({
   const batchSize = options.batchSize || 1;
   const seed = (options.seed != null && options.seed !== -1)
     ? options.seed
-    : Math.floor(Math.random() * 2147483647);
+    : crypto.getRandomValues(new Uint32Array(1))[0];
 
   // ─── Google ──────────────────────────────────────────────────────────────
   if (provider === AI_PROVIDERS.GOOGLE || format === 'gemini' || format === 'google') {
