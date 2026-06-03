@@ -23,6 +23,9 @@ build/
 # AI Tools
 .qoder/
 .cursor/
+.claude/
+task/
+implementation_plan.md
 
 # Database files
 *.db
