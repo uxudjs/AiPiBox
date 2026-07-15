@@ -91,20 +91,8 @@ const HelpGuide = () => {
             contentKey: 'help.deployment.platforms.content'
           },
           {
-            titleKey: 'help.deployment.vercel.title',
-            contentKey: 'help.deployment.vercel.content'
-          },
-          {
-            titleKey: 'help.deployment.netlify.title',
-            contentKey: 'help.deployment.netlify.content'
-          },
-          {
             titleKey: 'help.deployment.cloudflare.title',
             contentKey: 'help.deployment.cloudflare.content'
-          },
-          {
-            titleKey: 'help.deployment.github.title',
-            contentKey: 'help.deployment.github.content'
           },
           {
             titleKey: 'help.deployment.local.title',

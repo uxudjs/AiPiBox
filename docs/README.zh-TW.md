@@ -16,7 +16,7 @@
 ### 🔐 隱私與安全
 - **本地優先存儲** - 所有數據存儲在瀏覽器 IndexedDB 中，由主密碼加密。
 - **端到端加密** - API 密鑰和敏感配置採用 Web Crypto API 硬件級加密。
-- **可選雲端同步** - 支持加密備份到雲端存儲（Cloudflare KV 或 MySQL/PostgreSQL）。
+- **可選雲端同步** - 支援加密備份到 Cloudflare KV。
 - **無服務器追蹤** - 完全在客戶端運行，保護用戶隱私。
 
 ### 💬 智能對話
@@ -69,20 +69,16 @@ npm run dev:full
 
 ## 📦 部署與配置
 
-AiPiBox 支持多種部署方式，應用會自動識別運行環境。**為確保功能完整，請務必配置相關環境變量。**
+AiPiBox 唯一支援的生產部署方式為 Cloudflare Pages。**為確保功能完整，請配置以下環境變數和 KV 綁定。**
 
-### 1️⃣ 環境變量說明 (通用)
+### Cloudflare Pages
 
-無論選擇哪種部署方式，建議配置以下變量以增強安全性與性能：
+**環境變數：**
 
 | 變量名 | 說明 | 推薦值 |
 |--------|------|--------|
 | `AUTH_SECRET` | 用於 HMAC 簽名的密鑰，保護 API 接口。 | 32位隨機字符串 |
 | `PROXY_RATE_LIMIT` | AI 代理接口每 IP 每分鐘最大請求數。 | `60` |
-
----
-
-### 2️⃣ Cloudflare Pages (推薦)
 
 **步驟：**
 1. 在 [Cloudflare Dashboard](https://dash.cloudflare.com) 中創建 Pages 項目。
@@ -90,33 +86,7 @@ AiPiBox 支持多種部署方式，應用會自動識別運行環境。**為確�
    - **Variable name**: `SYNC_DATA`
    - **KV namespace**: 選擇您創建的 KV 命名空間。
 3. **環境變量**：在同一設置頁面的 "Environment variables" 中添加 `AUTH_SECRET` 和 `PROXY_RATE_LIMIT`。
-4. **部署**：執行 `npm run deploy:cf` 或關聯 Git 倉庫。
-
----
-
-### 3️⃣ Vercel / Netlify
-
-**步驟：**
-1. Fork 本倉庫並關聯至平台。
-2. **環境變量**：在平台控制台配置 `AUTH_SECRET` 及以下**雲端同步**相關變量：
-
-| 變量名 | 說明 | 示例 |
-|--------|------|------|
-| `DB_TYPE` | 數據庫類型 | `mysql` 或 `postgres` |
-| `DB_HOST` | 數據庫主機地址 | `xxx.xxx.com` |
-| `DB_NAME` | 數據庫名稱 | `aipibox` |
-| `DB_USER` | 用戶名 | `admin` |
-| `DB_PASSWORD`| 密碼 | `******` |
-| `DB_SSL` | 是否啟用 SSL 連接 | `true` |
-
-3. 平台將自動識別 `api/` 目錄下的 Serverless Functions。
-
----
-
-### 4️⃣ GitHub Pages (僅前端)
-1. 構建項目：`npm run build`。
-2. 將 `dist` 目錄上傳至 `gh-pages` 分支。
-3. **注意**：由於不支持後端腳本，必須在應用設置中手動指定**雲端代理 URL**（可指向您在 Vercel 部署的 API 地址）。
+4. **部署**：執行 `npm run deploy:cf` 或將 Git 倉庫關聯到 Cloudflare Pages。
 
 ## 🛠️ 技術棧
 
@@ -125,13 +95,12 @@ AiPiBox 支持多種部署方式，應用會自動識別運行環境。**為確�
 - **狀態管理**: [Zustand](https://github.com/pmndrs/zustand)
 - **數據庫**: [Dexie.js](https://dexie.org/) (本地 IndexedDB)
 - **渲染**: [React Markdown](https://github.com/remarkjs/react-markdown) + [KaTeX](https://katex.org/) + [Mermaid](https://mermaid.js.org/)
-- **後端**: Node.js (Vercel/Netlify) / Cloudflare Workers (Pages)
+- **後端**: Cloudflare Pages Functions (Workers)
 
 ## 📁 項目結構
 
 ```
 AiPiBox/
-├── api/                # Vercel/Netlify Serverless API (Node.js)
 ├── functions/          # Cloudflare Pages Functions (Workers)
 ├── proxy/              # 本地開發代理服務器
 ├── src/

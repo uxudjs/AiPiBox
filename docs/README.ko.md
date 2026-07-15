@@ -16,7 +16,7 @@
 ### 🔐 프라이버시 및 보안
 - **로컬 우선 저장** - 모든 데이터는 브라우저의 IndexedDB에 저장되며, 마스터 비밀번호로 암호화됩니다.
 - **종단간 암호화** - API 키와 민감한 설정은 Web Crypto API를 사용하여 암호화됩니다.
-- **선택적 클라우드 동기화** - 클라우드 저장소(Cloudflare KV 또는 MySQL/PostgreSQL)로의 암호화된 백업을 지원합니다.
+- **선택적 클라우드 동기화** - Cloudflare KV로 암호화된 백업을 지원합니다.
 - **서버 추적 없음** - 완전히 클라이언트 측에서 실행되어 사용자의 프라이버시를 보호합니다.
 
 ### 💬 스마트 대화
@@ -69,20 +69,16 @@ npm run dev:full
 
 ## 📦 배포 및 설정
 
-AiPiBox는 다양한 배포 방식을 지원하며, 실행 환경을 자동으로 감지합니다. **기능의 완전한 작동을 위해 반드시 관련 환경 변수를 설정해 주세요.**
+AiPiBox가 지원하는 프로덕션 배포 방식은 Cloudflare Pages뿐입니다. **전체 기능을 사용하려면 다음 환경 변수와 KV 바인딩을 구성하세요.**
 
-### 1️⃣ 환경 변수 설명 (공통)
+### Cloudflare Pages
 
-어떤 배포 방식을 선택하든 보안과 성능 향상을 위해 다음 변수를 설정하는 것을 권장합니다:
+**환경 변수:**
 
 | 변수명 | 설명 | 권장 값 |
 |--------|------|--------|
 | `AUTH_SECRET` | API 인터페이스 보호를 위한 HMAC 서명용 키. | 32자 랜덤 문자열 |
 | `PROXY_RATE_LIMIT` | AI 프록시 인터페이스의 IP당 분당 최대 요청 수. | `60` |
-
----
-
-### 2️⃣ Cloudflare Pages (추천)
 
 **단계:**
 1. [Cloudflare Dashboard](https://dash.cloudflare.com)에서 Pages 프로젝트를 생성합니다.
@@ -90,33 +86,7 @@ AiPiBox는 다양한 배포 방식을 지원하며, 실행 환경을 자동으�
    - **Variable name**: `SYNC_DATA`
    - **KV namespace**: 생성한 KV 네임스페이스를 선택합니다.
 3. **환경 변수**: 같은 설정 페이지의 "Environment variables" 섹션에 `AUTH_SECRET`과 `PROXY_RATE_LIMIT`을 추가합니다.
-4. **배포**: `npm run deploy:cf`를 실행하거나 Git 저장소를 연동합니다.
-
----
-
-### 3️⃣ Vercel / Netlify
-
-**단계:**
-1. 이 저장소를 포크하고 플랫폼에 연결합니다.
-2. **환경 변수**: 플랫폼 콘솔에서 `AUTH_SECRET` 및 다음 **클라우드 동기화** 관련 변수를 설정합니다:
-
-| 변수명 | 설명 | 예시 |
-|--------|------|------|
-| `DB_TYPE` | 데이터베이스 유형 | `mysql` 또는 `postgres` |
-| `DB_HOST` | 데이터베이스 호스트 주소 | `xxx.xxx.com` |
-| `DB_NAME` | 데이터베이스 이름 | `aipibox` |
-| `DB_USER` | 사용자 이름 | `admin` |
-| `DB_PASSWORD`| 비밀번호 | `******` |
-| `DB_SSL` | SSL 연결 활성화 여부 | `true` |
-
-3. 플랫폼이 `api/` 디렉토리 내의 Serverless Functions를 자동으로 인식합니다.
-
----
-
-### 4️⃣ GitHub Pages (프론트엔드 전용)
-1. 빌드 실행: `npm run build`.
-2. `dist` 디렉토리를 `gh-pages` 브랜치에 업로드합니다.
-3. **주의**: 백엔드 스크립트를 지원하지 않으므로, 앱 설정에서 **클라우드 프록시 URL**을 수동으로 지정해야 합니다 (Vercel/Netlify 등에 배포된 API 주소).
+4. **배포**: `npm run deploy:cf`를 실행하거나 Git 저장소를 Cloudflare Pages에 연결합니다.
 
 ## 🛠️ 기술 스택
 
@@ -125,13 +95,12 @@ AiPiBox는 다양한 배포 방식을 지원하며, 실행 환경을 자동으�
 - **상태 관리**: [Zustand](https://github.com/pmndrs/zustand)
 - **데이터베이스**: [Dexie.js](https://dexie.org/) (로컬 IndexedDB)
 - **렌더링**: [React Markdown](https://github.com/remarkjs/react-markdown) + [KaTeX](https://katex.org/) + [Mermaid](https://mermaid.js.org/)
-- **백엔드**: Node.js (Vercel/Netlify) / Cloudflare Workers (Pages)
+- **백엔드**: Cloudflare Pages Functions (Workers)
 
 ## 📁 프로젝트 구조
 
 ```
 AiPiBox/
-├── api/                # Vercel/Netlify Serverless API (Node.js)
 ├── functions/          # Cloudflare Pages Functions (Workers)
 ├── proxy/              # 로컬 개발용 프록시 서버
 ├── src/

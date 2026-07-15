@@ -16,7 +16,7 @@
 ### 🔐 プライバシーとセキュリティ
 - **ローカル優先ストレージ** - すべてのデータはブラウザの IndexedDB に保存され、マスターパスワードで暗号化されます。
 - **エンドツーエンド暗号化** - API キーと機密設定は Web Crypto API を使用して暗号化されます。
-- **オプションのクラウド同期** - クラウドストレージ（Cloudflare KV または MySQL/PostgreSQL）への暗号化バックアップをサポート。
+- **オプションのクラウド同期** - Cloudflare KV への暗号化バックアップをサポート。
 - **サーバー追跡なし** - 完全にクライアント側で動作し、ユーザーのプライバシーを保護します。
 
 ### 💬 インテリジェントな会話
@@ -69,20 +69,16 @@ npm run dev:full
 
 ## 📦 デプロイと設定
 
-AiPiBox は複数のデプロイ方法をサポートしており、環境を自動的に識別します。**機能を完全に利用するため、必ず関連する環境変数を設定してください。**
+AiPiBox がサポートする本番デプロイは Cloudflare Pages のみです。**すべての機能を利用するには、以下の環境変数と KV バインディングを設定してください。**
 
-### 1️⃣ 環境変数について (共通)
+### Cloudflare Pages
 
-どのデプロイ方法を選択する場合でも、セキュリティとパフォーマンス向上のため、以下の変数を設定することをお勧めします：
+**環境変数：**
 
 | 変数名 | 説明 | 推奨値 |
 |--------|------|--------|
 | `AUTH_SECRET` | API インターフェースを保護するための HMAC 署名用キー。 | 32文字のランダムな文字列 |
 | `PROXY_RATE_LIMIT` | AI プロキシインターフェースの IP あたりの毎分最大リクエスト数。 | `60` |
-
----
-
-### 2️⃣ Cloudflare Pages (推奨)
 
 **ステップ：**
 1. [Cloudflare Dashboard](https://dash.cloudflare.com) で Pages プロジェクトを作成します。
@@ -90,33 +86,7 @@ AiPiBox は複数のデプロイ方法をサポートしており、環境を自
    - **Variable name**: `SYNC_DATA`
    - **KV namespace**: 作成した KV ネームスペースを選択します。
 3. **環境変数**：同じ設定ページの "Environment variables" に `AUTH_SECRET` と `PROXY_RATE_LIMIT` を追加します。
-4. **デプロイ**：`npm run deploy:cf` を実行するか、Git リポジトリを連携します。
-
----
-
-### 3️⃣ Vercel / Netlify
-
-**ステップ：**
-1. 本リポジトリをフォークし、プラットフォームに連携します。
-2. **環境変数**：プラットフォームのコンソールで `AUTH_SECRET` および以下の**クラウド同期**関連の変数を設定します：
-
-| 変数名 | 説明 | 例 |
-|--------|------|------|
-| `DB_TYPE` | データベースの種類 | `mysql` または `postgres` |
-| `DB_HOST` | データベースホストアドレス | `xxx.xxx.com` |
-| `DB_NAME` | データベース名 | `aipibox` |
-| `DB_USER` | ユーザー名 | `admin` |
-| `DB_PASSWORD`| パスワード | `******` |
-| `DB_SSL` | SSL 接続を有効にするか | `true` |
-
-3. プラットフォームが `api/` ディレクトリ内の Serverless Functions を自動認識します。
-
----
-
-### 4️⃣ GitHub Pages (フロントエンドのみ)
-1. ビルドを実行：`npm run build`。
-2. `dist` ディレクトリを `gh-pages` ブランチにアップロードします。
-3. **注意**：バックエンド実行をサポートしていないため、アプリの設定で **クラウドプロキシ URL** を手動で指定する必要があります（Vercel/Netlify でデプロイした API など）。
+4. **デプロイ**：`npm run deploy:cf` を実行するか、Git リポジトリを Cloudflare Pages に連携します。
 
 ## 🛠️ 技術スタック
 
@@ -125,13 +95,12 @@ AiPiBox は複数のデプロイ方法をサポートしており、環境を自
 - **状態管理**: [Zustand](https://github.com/pmndrs/zustand)
 - **データベース**: [Dexie.js](https://dexie.org/) (ローカル IndexedDB)
 - **レンダリング**: [React Markdown](https://github.com/remarkjs/react-markdown) + [KaTeX](https://katex.org/) + [Mermaid](https://mermaid.js.org/)
-- **バックエンド**: Node.js (Vercel/Netlify) / Cloudflare Workers (Pages)
+- **バックエンド**: Cloudflare Pages Functions (Workers)
 
 ## 📁 プロジェクト構造
 
 ```
 AiPiBox/
-├── api/                # Vercel/Netlify Serverless API (Node.js)
 ├── functions/          # Cloudflare Pages Functions (Workers)
 ├── proxy/              # ローカル開発用プロキシサーバー
 ├── src/

@@ -9,10 +9,7 @@ import { logger } from '../services/logger';
  * 部署平台枚举
  */
 export const Platform = {
-  VERCEL: 'vercel',
-  NETLIFY: 'netlify',
   CLOUDFLARE: 'cloudflare',
-  GITHUB_PAGES: 'github-pages',
   LOCAL: 'local',
   UNKNOWN: 'unknown'
 };
@@ -32,20 +29,8 @@ export function detectPlatform() {
     return Platform.LOCAL;
   }
 
-  if (hostname.endsWith('.github.io')) {
-    return Platform.GITHUB_PAGES;
-  }
-
   if (hostname.endsWith('.pages.dev') || window.__CF_PAGES__) {
     return Platform.CLOUDFLARE;
-  }
-
-  if (hostname.endsWith('.vercel.app') || hostname.endsWith('.vercel.sh')) {
-    return Platform.VERCEL;
-  }
-
-  if (hostname.endsWith('.netlify.app') || hostname.endsWith('.netlify.com')) {
-    return Platform.NETLIFY;
   }
 
   return Platform.UNKNOWN;
@@ -58,29 +43,14 @@ export function detectPlatform() {
  */
 export function getProxyApiUrl(platform = null) {
   const detectedPlatform = platform || detectPlatform();
-
-  if (detectedPlatform === Platform.GITHUB_PAGES) {
-    const externalProxy = window.EXTERNAL_PROXY_URL;
-    if (externalProxy) return externalProxy;
-    logger.warn('envDetect', 'GitHub Pages detected but no external proxy configured');
-  }
-
-  return '/api/ai-proxy';
+  return detectedPlatform === Platform.LOCAL ? '/api/proxy' : '/api/ai-proxy';
 }
 
 /**
  * 获取云同步后端端点地址
- * @param {string} [platform] - 平台标识
  * @returns {string} 同步接口路径
  */
-export function getSyncApiUrl(platform = null) {
-  const detectedPlatform = platform || detectPlatform();
-
-  if (detectedPlatform === Platform.GITHUB_PAGES) {
-    const externalSync = window.EXTERNAL_SYNC_URL;
-    if (externalSync) return externalSync;
-  }
-
+export function getSyncApiUrl() {
   return '/api/sync';
 }
 
@@ -104,7 +74,7 @@ export function getPlatformConfig(platform = null) {
     platform: detectedPlatform,
     isProduction: detectedPlatform !== Platform.LOCAL,
     proxyUrl: getProxyApiUrl(detectedPlatform),
-    syncUrl: getSyncApiUrl(detectedPlatform),
+    syncUrl: getSyncApiUrl(),
     timeout: 300,
     features: {
       serverlessFunctions: true,
@@ -112,12 +82,6 @@ export function getPlatformConfig(platform = null) {
       kv: true
     }
   };
-
-  if (detectedPlatform === Platform.GITHUB_PAGES) {
-    baseConfig.timeout = 60;
-    baseConfig.features.serverlessFunctions = false;
-    baseConfig.features.externalApiRequired = true;
-  }
 
   return baseConfig;
 }

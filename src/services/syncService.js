@@ -747,8 +747,7 @@ class SyncService {
       const isSuccess = response.data && (
         response.data.status === 'ok' || 
         response.data.status === 'healthy' || 
-        response.data.success === true ||
-        response.data.database === 'online'
+        response.data.success === true
       );
 
       if (isSuccess) {

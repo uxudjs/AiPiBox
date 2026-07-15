@@ -226,7 +226,7 @@ export const koKR = {
       autoSync: '자동 실시간 동기화',
       autoSyncHint: '로컬 데이터 변경 감지 시 자동으로 클라우드 동기화 시작',
       syncApiUrl: '동기화 서비스 인터페이스 주소',
-      syncApiUrlHint: '비워두면 현재 도메인의 기본 경로를 사용합니다. 사용자 정의 도메인이나 GitHub Pages와 같은 정적 호스팅의 경우에만 수동 설정이 필요합니다.',
+      syncApiUrlHint: '비워두면 현재 Cloudflare 도메인의 기본 경로를 사용합니다. 로컬 디버깅 또는 명시적인 교차 출처 엔드포인트에만 수동 설정이 필요합니다.',
       syncApiUrlPlaceholder: '비워두면 자동 사용: 도메인 + /api/sync',
       syncNow: '지금 동기화',
       syncStatus: '동기화 상태',
@@ -265,7 +265,7 @@ export const koKR = {
       proxyMode: '글로벌 API 프록시 활성화',
       proxyHint: '서버를 통해 AI 요청을 전달하여 브라우저 교차 출처 제한을 우회하고 연결 안정성을 향상시킵니다. 백그라운드 생성 및 연결 끊김 후 자동 복구를 지원합니다.',
       cloudProxyUrl: '프록시 서비스 URL',
-      cloudProxyHint: '비워두면 현재 도메인의 기본 경로를 사용합니다. 사용자 정의 도메인이나 GitHub Pages와 같은 정적 호스팅의 경우에만 수동 설정이 필요합니다.',
+      cloudProxyHint: '비워두면 현재 Cloudflare 도메인의 기본 경로를 사용합니다. 로컬 디버깅 또는 명시적인 교차 출처 엔드포인트에만 수동 설정이 필요합니다.',
       cloudSyncDepends: '클라우드 동기화 기능은 프록시 서비스에 의존하며, 프록시 비활성화 시 동기화가 실패합니다'
     },
 
@@ -692,26 +692,14 @@ export const koKR = {
     footer: '기술적인 세부 사항은 공식 문서를 참조하거나 GitHub를 통해 피드백을 제출하세요',
 
     deployment: {
-      title: '다중 플랫폼 배포 가이드',
+      title: 'Cloudflare Pages 배포 가이드',
       platforms: {
-        title: '환경 자동 식별',
-        content: 'AiPiBox는 실행 환경을 자동으로 감지하고 Vercel, Netlify, Cloudflare Pages 등의 플랫폼에 최적화된 구성을 적용합니다.'
-      },
-      vercel: {
-        title: 'Vercel 배포',
-        content: '지원 도메인 특징: *.vercel.app\n프록시 엔트리: /api/ai-proxy (전자동)\n동기화 인터페이스: /api/sync (전자동)\n플랫폼 특성: Serverless Functions 지원. 배포 시 추가 프록시 URL 설정이 필요하지 않습니다.'
-      },
-      netlify: {
-        title: 'Netlify 배포',
-        content: '지원 도메인 특징: *.netlify.app\n프록시 엔트리: /api/ai-proxy (전자동)\n동기화 인터페이스: /api/sync (전자동)\n플랫폼 특성: Netlify Functions 지원. GitHub 리포지토리와 직접 연동하여 배포하는 것을 권장합니다.'
+        title: '지원 환경',
+        content: '프로덕션 환경은 Cloudflare Pages만 지원합니다. 로컬 개발에서는 내장 프록시를 사용할 수 있습니다.'
       },
       cloudflare: {
         title: 'Cloudflare Pages 배포',
         content: '지원 도메인 특징: *.pages.dev\n프록시 엔트리: /api/ai-proxy (전자동)\n동기화 인터페이스: /api/sync (전자동)\n플랫폼 특성: Cloudflare Workers 기반으로 실행되며 요청 시간 제한이 없습니다. 클라우드 동기화는 대시보드에서 KV 네임스페이스(변수명: SYNC_DATA) 바인딩이 필요합니다.'
-      },
-      github: {
-        title: 'GitHub Pages 배포',
-        content: '지원 도메인 특징: *.github.io\n핵심 제한: GitHub Pages는 정적 호스팅만 지원하며 백엔드 로직 실행을 지원하지 않습니다.\n주요 구성: AI 기능을 활성화하려면 설정에서 프로덕션 환경의 "클라우드 프록시 URL"을 수동으로 지정해야 합니다.'
       },
       local: {
         title: '로컬 개발 및 디버깅',
@@ -727,7 +715,7 @@ export const koKR = {
       },
       cloudProxy: {
         title: '프로덕션 프록시 구성',
-        content: 'Vercel, Netlify 또는 Cloudflare Pages와 같은 네이티브 환경에서는 시스템이 자동으로 상대 경로를 사용하므로 일반적으로 수동 설정이 필요하지 않습니다. 교차 도메인 배포, 사용자 정의 도메인 또는 GitHub Pages를 사용하는 경우에만 이 인터페이스 주소를 명시적으로 구성해야 합니다.'
+        content: 'Cloudflare Pages는 현재 도메인의 /api 경로를 자동으로 사용하므로 일반적으로 수동 설정이 필요하지 않습니다. Cloudflare 사용자 정의 도메인도 같은 상대 경로를 사용합니다.'
       },
       localProxy: {
         title: '로컬 디버깅 설정',
@@ -735,7 +723,7 @@ export const koKR = {
       },
       autoDetect: {
         title: '지능형 환경 식별',
-        content: '시스템은 현재 호스트명을 기반으로 프록시 전략을 동적으로 전환합니다:\n- 플랫폼 네이티브 도메인: 내부 Serverless 라우트에 자동 연결\n- 정적 호스팅 도메인: 수동 구성된 원격 프록시 인터페이스로 폴백\n- 개발 환경: Vite 프록시 설정에 연결'
+        content: '시스템은 현재 호스트명을 기준으로 프록시 전략을 선택합니다:\n- Cloudflare Pages: 동일 출처 Pages Functions 라우트 사용\n- 개발 환경: 로컬 Vite 프록시 설정 사용'
       }
     },
 
@@ -743,15 +731,15 @@ export const koKR = {
       title: '클라우드 동기화 메커니즘',
       overview: {
         title: '동기화 기능 개요',
-        content: '클라우드 동기화를 통해 다차원 데이터를 원격 데이터베이스에 안전하게 저장할 수 있습니다. 모든 민감한 데이터는 클라이언트 측에서 종단간 암호화되므로 전송 중에 동기화 서버를 포함한 제3자가 데이터 내용을 훔쳐볼 수 없습니다.'
+        content: '클라우드 동기화를 통해 다차원 데이터를 Cloudflare KV에 안전하게 저장할 수 있습니다. 모든 민감한 데이터는 클라이언트 측에서 종단간 암호화되므로 전송 중에 동기화 서버를 포함한 제3자가 데이터 내용을 훔쳐볼 수 없습니다.'
       },
       setup: {
         title: '활성화 단계 가이드',
-        content: '1. 배엔드 함수 플랫폼 배포 완료\n2. DATABASE_URL 및 DATABASE_TYPE 환경 변수 구성\n3. 보안 설정에서 클라우드 동기화를 켜고 고유한 동기화 비밀번호 설정\n4. 기준 수립을 위해 초기 수동 동기화 수행'
+        content: '1. Cloudflare Pages에 배포\n2. KV 네임스페이스를 SYNC_DATA로 바인딩하고 AUTH_SECRET 구성\n3. 보안 설정에서 클라우드 동기화를 켜고 고유한 동기화 비밀번호 설정\n4. 기준 수립을 위해 초기 수동 동기화 수행'
       },
       platforms: {
-        title: '백엔드 스토리지 지원',
-        content: 'Vercel/Netlify: MySQL 및 PostgreSQL 데이터베이스와 호환됩니다.\nCloudflare Pages: KV 키-값 스토리지를 활용하여 가벼운 데이터 동기화를 구현합니다.'
+        title: '백엔드 스토리지',
+        content: 'Cloudflare Pages는 SYNC_DATA로 바인딩된 KV 네임스페이스를 클라우드 동기화에 사용합니다.'
       }
     },
 
