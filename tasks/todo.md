@@ -1,63 +1,92 @@
-# 安全漏洞修复任务列表
+# AiPiBox 发布阻断修复清单
 
-## Phase 1: P0 高危修复
+详细验收标准见 `tasks/plan.md`。未通过检查点，不进入下一阶段。
 
-### Task 1.1: SSRF 域名白名单绕过修复
-- **文件:** `api/ai-proxy.js:192`, `functions/api/ai-proxy.js` (同步)
-- **变更:** 将 `endsWith` 域名匹配替换为基于 . 分隔的组件级精确匹配
-- **验收:** 6 个边界测试用例通过 (evil.openai.com.attacker.com→拒绝, api.openai.com→允许, sub.api.openai.com→允许, fakeopenai.com→拒绝, openai.com.evil.com→拒绝, openai.azure.com→允许Azure)
-- **验证:** 代码审查域名匹配逻辑
-- **风险:** 中 — 可能误拦合法子域名
+## 决策门
 
-### Task 1.2: 全局访问密码安全加固
-- **文件:** `api/auth.js:120-134`, `functions/api/auth.js`
-- **变更:**
-  1. 替换 `!==` 为 `crypto.timingSafeEqual` (防时序攻击)
-  2. 添加独立内存速率限制器 (5次/分钟/IP)
-  3. 将 accessCode 从 Zustand persist 中排除
-- **验收:** 时序安全比较生效；错误密码快速达到速率限制；accessCode 不持久化
-- **验证:** 手动测试 auth 流程
-- **风险:** 中 — 速率限制可能误伤正常用户
+- [x] D0：确认正式后端仅保留 Cloudflare Pages Functions + KV。
+- [ ] D1：确认 Excel 暂时禁用；如必须保留，批准 SheetJS 官方 tarball 方案。
+- [ ] D2：确认新设备恢复使用“主密码 + 32 位十六进制同步代码”。
+- [ ] 用户已审阅并批准本计划。
 
----
+## Phase 1：可复现基线
 
-## Phase 2: P1 中危修复
+- [ ] T01：补 `jsdom`、提交 lockfile、停止忽略 lockfile。
 
-### Task 2.1: PBKDF2 随机盐值
-- **文件:** `src/services/syncService.js:182-200`
-- **变更:** 生成随机 16 字节盐值，输出格式 `{salt_hex}:{derived_id}`；旧格式 fallback
-- **验收:** 新 syncId 含随机盐值前缀；旧 syncId 仍然有效
-- **验证:** 新旧两种格式均能正常同步
-- **风险:** 高 — 可能破坏已有云端同步
+### Checkpoint 1
 
-### Task 2.2: 日志脱敏规则完善
-- **文件:** `src/services/logger.js:91`
-- **变更:** 添加 Gemini、Anthropic、Azure、通用 Bearer/API Key 正则
-- **验收:** AIzaSy..., sk-ant-api..., Bearer token, Azure UUID 格式均脱敏
-- **验证:** 控制台日志中无明文 API Key
-- **风险:** 低
+- [ ] `npm ci` 成功。
+- [ ] Vitest 可完成测试收集，不再报缺少 `jsdom`。
+- [ ] `npm run build` 成功。
+- [ ] 所有已知失败均有对应任务。
 
-### Task 2.3: 文件上传魔术字节校验
-- **文件:** `src/components/chat/hooks/useFileHandler.js`
-- **变更:** 添加魔术字节检测函数；图片通过 Canvas 重编码；SVG 检测危险标签
-- **验收:** 伪装图片被拒绝；正常 PNG/JPEG/GIF/WebP 通过
-- **验证:** 上传各类文件测试
-- **风险:** 中 — 可能误拒合法文件
+## Phase 2：P0 安全
 
----
+- [ ] T02：删除 Markdown 的 iframe/srcDoc/style 放行并测试生产渲染器。
+- [ ] T03：Mermaid 改 strict，隔离 PublishedPage sandbox/CSP。
+- [ ] T04：升级 PDF.js；按决策禁用或安全替换 xlsx。
+- [ ] T05：Cloudflare AI proxy 强制 HTTPS/许可主机/禁止重定向。
+- [ ] T06：本地 proxy 仅 loopback、限制 CORS/本地端口/taskId。
+- [ ] T07：删除可逆的多日持久登录。
+- [ ] T08：裸 SHA-256 verifier 迁移到带盐 PBKDF2。
+- [ ] T09：移除 CSP 的 `unsafe-inline/unsafe-eval` 脚本权限和 `connect-src *`。
 
-## Phase 3: P2 低危修复
+### Checkpoint A
 
-### Task 3.1: iframe CSP 安全加固
-- **文件:** `src/components/chat/PublishedPage.jsx:65`, `src/components/chat/MarkdownRenderer.jsx:122`
-- **变更:** 添加 `csp` 属性限制脚本和样式来源（不添加 allow-same-origin）
-- **验收:** 代码预览正常渲染；CSP 策略生效
-- **验证:** HTML/CSS/JS 代码块预览功能正常
-- **风险:** 低
+- [ ] P0 安全测试直接覆盖生产实现且全绿。
+- [ ] `npm test`、`npm run build` 通过。
+- [ ] `npm audit --omit=dev --audit-level=high` 通过。
+- [ ] 恶意 Markdown、Mermaid、发布页、Cloudflare proxy、本地 proxy smoke 通过。
 
-### Task 3.2: Math.random 替换为加密安全随机数
-- **文件:** 6 个文件 (见规格说明)
-- **变更:** `Math.random()` → `crypto.randomUUID()` 或 `crypto.randomInt()`
-- **验收:** 所有 ID 生成和随机逻辑使用 crypto API
-- **验证:** 构建通过 + 功能回归
-- **风险:** 低 — crypto.randomUUID 在非 HTTPS localhost 可能不可用
+## Phase 3：Cloudflare 同步主路径
+
+- [ ] T10：修复 `syncFromCloud()` 未声明 `cloudSync`。
+- [ ] T11：为现有随机 salt 增加同步代码导入/导出契约。
+- [ ] T12：设置页完成同步代码复制/导入及五语言说明。
+- [ ] T13：AUTH_SECRET 仅失败限流，缺少配置 fail closed。
+- [ ] T14：统一 10 MB 密文边界，health 验证 `SYNC_DATA`/`AUTH_SECRET`。
+
+### Checkpoint B
+
+- [ ] 同步、认证、health 专项测试全绿。
+- [ ] 设备 A 上传 → 设备 B 下载/修改/上传 → 设备 A 再下载成功。
+- [ ] 连续正确请求不产生意外 429。
+- [ ] 10 MB 边界两侧行为正确。
+
+## Phase 4：删除 Node/SQL 重复路径
+
+- [ ] T15A：删除 Vercel/Netlify/init-db scripts、SQL 依赖和部署配置。
+- [ ] T15B：删除 Node sync handler、DB adapter、初始化脚本。
+- [ ] T15C：删除其余 Node AI/auth/health handler。
+- [ ] T15D：更新 `.env.example` 与五语言 README 支持矩阵。
+
+### Checkpoint C
+
+- [ ] `rg --files api` 无结果。
+- [ ] Cloudflare 正式路径和本地 proxy 均可运行。
+- [ ] `npm ci`、`npm test`、`npm run build` 全绿。
+- [ ] 文档、npm scripts、依赖与实际支持范围一致。
+
+## Phase 5：数据、无障碍与发布门禁
+
+- [ ] T16：选择、粘贴、拖放图片统一经过生产校验。
+- [ ] T17：清除所有 Dexie 表和 AiPiBox 自有浏览器存储键。
+- [ ] T18：修复 JSON `apiKey` 等日志脱敏并删除测试副本。
+- [ ] T19：恢复缩放并补齐登录 label/错误播报/键盘流程。
+- [ ] T20：核心 Modal 补 dialog、Escape、焦点约束与恢复。
+- [ ] T21：Sidebar 与 Cloudflare health 读取 package 版本。
+- [ ] T22：新增最小 GitHub CI，并设为 required check。
+
+### Checkpoint D：最终发布候选
+
+- [ ] `npm ci`
+- [ ] `npm test`
+- [ ] `npm run build`
+- [ ] `npm audit --omit=dev --audit-level=high`
+- [ ] `git diff --check`
+- [ ] 两设备同步、清除数据、三种图片入口、恶意内容和键盘 smoke 全部通过。
+- [ ] 再次执行 ship review，结论为 GO。
+
+## 条件式后续
+
+- [ ] T23：仅当首屏 Network 实测加载 PDF/Office/Mermaid 大 chunk 时做动态导入。
