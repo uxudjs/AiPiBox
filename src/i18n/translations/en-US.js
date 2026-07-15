@@ -236,7 +236,7 @@ export const enUS = {
       autoSync: 'Automatic Real-time Sync',
       autoSyncHint: 'Automatically initiate cloud sync when local data changes are detected',
       syncApiUrl: 'Sync Service API URL',
-      syncApiUrlHint: 'Leave blank to use the default path of current domain. Manual configuration is only needed for custom domains or static hosting like GitHub Pages.',
+      syncApiUrlHint: 'Leave blank to use the default path on the current Cloudflare domain. Configure it manually only for local debugging or an explicit cross-origin endpoint.',
       syncApiUrlPlaceholder: 'Leave blank to auto-use: domain + /api/sync',
       syncNow: 'Sync Now',
       syncStatus: 'Sync Status',
@@ -302,7 +302,7 @@ export const enUS = {
       proxyMode: 'Enable Global API Proxy',
       proxyHint: 'Forward AI requests through the server to resolve browser CORS restrictions and improve connection stability. Supports background generation and automatic recovery after disconnection.',
       cloudProxyUrl: 'Proxy Service URL',
-      cloudProxyHint: 'Leave blank to use the default path of current domain. Manual configuration is only needed for custom domains or static hosting like GitHub Pages.',
+      cloudProxyHint: 'Leave blank to use the default path on the current Cloudflare domain. Configure it manually only for local debugging or an explicit cross-origin endpoint.',
       cloudSyncDepends: 'Cloud sync functionality depends on the proxy service; disabling the proxy will cause sync to fail'
     },
 
@@ -697,26 +697,14 @@ export const enUS = {
     footer: 'For further technical details, please refer to the official documentation or submit feedback via GitHub.',
 
     deployment: {
-      title: 'Multi-platform Deployment',
+      title: 'Cloudflare Pages Deployment',
       platforms: {
-        title: 'Environment Auto-recognition',
-        content: 'AiPiBox automatically senses its runtime environment and applies optimized configurations for platforms like Vercel, Netlify, and Cloudflare Pages.'
-      },
-      vercel: {
-        title: 'Vercel Deployment',
-        content: 'Supported domain: *.vercel.app\nProxy Entry: /api/ai-proxy (Automatic)\nSync Interface: /api/sync (Automatic)\nPlatform Features: Supports Serverless Functions. No extra proxy URL configuration needed.'
-      },
-      netlify: {
-        title: 'Netlify Deployment',
-        content: 'Supported domain: *.netlify.app\nProxy Entry: /api/ai-proxy (Automatic)\nSync Interface: /api/sync (Automatic)\nPlatform Features: Supports Netlify Functions. Recommended to deploy via direct GitHub repository link.'
+        title: 'Supported Environments',
+        content: 'Cloudflare Pages is the only supported production environment. The built-in proxy remains available for local development.'
       },
       cloudflare: {
         title: 'Cloudflare Pages Deployment',
         content: 'Supported domain: *.pages.dev\nProxy Entry: /api/ai-proxy (Automatic)\nSync Interface: /api/sync (Automatic)\nPlatform Features: Runs on Cloudflare Workers with no request duration limits. Cloud sync requires binding a KV namespace (Variable name: SYNC_DATA) in the Dashboard.'
-      },
-      github: {
-        title: 'GitHub Pages Deployment',
-        content: 'Supported domain: *.github.io\nCore Limitation: GitHub Pages supports static hosting only and cannot run backend logic.\nCritical Configuration: You must manually specify a production "Cloud Proxy URL" in settings to enable AI features.'
       },
       local: {
         title: 'Local Development & Debugging',
@@ -732,7 +720,7 @@ export const enUS = {
       },
       cloudProxy: {
         title: 'Production Proxy Configuration',
-        content: 'In native environments like Vercel, Netlify, or Cloudflare Pages, the system automatically uses relative paths, so manual setup is usually unnecessary. Manual configuration is only required for cross-domain deployments, custom domains, or GitHub Pages.'
+        content: 'Cloudflare Pages automatically uses same-origin /api routes, so manual setup is usually unnecessary. Custom Cloudflare domains use the same relative paths.'
       },
       localProxy: {
         title: 'Local Debugging Configuration',
@@ -740,7 +728,7 @@ export const enUS = {
       },
       autoDetect: {
         title: 'Intelligent Environment Recognition',
-        content: 'The system dynamically switches proxy strategies based on the current Hostname:\n- Native platform domains: Automatically links to internal Serverless routes\n- Static hosting domains: Falls back to manually configured remote proxy interfaces\n- Development environment: Links to Vite proxy configuration'
+        content: 'The system selects a proxy strategy from the current hostname:\n- Cloudflare Pages: Uses same-origin Pages Functions routes\n- Development environment: Uses the local Vite proxy configuration'
       }
     },
 
@@ -748,15 +736,15 @@ export const enUS = {
       title: 'Cloud Sync Mechanism',
       overview: {
         title: 'Cloud Sync Overview',
-        content: 'Cloud sync allows secure storage of multi-dimensional data in remote databases. All sensitive data is end-to-end encrypted on the client side, ensuring no third party (including the sync server) can peek at your data content during transmission.'
+        content: 'Cloud sync stores multi-dimensional data securely in Cloudflare KV. All sensitive data is end-to-end encrypted on the client side, ensuring no third party (including the sync server) can inspect it during transmission.'
       },
       setup: {
         title: 'Enabling Steps',
-        content: '1. Complete backend function platform deployment.\n2. Configure DATABASE_URL and DATABASE_TYPE environment variables.\n3. Enable cloud sync in security settings and set a unique sync password.\n4. Perform an initial manual sync to establish a baseline.'
+        content: '1. Deploy to Cloudflare Pages.\n2. Bind a KV namespace as SYNC_DATA and configure AUTH_SECRET.\n3. Enable cloud sync in security settings and set a unique sync password.\n4. Perform an initial manual sync to establish a baseline.'
       },
       platforms: {
-        title: 'Backend Storage Support',
-        content: 'Vercel/Netlify: Compatible with MySQL and PostgreSQL databases.\nCloudflare Pages: Leverages KV storage for lightweight data synchronization.'
+        title: 'Backend Storage',
+        content: 'Cloudflare Pages uses the KV namespace bound as SYNC_DATA for cloud synchronization.'
       }
     },
 

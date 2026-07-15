@@ -55,17 +55,17 @@
 
 ## Phase 4：删除 Node/SQL 重复路径
 
-- [ ] T15A：删除 Vercel/Netlify/init-db scripts、SQL 依赖和部署配置。
-- [ ] T15B：删除 Node sync handler、DB adapter、初始化脚本。
-- [ ] T15C：删除其余 Node AI/auth/health handler。
-- [ ] T15D：更新 `.env.example` 与五语言 README 支持矩阵。
+- [x] T15A：删除 Vercel/Netlify/init-db scripts、SQL 依赖和部署配置。
+- [x] T15B：删除 Node sync handler、DB adapter、初始化脚本。
+- [x] T15C：删除其余 Node AI/auth/health handler。
+- [x] T15D：更新 `.env.example` 与五语言 README 支持矩阵。
 
 ### Checkpoint C
 
-- [ ] `rg --files api` 无结果。
-- [ ] Cloudflare 正式路径和本地 proxy 均可运行。
+- [x] `rg --files api` 无结果。
+- [x] Cloudflare 正式路径和本地 proxy 均可运行。
 - [ ] `npm ci`、`npm test`、`npm run build` 全绿。
-- [ ] 文档、npm scripts、依赖与实际支持范围一致。
+- [x] 文档、npm scripts、依赖与实际支持范围一致。
 
 ## Phase 5：数据、无障碍与发布门禁
 

@@ -226,7 +226,7 @@ export const jaJP = {
       autoSync: '自動リアルタイム同期',
       autoSyncHint: 'ローカルデータの変更を検出したときに自動的にクラウド同期を開始します',
       syncApiUrl: '同期サービスインターフェースアドレス',
-      syncApiUrlHint: '空欄にすると現在のドメインのデフォルトパスを使用します。カスタムドメインや GitHub Pages などの静的ホスティングの場合のみ手動設定が必要です。',
+      syncApiUrlHint: '空欄にすると現在の Cloudflare ドメインのデフォルトパスを使用します。ローカルデバッグまたは明示的なクロスオリジン接続の場合のみ手動設定が必要です。',
       syncApiUrlPlaceholder: '空欄にすると自動使用：ドメイン + /api/sync',
       syncNow: '今すぐ同期',
       syncStatus: '同期ステータス',
@@ -265,7 +265,7 @@ export const jaJP = {
       proxyMode: 'グローバル API プロキシを有効にする',
       proxyHint: 'サーバー経由で AI リクエストを転送し、ブラウザのクロスドメイン制限を回避して接続の安定性を向上させます。バックグラウンド生成と切断後の自動回復をサポートします。',
       cloudProxyUrl: 'プロキシサービス URL',
-      cloudProxyHint: '空欄にすると現在のドメインのデフォルトパスを使用します。カスタムドメインや GitHub Pages などの静的ホスティングの場合のみ手動設定が必要です。',
+      cloudProxyHint: '空欄にすると現在の Cloudflare ドメインのデフォルトパスを使用します。ローカルデバッグまたは明示的なクロスオリジン接続の場合のみ手動設定が必要です。',
       cloudSyncDepends: 'クラウド同期機能はプロキシサービスに依存します。プロキシを無効にすると同期が失敗します'
     },
 
@@ -696,26 +696,14 @@ export const jaJP = {
     footer: '技術的な詳細については、公式ドキュメントを参照するか、GitHub を通じてフィードバックを送信してください',
 
     deployment: {
-      title: 'マルチプラットフォームデプロイガイド',
+      title: 'Cloudflare Pages デプロイガイド',
       platforms: {
-        title: '環境の自動識別',
-        content: 'AiPiBox は実行環境を自動的に感知し、Vercel、Netlify、および Cloudflare Pages などのプラットフォームに対して最適化された設定を適用します。'
-      },
-      vercel: {
-        title: 'Vercel デプロイ',
-        content: 'サポートされるドメイン特徴：*.vercel.app\nプロキシエントリ：/api/ai-proxy (全自動)\n同期インターフェース：/api/sync (全自動)\nプラットフォーム特性：Serverless Functions をサポート。デプロイ時に追加のプロキシ URL 設定は不要です。'
-      },
-      netlify: {
-        title: 'Netlify デプロイ',
-        content: 'サポートされるドメイン特徴：*.netlify.app\nプロキシエントリ：/api/ai-proxy (全自動)\n同期インターフェース：/api/sync (全自動)\nプラットフォーム特性：Netlify Functions をサポート。GitHub リポジトリから直接連携してデプロイすることをお勧めします。'
+        title: 'サポート環境',
+        content: '本番環境は Cloudflare Pages のみをサポートします。ローカル開発では組み込みプロキシを使用できます。'
       },
       cloudflare: {
         title: 'Cloudflare Pages デプロイ',
         content: 'サポートされるドメイン特徴：*.pages.dev\nプロキシエントリ：/api/ai-proxy (全自動)\n同期インターフェース：/api/sync (全自動)\nプラットフォーム特性：Cloudflare Workers 上で動作し、リクエスト時間の制限はありません。クラウド同期には、ダッシュボードで KV ネームスペース (変数名: SYNC_DATA) をバインドする必要があります。'
-      },
-      github: {
-        title: 'GitHub Pages デプロイ',
-        content: 'サポートされるドメイン特徴：*.github.io\n核心的な制限：GitHub Pages は静いホスティングのみをサポートし、バックエンドロジックの実行はサポートしていません。\n重要な設定：AI 機能を有効にするには、設定で本番環境の「クラウドプロキシ URL」を手動で指定する必要があります。'
       },
       local: {
         title: 'ローカル開発とデバッグ',
@@ -731,7 +719,7 @@ export const jaJP = {
       },
       cloudProxy: {
         title: '本番プロキシ設定',
-        content: 'Vercel、Netlify、または Cloudflare Pages などのネイティブ環境では、システムは自動的に相対パスを採用するため、通常は手動設定は不要です。クロスドメインデプロイ、カスタムドメイン、または GitHub Pages を使用する場合にのみ、このインターフェースアドレスを明示的に設定する必要があります。'
+        content: 'Cloudflare Pages は現在のドメイン配下の /api ルートを自動的に使用するため、通常は手動設定が不要です。Cloudflare のカスタムドメインでも同じ相対パスを使用します。'
       },
       localProxy: {
         title: 'ローカルデバッグ設定',
@@ -739,7 +727,7 @@ export const jaJP = {
       },
       autoDetect: {
         title: 'インテリジェントな環境識別',
-        content: 'システムは現在のホスト名に基づいてプロキシ戦略を動的に切り替えます：\n- プラットフォームネイティブドメイン：内部 Serverless ルートに自動的に関連付けられます\n- 静的ホスティングドメイン：手動で設定されたリモートプロキシインターフェースにフォールバックします\n- 開発環境：Vite プロキシ設定に関連付けられます'
+        content: 'システムは現在のホスト名からプロキシ戦略を選択します：\n- Cloudflare Pages：同一オリジンの Pages Functions ルートを使用\n- 開発環境：ローカルの Vite プロキシ設定を使用'
       }
     },
 
@@ -747,15 +735,15 @@ export const jaJP = {
       title: 'クラウド同期メカニズム',
       overview: {
         title: '同期機能の概要',
-        content: 'クラウド同期により、多次元データをリモートデータベースに安全に保存できます。すべての機密データはクライアント側でエンドツーエンドで暗号化されるため、送信中に同期サーバーを含む第三者がデータの内容を覗き見ることはできません。'
+        content: 'クラウド同期により、多次元データを Cloudflare KV に安全に保存できます。すべての機密データはクライアント側でエンドツーエンドで暗号化されるため、送信中に同期サーバーを含む第三者がデータの内容を覗き見ることはできません。'
       },
       setup: {
         title: '有効化手順ガイド',
-        content: '1. バックエンド関数プラットフォームのデプロイを完了する\n2. DATABASE_URL および DATABASE_TYPE 環境変数を設定する\n3. セキュリティ設定でクラウド同期をオンにし、独自の同期パスワードを設定する\n4. 基準を確立するために初回の手動同期を実行する'
+        content: '1. Cloudflare Pages にデプロイする\n2. KV ネームスペースを SYNC_DATA としてバインドし、AUTH_SECRET を設定する\n3. セキュリティ設定でクラウド同期をオンにし、独自の同期パスワードを設定する\n4. 基準を確立するために初回の手動同期を実行する'
       },
       platforms: {
-        title: 'バックエンドストレージのサポート',
-        content: 'Vercel/Netlify：MySQL および PostgreSQL データベースと互換性があります。\nCloudflare Pages：KV キーバリューストレージを利用して軽量なデータ同期を実現します。'
+        title: 'バックエンドストレージ',
+        content: 'Cloudflare Pages は SYNC_DATA としてバインドされた KV ネームスペースをクラウド同期に使用します。'
       }
     },
 

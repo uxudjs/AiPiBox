@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 
-// 白名单（与 api/ai-proxy.js 保持一致）
+// 白名单（与 functions/api/ai-proxy.js 保持一致）
 const ALLOWED_HOSTS = [
   'api.openai.com',
   'api.anthropic.com',

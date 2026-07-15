@@ -16,7 +16,7 @@ A powerful, privacy-focused modern AI conversation assistant application. Suppor
 ### 🔐 Privacy & Security
 - **Local-First Storage** - All data stored in browser IndexedDB, encrypted by a master password.
 - **End-to-End Encryption** - API keys and sensitive configurations encrypted using Web Crypto API.
-- **Optional Cloud Sync** - Encrypted backup to cloud storage (Cloudflare KV or MySQL/PostgreSQL).
+- **Optional Cloud Sync** - Encrypted backups to Cloudflare KV.
 - **No Server Tracking** - Runs completely client-side, protecting user privacy.
 
 ### 💬 Intelligent Conversations
@@ -69,20 +69,16 @@ npm run dev:full
 
 ## 📦 Deployment & Configuration
 
-AiPiBox supports multiple deployment methods. The app automatically detects the environment. **Please ensure you configure the necessary environment variables for full functionality.**
+Cloudflare Pages is the only supported production deployment for AiPiBox. **Configure the following environment variables and KV binding for full functionality.**
 
-### 1️⃣ Environment Variables (General)
+### Cloudflare Pages
 
-Regardless of the platform, it is recommended to configure these variables for better security and performance:
+**Environment variables:**
 
 | Variable | Description | Recommended Value |
 |----------|-------------|-------------------|
 | `AUTH_SECRET` | Secret key for HMAC signatures to protect the API. | 32-char random string |
 | `PROXY_RATE_LIMIT` | Max requests per IP per minute for the AI proxy. | `60` |
-
----
-
-### 2️⃣ Cloudflare Pages (Recommended)
 
 **Steps:**
 1. Create a Pages project in the [Cloudflare Dashboard](https://dash.cloudflare.com).
@@ -90,33 +86,7 @@ Regardless of the platform, it is recommended to configure these variables for b
    - **Variable name**: `SYNC_DATA`
    - **KV namespace**: Select your created KV namespace.
 3. **Env Vars**: In the same settings page, add `AUTH_SECRET` and `PROXY_RATE_LIMIT` under "Environment variables".
-4. **Deploy**: Run `npm run deploy:cf` or connect your Git repository.
-
----
-
-### 3️⃣ Vercel / Netlify
-
-**Steps:**
-1. Fork this repo and connect to the platform.
-2. **Env Vars**: Configure `AUTH_SECRET` and the following **Cloud Sync** variables in the platform console:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DB_TYPE` | Database type | `mysql` or `postgres` |
-| `DB_HOST` | Database host address | `xxx.xxx.com` |
-| `DB_NAME` | Database name | `aipibox` |
-| `DB_USER` | Username | `admin` |
-| `DB_PASSWORD`| Password | `******` |
-| `DB_SSL` | Enable SSL connection | `true` |
-
-3. The platform will automatically recognize Serverless Functions in the `api/` directory.
-
----
-
-### 4️⃣ GitHub Pages (Frontend Only)
-1. Build project: `npm run build`.
-2. Upload `dist` directory to the `gh-pages` branch.
-3. **Note**: Since backend scripts are not supported, you must manually specify the **Cloud Proxy URL** in the app settings (pointing to your Vercel/Netlify API).
+4. **Deploy**: Run `npm run deploy:cf` or connect your Git repository to Cloudflare Pages.
 
 ## 🛠️ Tech Stack
 
@@ -125,13 +95,12 @@ Regardless of the platform, it is recommended to configure these variables for b
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand)
 - **Database**: [Dexie.js](https://dexie.org/) (Local IndexedDB)
 - **Rendering**: [React Markdown](https://github.com/remarkjs/react-markdown) + [KaTeX](https://katex.org/) + [Mermaid](https://mermaid.js.org/)
-- **Backend**: Node.js (Vercel/Netlify) / Cloudflare Workers (Pages)
+- **Backend**: Cloudflare Pages Functions (Workers)
 
 ## 📁 Project Structure
 
 ```
 AiPiBox/
-├── api/                # Vercel/Netlify Serverless API (Node.js)
 ├── functions/          # Cloudflare Pages Functions (Workers)
 ├── proxy/              # Local development proxy server
 ├── src/

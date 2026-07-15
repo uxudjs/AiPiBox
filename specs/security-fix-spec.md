@@ -4,6 +4,8 @@
 **日期:** 2026-06-03
 **来源:** security-audit-report.md (7 个已确认漏洞)
 
+> **历史规格：** 自 2026-07-15 起，Node/Vercel/Netlify 后端已退役。本文中的 `api/` 修改要求仅用于追溯，当前生产修复目标为 `functions/api/`。
+
 ---
 
 ## Objective

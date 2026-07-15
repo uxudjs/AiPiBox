@@ -236,7 +236,7 @@ export const zhCN = {
       autoSync: '自动实时同步',
       autoSyncHint: '检测到本地数据变更后自动发起云端同步',
       syncApiUrl: '同步服务接口地址',
-      syncApiUrlHint: '留空则使用当前域名的默认路径。仅在使用自定义域名或 GitHub Pages 等静态托管时需要手动配置。',
+      syncApiUrlHint: '留空则使用当前 Cloudflare 域名的默认路径。仅在本地调试或明确使用跨域接口时需要手动配置。',
       syncApiUrlPlaceholder: '留空则自动使用：域名 + /api/sync',
       syncNow: '立即同步',
       syncStatus: '同步状态',
@@ -302,7 +302,7 @@ export const zhCN = {
       proxyMode: '启用全局 API 代理',
       proxyHint: '通过服务端转发 AI 请求，解决浏览器跨域限制，提升连接稳定性。支持后台持续生成及断线后自动恢复。',
       cloudProxyUrl: '代理服务地址',
-      cloudProxyHint: '留空则使用当前域名的默认路径。仅在使用自定义域名或 GitHub Pages 等静态托管时需要手动配置。',
+      cloudProxyHint: '留空则使用当前 Cloudflare 域名的默认路径。仅在本地调试或明确使用跨域接口时需要手动配置。',
       accessCode: '访问授权码 (Access Code)',
       accessCodeHint: '如果服务端配置了访问权限，请输入授权码。留空则不发送授权头。',
       cloudSyncDepends: '云端同步功能依赖代理服务，禁用代理将导致同步失效'
@@ -699,26 +699,14 @@ export const zhCN = {
     footer: '若需深入了解技术细节，请参阅官方文档或通过 GitHub 提交反馈',
 
     deployment: {
-      title: '多平台部署指南',
+      title: 'Cloudflare Pages 部署指南',
       platforms: {
-        title: '环境自动识别',
-        content: 'AiPiBox 能自动感知其运行环境，并针对 Vercel、Netlify 及 Cloudflare Pages 等平台应用最佳化配置。'
-      },
-      vercel: {
-        title: 'Vercel 部署',
-        content: '支持域名特征：*.vercel.app\n代理入口：/api/ai-proxy（全自动）\n同步接口：/api/sync（全自动）\n平台特性：支持 Serverless Functions。部署时无需额外配置代理 URL。'
-      },
-      netlify: {
-        title: 'Netlify 部署',
-        content: '支持域名特征：*.netlify.app\n代理入口：/api/ai-proxy（全自动）\n同步接口：/api/sync（全自动）\n平台特性：支持 Netlify Functions。推荐通过 GitHub 仓库直接关联部署。'
+        title: '支持环境',
+        content: '生产环境仅支持 Cloudflare Pages；本地开发可使用内置代理服务。'
       },
       cloudflare: {
         title: 'Cloudflare Pages 部署',
         content: '支持域名特征：*.pages.dev\n代理入口：/api/ai-proxy（全自动）\n同步接口：/api/sync（全自动）\n平台特性：基于 Cloudflare Workers 运行，无请求时长限制。云端同步需在 Dashboard 中绑定 KV 命名空间（变量名：SYNC_DATA）。'
-      },
-      github: {
-        title: 'GitHub Pages 部署',
-        content: '支持域名特征：*.github.io\n核心局限：GitHub Pages 仅支持静态托管，不支持运行后端逻辑。\n关键配置：必须在设置中手动指定生产环境的“云端代理 URL”以启用 AI 功能。'
       },
       local: {
         title: '本地开发调试',
@@ -734,7 +722,7 @@ export const zhCN = {
       },
       cloudProxy: {
         title: '生产代理配置',
-        content: '在 Vercel、Netlify 或 Cloudflare Pages 等原生环境下，系统会自动采用相对路径，通常无需手动设置。仅当您进行跨域部署、使用自定义域名或 GitHub Pages 时，才需显式配置此接口地址。'
+        content: 'Cloudflare Pages 会自动使用当前域名下的 /api 路由，通常无需手动设置。自定义 Cloudflare 域名同样使用相对路径。'
       },
       localProxy: {
         title: '本地调试配置',
@@ -742,7 +730,7 @@ export const zhCN = {
       },
       autoDetect: {
         title: '智能环境识别',
-        content: '系统会根据当前 Hostname 动态切换代理策略：\n- 平台原生域名：自动关联内部 Serverless 路由\n- 静态托管域名：回退至手动配置的远程代理接口\n- 开发环境：关联 Vite 代理配置'
+        content: '系统会根据当前 Hostname 选择代理策略：\n- Cloudflare Pages：使用同域 Pages Functions 路由\n- 开发环境：关联 Vite 本地代理配置'
       }
     },
 
@@ -750,15 +738,15 @@ export const zhCN = {
       title: '云端同步机制',
       overview: {
         title: '同步功能综述',
-        content: '云端同步允许将多维数据安全存储至远程数据库。所有敏感数据均在客户端完成端到端加密，即便在传输过程中，任何第三方（包括同步服务器）也无法窥视您的数据内容。'
+        content: '云端同步允许将多维数据安全存储至 Cloudflare KV。所有敏感数据均在客户端完成端到端加密，即便在传输过程中，任何第三方（包括同步服务器）也无法窥视您的数据内容。'
       },
       setup: {
         title: '启用步骤指南',
-        content: '1. 完成后端函数平台部署\n2. 配置 DATABASE_URL 及 DATABASE_TYPE 环境变量\n3. 在安全设置中开启云端同步并设置独立同步密码\n4. 执行首次手动同步以建立基准'
+        content: '1. 完成 Cloudflare Pages 部署\n2. 绑定名为 SYNC_DATA 的 KV 命名空间并配置 AUTH_SECRET\n3. 在安全设置中开启云端同步并设置独立同步密码\n4. 执行首次手动同步以建立基准'
       },
       platforms: {
-        title: '后端存储支持',
-        content: 'Vercel/Netlify：兼容 MySQL 及 PostgreSQL 数据库。\nCloudflare Pages：利用 KV 键值存储实现轻量化数据同步。'
+        title: '后端存储',
+        content: 'Cloudflare Pages 使用绑定名为 SYNC_DATA 的 KV 命名空间实现云端同步。'
       }
     },
 

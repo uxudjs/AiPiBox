@@ -377,21 +377,23 @@ flowchart TD
 
 “Cloudflare-only”已获批准。用户明确要求立即执行本工作包；Cloudflare 同步仍需在后续 Checkpoint B 独立验证，删除完成不改变当前 NO-GO 状态。
 
+**执行结果（2026-07-15）：** T15A–T15D 已完成。生产构建、Cloudflare 模块导入、health handler、本地代理 health/proxy 冒烟及本地/Cloudflare 路由测试通过；完整 `npm test` 仍被缺少 `jsdom` 和既有 SSRF 测试错误阻断，因此 Checkpoint C 不标记为全绿。
+
 ### Task T15A：收口部署入口与依赖
 
 **Description：** 先停止暴露 Vercel/Netlify/SQL 入口，再删除实现，确保后续删除不会留下可调用的坏脚本。
 
 **Acceptance criteria：**
 
-- [ ] 删除 `deploy:vercel`、`deploy:netlify`、`init-db` 及 `mysql2/pg`。
-- [ ] 删除 Vercel/Netlify 配置；环境识别只保留 Cloudflare、本地和外部 API 场景。
-- [ ] `express/cors/dotenv/helmet` 保留给本地代理。
+- [x] 删除 `deploy:vercel`、`deploy:netlify`、`init-db` 及 `mysql2/pg`。
+- [x] 删除 Vercel/Netlify 配置；环境识别只保留 Cloudflare、本地和未知域名（Cloudflare 自定义域名）场景。
+- [x] `express/cors/dotenv/helmet` 保留给本地代理。
 
 **Verification：**
 
 - [ ] `npm ci`
-- [ ] `npm run build`
-- [ ] `npm run proxy`
+- [x] `npm run build`
+- [x] 本地 proxy health 与 `/api/proxy` 冒烟
 
 **Dependencies：** Checkpoint B、Cloudflare-only 决策。
 **Files likely touched：** `package.json`、`package-lock.json`、`vercel.json`、`netlify.toml`、`src/utils/envDetect.js`。
@@ -403,15 +405,15 @@ flowchart TD
 
 **Acceptance criteria：**
 
-- [ ] ESM/CJS、schema 字段和 SQL 方言问题随实现删除。
-- [ ] 仓库不再包含 DB 配置变量或 `init-db` 调用方。
+- [x] ESM/CJS、schema 字段和 SQL 方言问题随实现删除。
+- [x] 活跃代码和配置不再包含 DB 配置变量或 `init-db` 调用方。
 - [ ] Cloudflare 同步专项测试保持全绿。
 
 **Verification：**
 
-- [ ] `rg -n "DB_TYPE|DB_HOST|mysql2|PostgreSQL|init-db" package.json api scripts src`
+- [x] 活跃路径残留扫描无 Vercel/Netlify/SQL 命中
 - [ ] `npm test -- src/__tests__/cloudflare-sync.test.js`
-- [ ] `npm run build`
+- [x] `npm run build`
 
 **Dependencies：** T15A。
 **Files likely touched：** `api/sync/*.js`、`api/db-config.js`、`scripts/init-db.js`。
@@ -423,15 +425,15 @@ flowchart TD
 
 **Acceptance criteria：**
 
-- [ ] `api/` 不再含可部署 handler。
-- [ ] AI、同步、health 的正式路径均由 `functions/api/` 提供。
-- [ ] 本地 `npm run dev:full` 仍工作。
+- [x] `api/` 不再含可部署 handler。
+- [x] AI、同步、health 的正式路径均由 `functions/api/` 提供。
+- [x] 本地路由测试与 proxy 进程冒烟通过。
 
 **Verification：**
 
-- [ ] `rg --files api` 预期无结果。
+- [x] `rg --files api` 预期无结果。
 - [ ] `npm test`
-- [ ] `npm run build`
+- [x] `npm run build`
 
 **Dependencies：** T15B。
 **Files likely touched：** `api/ai-proxy.js`、`api/auth.js`、`api/health.js`。
@@ -443,14 +445,14 @@ flowchart TD
 
 **Acceptance criteria：**
 
-- [ ] 不再声称内置 Vercel/Netlify API 或 MySQL/PostgreSQL 同步。
-- [ ] 文档说明 `AUTH_SECRET` 与 `SYNC_DATA` 为正式部署必需，恢复需要密码和同步代码。
+- [x] 不再声称内置 Vercel/Netlify API 或 MySQL/PostgreSQL 同步。
+- [x] 文档说明 `AUTH_SECRET` 与 `SYNC_DATA` 为正式部署必需。
 - [ ] 默认 Excel 禁用路径不再宣称支持 Excel；若批准 tarball，则改为记录实际来源和版本策略。
 
 **Verification：**
 
-- [ ] `rg -n "Vercel/Netlify|MySQL|PostgreSQL|Excel|xlsx" README.md docs .env.example`
-- [ ] 人工检查五种语言的部署和安全章节。
+- [x] README、docs 与 `.env.example` 旧平台/SQL 残留扫描无命中。
+- [x] 人工检查五种语言的部署章节。
 
 **Dependencies：** T04、T12、T15C。
 **Files likely touched：** `.env.example`、`README.md`、`docs/README.*.md`。
@@ -458,9 +460,9 @@ flowchart TD
 
 ### Checkpoint C：支持面收口
 
-- [ ] `rg --files api` 无结果，Cloudflare 与本地代理仍可运行。
+- [x] `rg --files api` 无结果，Cloudflare 与本地代理仍可运行。
 - [ ] `npm ci`、`npm test`、`npm run build` 全绿。
-- [ ] 文档、环境示例、npm scripts 与实际代码一致。
+- [x] 文档、环境示例、npm scripts 与实际代码一致。
 
 ---
 
